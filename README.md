@@ -28,6 +28,12 @@ O objeto fica no nível da água, então o riacho corrói a base.
 - Peixes garimpeiros nadam na água rasa caçando os grãos arrastados.
 - Bateia manual: clique nos grãos encalhados.
 
+## Objetivos e retenção
+- 12 objetivos guiados, com recompensa, ensinam o jogo passo a passo: gota, calha, bateia, jato, nascente, torretas, balão, coleção…
+- **Ganhos offline:** até 8 h, proporcionais às máquinas passivas (torretas, nuvem, aqueduto, nascente, peixes, lavagem automática).
+- **Coleção:** cada tipo de objeto novo dá +6% de renda permanente.
+- **Objetos lendários têm eventos próprios:** o ídolo dá a Bênção (renda ×2 por 30 s) e o baú abre com um tesouro.
+
 ## Câmera
 - WASD ou setas: mover
 - Q/E: girar

@@ -19,6 +19,9 @@ html,body{margin:0;height:100%;overflow:hidden;background:#1b1a17;font-family:"I
 #rank{margin-top:8px;font-size:12.5px;font-weight:600}#rankBar{background:linear-gradient(90deg,#8fd18a,#d6ff9f)}
 #nextRock{display:none;margin-top:8px;width:100%;padding:7px;border-radius:9px;border:1px solid #f1d9a866;background:#f1d9a822;color:#fbe9c4;font:inherit;font-weight:700;cursor:pointer}
 #combo{position:fixed;left:50%;bottom:140px;transform:translateX(-50%);font-size:22px;font-weight:900;color:#ffe08a;text-shadow:0 3px 14px #000c;pointer-events:none;opacity:0;transition:opacity .3s}
+#quest{position:fixed;left:50%;top:14px;transform:translateX(-50%);padding:8px 16px;font-size:13.5px;text-align:center;min-width:280px}
+#quest small{display:block;opacity:.65;font-size:11.5px;margin-top:2px}
+#quest.done{animation:qd .8s}@keyframes qd{50%{background:rgba(120,200,120,.45)}}
 #camHelp{position:fixed;right:14px;bottom:140px;padding:6px 11px;font-size:11px;opacity:.7}
 #sluice{top:150px!important}
 #sluice{position:fixed;right:14px;top:96px;padding:10px 14px;font-size:13px;min-width:190px;text-align:right}
@@ -66,7 +69,8 @@ html,body{margin:0;height:100%;overflow:hidden;background:#1b1a17;font-family:"I
 <div id="combo"></div>
 <div id="camHelp" class="panel">WASD mover · Q/E girar · R/F zoom · botão do meio arrasta · <b>C</b> centraliza</div>
 <div id="sluice" class="panel"><div><b>Calha de garimpo</b></div><div id="sluiceTxt" style="opacity:.75">$0 / $0</div><div class="bar"><div id="sluiceBar"></div></div><button id="wash">Lavar a calha</button></div>
-<div id="hint" class="panel">Clique na rocha para pingar uma gota · botão direito gira · 1–5 trocam a ferramenta</div>
+<div id="quest" class="panel"></div>
+<div id="hint" class="panel" style="display:none">Clique na rocha para pingar uma gota · botão direito gira · 1–5 trocam a ferramenta</div>
 <div id="toast"></div>
 <div id="shop" class="panel"><div id="tabs"></div><div id="ups"></div></div>
 <div id="hotbar" class="panel"></div>
@@ -82,8 +86,8 @@ const R=Math.random;
 // =================================================================
 const KEY='erosao3d_v2';
 const UP0={calhas:0,extracao:0,peixes:0,aqueduto:0,tempestade:0,gota:0,chuva:0,altura:0,acido:0,nuvem:0,calha:0,riffle:0,auto:0,jato:0,balao:0,granizo:0,onda:0,forcaJato:0,t_gota:0,t_esg:0,t_bal:0,cadencia:0,nascente:0,represa:0};
-const S={money:0,level:1,total:0,sluice:0,t:Date.now(),tool:'gota',up:{...UP0},found:{},mile:0,rockSeed:0,rocks:0,extras:[],col:{},rate:0};
-try{const sv=JSON.parse(localStorage.getItem(KEY)||'null');if(sv){Object.assign(S,sv);S.up=Object.assign({...UP0},sv.up||{});S.found=sv.found||{};S.col=sv.col||{};}}catch(e){}
+const S={money:0,level:1,total:0,sluice:0,t:Date.now(),tool:'gota',up:{...UP0},found:{},mile:0,rockSeed:0,rocks:0,extras:[],col:{},rate:0,q:0,qc:{}};
+try{const sv=JSON.parse(localStorage.getItem(KEY)||'null');if(sv){Object.assign(S,sv);S.up=Object.assign({...UP0},sv.up||{});S.found=sv.found||{};S.col=sv.col||{};S.qc=sv.qc||{};}}catch(e){}
 const save=()=>{S.t=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
 const dropN=l=>12+l*6, rainRate=l=>l*2.5, dropH=l=>.55+l*.22, acid=l=>Math.pow(1.3,l), cloudRate=l=>l*.6,
       cap=l=>Math.round(25*Math.pow(1.7,l)), capture=l=>Math.min(.92,.32+l*.08), autoWash=l=>l?Math.max(4,32-l*4):0,
@@ -121,6 +125,25 @@ const SHOP=[
  {k:'peixes',tab:'Garimpo',n:'🐟 Peixes garimpeiros',d:l=>l?`${l} peixe${l>1?'s':''} caçando grãos na água`:'Peixes que comem os restos na água',base:300,mul:1.9,max:8},
  {k:'auto',tab:'Garimpo',n:'Lavagem automática',d:l=>l?`Lava a cada ${autoWash(l)} s`:'Lava a calha sozinha',base:250,mul:1.9,max:7},
 ];
+const QUESTS=[
+ {t:'Clique na rocha 10 vezes para pingar gotas',c:'drops',n:10,rw:10},
+ {t:'Lave a calha quando ela tiver ouro',c:'wash',n:1,rw:15},
+ {t:'Compre sua primeira melhoria',c:'buy',n:1,rw:15},
+ {t:'Recolha grãos encalhados com a bateia (clique neles)',c:'pan',n:1,rw:25},
+ {t:'Atinja 3 marcos de erosão',c:'mile',n:3,rw:40},
+ {t:'Desbloqueie o Jato (aba Ferramentas)',c:'up:jato',n:1,rw:60},
+ {t:'Abra a Nascente (aba Terreno)',c:'up:nascente',n:1,rw:120},
+ {t:'Instale uma torreta',c:'turret',n:1,rw:150},
+ {t:'Arremesse um balão cheio (segure e solte)',c:'balloon',n:1,rw:250},
+ {t:'Troque para a próxima rocha',c:'rocks',n:1,rw:400},
+ {t:'Ganhe um peixe garimpeiro',c:'up:peixes',n:1,rw:500},
+ {t:'Complete 3 peças da coleção',c:'col',n:3,rw:1500},
+];
+function qProg(q){if(q.c.startsWith('up:'))return S.up[q.c.slice(3)]||0;if(q.c==='mile')return S.mile;if(q.c==='rocks')return S.rocks;if(q.c==='col')return Object.keys(S.col||{}).length;if(q.c==='turret')return turretCount();return S.qc[q.c]||0;}
+function qBump(c,n=1){S.qc[c]=(S.qc[c]||0)+n;}
+function stepQuest(){const el=document.getElementById('quest');if(!el)return;const q=QUESTS[S.q];if(!q){el.style.display='none';return;}
+  const p=Math.min(q.n,qProg(q));if(p>=q.n){S.money+=q.rw;S.total+=q.rw;S.q++;toast('Objetivo concluído ✔','+$'+fmt(q.rw));sfx.coin(q.rw);el.classList.remove('done');void el.offsetWidth;el.classList.add('done');save();return;}
+  const h=`🎯 ${q.t}<small>${q.n>1?p+'/'+q.n+' · ':''}recompensa $${fmt(q.rw)} · objetivo ${S.q+1}/${QUESTS.length}</small>`;if(el._h!==h){el.innerHTML=h;el._h=h;}}
 const TABS=['Ferramentas','Água','Torretas','Terreno','Garimpo'];let curTab='Água';
 const TOOLS=[{k:'gota',ic:'💧',n:'Gota'},{k:'jato',ic:'🚿',n:'Jato'},{k:'balao',ic:'🎈',n:'Balão'},{k:'granizo',ic:'🧊',n:'Granizo'},{k:'onda',ic:'🌊',n:'Onda'}];
 const toolOn=k=>k==='gota'||S.up[k]>0;
@@ -560,8 +583,8 @@ const rankIdx=()=>{let k=0;for(let i=0;i<RANKS.length;i++)if(S.total>=RANKS[i][0
 const rankMult=()=>1+rankIdx()*.12;
 const colCount=()=>Object.keys(S.col||{}).length;const colMult=()=>1+colCount()*.06;let blessT=0;
 const valMult=()=>(1+(S.level-1)*.35)*rankMult()*colMult()*(blessT>0?2:1);
-const MILES=[.08,.2,.4,.7,1,1.5,2.2,3,4,5.5,7.5,10,14,20,28,38,50,65];
-const mileReward=k=>Math.round(8*Math.pow(k+1,1.55)*(1+(S.level-1)*.6)*rankMult());
+const MILES=[.02,.05,.1,.2,.35,.6,1,1.5,2.2,3,4,5.5,7.5,10,14,20,28,38,50,65];
+const mileReward=k=>Math.round(6*Math.pow(k+1,1.55)*(1+(S.level-1)*.6)*rankMult());
 function spawnGrain(x,y,z,t,vx=0,vy=0,vz=0){if(sedCount>=MAXSED)return;const k=F.add(x,y,z,vx+(R()-.5)*.002,vy+.001,vz+(R()-.5)*.002,1,t);if(k>=0)sedCount++;}
 
 // =================================================================
@@ -831,7 +854,7 @@ function waveShotOld(target){const toCam=camera.position.clone().sub(target);toC
 const CD={gota:0,jato:0,balao:.4,granizo:.35,onda:4.5};const cdLeft={gota:0,jato:0,balao:0,granizo:0,onda:0};
 function useTool(first){
   if(!aim)return;const t=S.tool;
-  if(t==='gota'){if(first){spawnDrop(aim,dropN(S.up.gota),dropH(S.up.altura));sfx.drip();}return;}
+  if(t==='gota'){if(first){spawnDrop(aim,dropN(S.up.gota),dropH(S.up.altura));sfx.drip();qBump('drops');}return;}
   if(t==='jato')return; // contínuo no tick
   if(!first||cdLeft[t]>0)return;cdLeft[t]=CD[t];
   if(t==='balao'){cdLeft[t]=0;startCharge();}
@@ -855,7 +878,7 @@ function stepCharge(dt){
   chargeMesh.visible=true;chargeMesh.position.copy(fromCamera(charge.target,1.6,.7));const wob=1+Math.sin(charge.t*18)*.03*(sz>=balloonMax()*.99?1:.3);chargeMesh.scale.set(r*wob,r*1.12/wob,r*wob);
   targetRing.visible=true;targetRing.position.copy(charge.target).y+=.01;const tr=blastR(sz)*1.0;targetRing.scale.set(tr,tr,tr);}
 const blastR=sz=>(.07+.17*sz)*(1+S.up.altura*.04);
-function throwBalloon(){const sz=Math.max(.12,chargeSize());const src=chargeMesh.position.clone();const tg=charge.target;charge=null;sfx.inflate(false);
+function throwBalloon(){const sz=Math.max(.12,chargeSize());if(sz>=balloonMax()*.95)qBump('balloon');const src=chargeMesh.position.clone();const tg=charge.target;charge=null;sfx.inflate(false);
   const T=.5+sz*.15;const v=tg.clone().sub(src).divideScalar(T);v.y+=.5*9.8*T;
   const m=new THREE.Mesh(chargeMesh.geometry,balloonMatl);m.castShadow=true;const r=balloonRad(sz);m.scale.set(r,r*1.12,r);m.position.copy(src);scene.add(m);
   projs.push({pos:src,vel:v,sz,mesh:m,t:0});cdLeft.balao=CD.balao;sfx.whoosh();}
@@ -1006,7 +1029,7 @@ function panGrains(p){ // bateia: recolhe grãos encalhados perto do clique
   const gx=Math.floor((p.x-RX0)/V),gy=Math.floor((p.y-RY0)/V),gz=Math.floor((p.z-RZ0)/V);if(solid(gx,gy,gz)||solid(gx,gy-1,gz))return false;
   let got=0,n=0;const rb=.3*extScale(S.up.extracao);const r2=rb*rb;for(let i=0;i<F.np;i++){if(F.kind[i]!==1||F.dead[i]||F.still[i]<1)continue;const dx=F.px[i]-p.x,dz=F.pz[i]-p.z;if(dx*dx+dz*dz>r2||Math.abs(F.py[i]-p.y)>.3)continue;
     got+=MATS[F.mat[i]].val*valMult()*.6;F.kill(i);sedCount--;n++;}
-  if(!n)return false;F.compact();S.money+=got;S.total+=got;earnBatch+=got;floatText(p.clone().add(new THREE.Vector3(0,.15,0)),'🥘 +$'+fmt(got),'#ffd970',20);sfx.coin(got);
+  if(!n)return false;qBump('pan');F.compact();S.money+=got;S.total+=got;earnBatch+=got;floatText(p.clone().add(new THREE.Vector3(0,.15,0)),'🥘 +$'+fmt(got),'#ffd970',20);sfx.coin(got);
   if(!S.found.bateia){S.found.bateia=1;toast('Bateia!','Clique nos grãos encalhados para recolher na mão');}return true;}
 addEventListener('pointerup',()=>{down=false;});
 
@@ -1063,7 +1086,7 @@ const tabBtns={};for(const t of TABS){const b=document.createElement('button');b
 let btns=[];
 const avail=u=>(!u.req||S.up[u.req]>0);
 const maxed=u=>(u.max!==undefined&&S.up[u.k]>=u.max)||(u.cap&&!u.cap());
-function buy(u){sfx.init();const c=costOf(u);if(S.money<c||maxed(u)||!avail(u))return;S.money-=c;S.up[u.k]++;sfx.coin(c);
+function buy(u){sfx.init();const c=costOf(u);if(S.money<c||maxed(u)||!avail(u))return;S.money-=c;S.up[u.k]++;qBump('buy');sfx.coin(c);
   if(u.tool){S.tool=u.tool;toast(u.n+' desbloqueado!','Tecla '+(TOOLS.findIndex(t=>t.k===u.tool)+1)+' para selecionar');renderHotbar();}
   if(u.k==='chuva'&&S.up.chuva===1)toast('Chuva','Com a gota, segure o clique');
   if(u.k==='nuvem'&&S.up.nuvem===1)toast('Uma nuvem chegou ☁️','Ela chove sozinha enquanto você joga');
@@ -1079,14 +1102,14 @@ function buildShop(){$('ups').innerHTML='';btns=SHOP.filter(u=>u.tab===curTab).m
   for(const t of TABS)tabBtns[t].classList.toggle('on',t===curTab);}
 function renderHotbar(){const hb=$('hotbar');hb.innerHTML='';TOOLS.forEach((t,i)=>{const b=document.createElement('button');const on=toolOn(t.k);b.className='tool'+(S.tool===t.k?' on':'')+(on?'':' lock');
   b.innerHTML=`<span class="k">${i+1}</span><span class="ic">${on?t.ic:'🔒'}</span><span class="nm">${t.n}</span><span class="cd" id="cd_${t.k}"></span>`;b.onclick=()=>{sfx.init();if(on)setTool(t.k);else{curTab='Ferramentas';buildShop();ui();}};hb.appendChild(b);});}
-function wash(){if(S.sluice<.01)return;const v=S.sluice;S.money+=v;S.total+=v;earnBatch+=v;S.sluice=0;sfx.wash();
+function wash(){if(S.sluice<.01)return;qBump('wash');const v=S.sluice;S.money+=v;S.total+=v;earnBatch+=v;S.sluice=0;sfx.wash();
   const p=new THREE.Vector3((SL_X0+SL_X1)/2,chanBed((SL_X0+SL_X1)/2)+.25,0);floatText(p,'+$'+fmt(v),'#ffe08a',26);save();ui();}
 $('wash').onclick=()=>{sfx.init();wash();};
 $('nextRock').onclick=()=>{sfx.init();finishRock(false);};
 addEventListener('keydown',e=>{if(e.key==='l'||e.key==='L'){sfx.init();wash();}});
 function ui(){
   $('money').textContent='$'+fmt(S.money);const r=earnHist.length?earnHist.reduce((a,b)=>a+b,0)/(earnHist.length):0;$('rate').textContent='$'+fmt(r)+'/s em média';
-  $('rockName').textContent=rockInfo.name;const pct=rockPct();$('rockSub').textContent=pct.toFixed(pct<10?2:1).replace('.',',')+'% erodido · rocha '+S.level;
+  $('rockName').textContent=rockInfo.name;const pct=rockPct();$('rockSub').textContent=pct.toFixed(pct<1?3:pct<10?2:1).replace('.',',')+'% erodido · rocha '+S.level;
   const prev=S.mile?MILES[S.mile-1]:0,nxt=MILES[S.mile];$('rockBar').style.width=(nxt?Math.min(100,(pct-prev)/(nxt-prev)*100):100)+'%';
   $('mileTxt').textContent=nxt?`Próximo marco: ${String(nxt).replace('.',',')}% → +$${fmt(mileReward(S.mile))}`:'Todos os marcos atingidos!';
   $('nextRock').style.display=pct>=10&&!rockInfo.done?'block':'none';
@@ -1241,7 +1264,7 @@ function loop(now){
   rebuildDirty(6);
   let motion=0;for(let i=0;i<F.np;i+=3)motion+=Math.abs(F.vx[i])+Math.abs(F.vy[i])+Math.abs(F.vz[i]);sfx.frame(motion*HZ*.3);
   if(!SIMONLY){render(now/1000);updTexts();}
-  if(frames%8===0)ui();
+  if(frames%8===0){ui();stepQuest();}
   requestAnimationFrame(loop);
 }
 resize();
