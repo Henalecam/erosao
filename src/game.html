@@ -100,30 +100,30 @@ const SHOP=[
  {k:'balao',tab:'Ferramentas',n:'🎈 Balão d’água',d:l=>l?'Tecla 3 · segure para encher, solte para arremessar':'Encha, arremesse e estoure: abre crateras',base:450,mul:1,max:1,tool:'balao'},
  {k:'granizo',tab:'Ferramentas',n:'🧊 Granizo',d:l=>l?'Tecla 4 · pedras de gelo que lascam':'Gelo duro que lasca a rocha e derrete',base:1100,mul:1,max:1,tool:'granizo'},
  {k:'onda',tab:'Ferramentas',n:'🌊 Onda',d:l=>l?'Tecla 5 · parede de água':'Uma parede de água varre a base',base:2800,mul:1,max:1,tool:'onda'},
- {k:'forcaJato',tab:'Ferramentas',n:'Pressão do jato',d:l=>`${jetSpeed(l).toFixed(1)} m/s · penetração ${jetPen(l)}`,base:90,mul:1.7,max:8,req:'jato'},
- {k:'chuva',tab:'Ferramentas',n:'Chuva',d:l=>l?`Gota: segure para ${rainRate(l)} gotas/s`:'Com a gota, segure para chover',base:40,mul:1.65},
+ {k:'forcaJato',tab:'Ferramentas',n:'Pressão do jato',d:l=>`${jetSpeed(l).toFixed(1)} m/s · penetração ${jetPen(l)}`,base:90,mul:1.95,max:8,req:'jato'},
+ {k:'chuva',tab:'Ferramentas',n:'Chuva',d:l=>l?`Gota: segure para ${rainRate(l)} gotas/s`:'Com a gota, segure para chover',base:40,mul:1.85},
  // Água
- {k:'gota',tab:'Água',n:'Gota maior',d:l=>`${dropN(l)} partículas · jato mais grosso · balão maior`,base:8,mul:1.5},
- {k:'altura',tab:'Água',n:'Força da água',d:l=>`Impacto ×${waterPow(l).toFixed(2)} em todas as armas · penetração do jato`,base:25,mul:1.6,max:10},
- {k:'acido',tab:'Água',n:'Acidez',d:l=>`Erosão ×${acid(l).toFixed(2)} em tudo`,base:30,mul:1.7},
- {k:'nuvem',tab:'Água',n:'☁️ Nuvem',d:l=>l?`Chove sozinha ${cloudRate(l).toFixed(1)}/s`:'Uma nuvem que chove sozinha',base:120,mul:1.7},
+ {k:'gota',tab:'Água',n:'Gota maior',d:l=>`${dropN(l)} partículas · jato mais grosso · balão maior`,base:8,mul:1.68},
+ {k:'altura',tab:'Água',n:'Força da água',d:l=>`Impacto ×${waterPow(l).toFixed(2)} em todas as armas · penetração do jato`,base:25,mul:1.85,max:10},
+ {k:'acido',tab:'Água',n:'Acidez',d:l=>`Erosão ×${acid(l).toFixed(2)} em tudo`,base:30,mul:2.05},
+ {k:'nuvem',tab:'Água',n:'☁️ Nuvem',d:l=>l?`Chove sozinha ${cloudRate(l).toFixed(1)}/s`:'Uma nuvem que chove sozinha',base:120,mul:1.95},
  // Torretas
  {k:'t_gota',tab:'Torretas',n:'Torreta gotejadora',d:l=>`Pinga gotas na rocha · ${l} instalada${l===1?'':'s'}`,base:200,mul:2.2,cap:()=>turretCount()<6},
  {k:'t_esg',tab:'Torretas',n:'Torreta de esguicho',d:l=>`Rajadas de jato · ${l} instalada${l===1?'':'s'}`,base:650,mul:2.2,cap:()=>turretCount()<6},
  {k:'t_bal',tab:'Torretas',n:'Lança-balões',d:l=>`Arremessa balões · ${l} instalado${l===1?'':'s'}`,base:1800,mul:2.2,cap:()=>turretCount()<6},
- {k:'cadencia',tab:'Torretas',n:'Cadência',d:l=>`Torretas ${Math.round(cad(l)*100)}% mais rápidas`,base:300,mul:1.8,max:10},
+ {k:'cadencia',tab:'Torretas',n:'Cadência',d:l=>`Torretas ${Math.round(cad(l)*100)}% mais rápidas`,base:300,mul:2.0,max:10},
  // Terreno
  {k:'nascente',tab:'Terreno',n:'🏞️ Nascente',d:l=>l?`O riacho corre: ${springRate(l)} gotas/s`:'Abre uma nascente: um riacho bate na rocha',base:350,mul:1.9,max:6},
  {k:'aqueduto',tab:'Terreno',n:'🪵 Aqueduto',d:l=>l?`Despeja ${aqRate(l)} gotas/s no topo`:'Uma calha de madeira despeja água no topo da rocha',base:600,mul:1.85,max:6},
  {k:'tempestade',tab:'Terreno',n:'⛈️ Tempestades',d:l=>l?`Tempestades mais frequentes e fortes · ${l}`:'Libera tempestades de verão',base:1500,mul:2,max:5},
  {k:'represa',tab:'Terreno',n:'🪵 Represas surpresa',d:l=>l?`Represas surgem no riacho · nível ${l}`:'Castores represam o riacho… e ela estoura',base:900,mul:2.1,max:5,req:'nascente'},
  // Garimpo
- {k:'calha',tab:'Garimpo',n:'Calha maior',d:l=>`Capacidade $${fmt(cap(l))}`,base:35,mul:1.75},
- {k:'riffle',tab:'Garimpo',n:'Riffles',d:l=>`Retém ${Math.round(capture(l)*100)}% dos grãos`,base:45,mul:1.8,max:8},
+ {k:'calha',tab:'Garimpo',n:'Calha maior',d:l=>`Capacidade $${fmt(cap(l))}`,base:35,mul:1.9},
+ {k:'riffle',tab:'Garimpo',n:'Riffles',d:l=>`Retém ${Math.round(capture(l)*100)}% dos grãos`,base:45,mul:2.0,max:8},
  {k:'calhas',tab:'Garimpo',n:'🪵 Calha extra',d:l=>`${l}/3 calhas extras · +60% de capacidade cada`,base:400,mul:2.6,max:3},
- {k:'extracao',tab:'Garimpo',n:'Área de extração',d:l=>`Calhas e bateia ${Math.round(extScale(l)*100)}% maiores`,base:150,mul:1.75,max:8},
- {k:'peixes',tab:'Garimpo',n:'🐟 Peixes garimpeiros',d:l=>l?`${l} peixe${l>1?'s':''} caçando grãos na água`:'Peixes que comem os restos na água',base:300,mul:1.9,max:8},
- {k:'auto',tab:'Garimpo',n:'Lavagem automática',d:l=>l?`Lava a cada ${autoWash(l)} s`:'Lava a calha sozinha',base:250,mul:1.9,max:7},
+ {k:'extracao',tab:'Garimpo',n:'Área de extração',d:l=>`Calhas e bateia ${Math.round(extScale(l)*100)}% maiores`,base:150,mul:1.95,max:8},
+ {k:'peixes',tab:'Garimpo',n:'🐟 Peixes garimpeiros',d:l=>l?`${l} peixe${l>1?'s':''} caçando grãos na água`:'Peixes que comem os restos na água',base:300,mul:2.1,max:8},
+ {k:'auto',tab:'Garimpo',n:'Lavagem automática',d:l=>l?`Lava a cada ${autoWash(l)} s`:'Lava a calha sozinha',base:250,mul:2.05,max:7},
 ];
 const QUESTS=[
  {t:'Clique na rocha 10 vezes para pingar gotas',c:'drops',n:10,rw:10},
@@ -537,6 +537,7 @@ function collide(){
             if(jp>4&&vn>1.2){const sx_=x,sy_=y,sz_=z;x=ox[i]+dx;y=oy[i]+dy;z=oz[i]+dz;const qx=Math.floor((x-RX0)/V),qy=Math.floor((y-RY0)/V),qz=Math.floor((z-RZ0)/V);
               if(!solid(qx,qy,qz)){const k=.9;ox[i]=x-dx*k;oy[i]=y-dy*k;oz[i]=z-dz*k;F.mat[i]=Math.max(129,mt-5);}else{x=sx_;y=sy_;z=sz_;}}}
           if(vn>2.2&&splashBudget>0){splashBudget--;sfx.drop(Math.min(1,vn/5));}
+          if(vn>1.8&&Math.random()<(jp?.25:.12)){const a=Math.random()*6.283;addSpray(x,y,z,nx*vn*.35+Math.cos(a)*.6,ny*vn*.35+.5+Math.random(),nz*vn*.35+Math.sin(a)*.6);}
         }else if(kind[i]===2){ // granizo: lasca e quica
           const dmg=(.02+.06*vn*vn)*erosionMul;vhp[hit]-=dmg;
           if(vhp[hit]<=0){removeVoxel(hit,hx,hy,hz,true);for(const [a,b2,c] of [[1,0,0],[-1,0,0],[0,1,0],[0,0,1],[0,0,-1]])if(R()<vn*.08){const q=vid(hx+a,hy+b2,hz+c);if(hx+a>=0&&hx+a<GX&&hy+b2>=0&&hy+b2<GY&&hz+c>=0&&hz+c<GZ&&vt[q])removeVoxel(q,hx+a,hy+b2,hz+c,true);}}
@@ -859,6 +860,7 @@ function stepWaves(dt){for(let k=waves.length-1;k>=0;k--){const w=waves[k];w.t+=
   // a frente da onda empurra fragmentos que estão no caminho
   const front=w.base.clone().addScaledVector(w.toCam,-w.t*3.6);
   for(const f of frags){const rel=f.pos.clone().sub(front);const along=-rel.dot(w.toCam),lat=Math.abs(rel.dot(w.side));if(Math.abs(along)<.35&&lat<hw*.05+.1){f.vel.addScaledVector(w.toCam,-dt*9);f.vel.y+=dt*2;}}
+  if(w.t<.9){for(let q=0;q<8;q++){const a=(Math.random()*2-1)*hw*.05;const fx=front.x+w.side.x*a,fz=front.z+w.side.z*a;addSpray(fx,terrainH(fx,fz)+.28+Math.random()*.1,fz,-w.toCam.x*3+(Math.random()-.5),.6+Math.random(),-w.toCam.z*3+(Math.random()-.5),.016);}}
   if(w.t>1.2)waves.splice(k,1);}}
 function waveShotOld(target){const toCam=camera.position.clone().sub(target);toCam.y=0;toCam.normalize();const side=new THREE.Vector3(-toCam.z,0,toCam.x);
   const base=target.clone().addScaledVector(toCam,1.5);const vel=toCam.clone().multiplyScalar(-3.4/HZ);
@@ -915,6 +917,7 @@ function burstBalloon(p){
   ejectVoxels(blast,pos.x-p.vel.x*.02,pos.y-.05,pos.z-p.vel.z*.02,(.7+1.3*sz)*Math.sqrt(pw),6+Math.round(sz*3));
   // 3) empurra fragmentos
   for(const f of frags){const dv=f.pos.clone().sub(pos);const L=dv.length();if(L<rb*4){f.vel.addScaledVector(dv.normalize(),(1-L/(rb*4))*3*(.5+sz));}}
+  for(let q=0;q<40+sz*80;q++){const a=Math.random()*6.283,e=Math.random()*1.2;const v=1.5+Math.random()*2.5*(.5+sz);addSpray(pos.x,pos.y+.05,pos.z,Math.cos(a)*Math.cos(e)*v,Math.sin(e)*v+1,Math.sin(a)*Math.cos(e)*v,.018);}
   sfx.pop(sz);shake=Math.max(shake,.012+sz*.03);
   if(broke>30)floatText(pos.clone().add(new THREE.Vector3(0,.2,0)),'💥 '+broke+' blocos','#bfe6ff',18+sz*10);}
 addEventListener('keydown',e=>{const n=+e.key;if(n>=1&&n<=5){setTool(TOOLS[n-1].k);}});
@@ -941,6 +944,23 @@ function stepTurrets(dt){const sp=cad(S.up.cadencia);
     if(t.typ==='gota'&&t.t<=0){t.t=1.6;const tg=t.target;if(tg){spawnDrop(tg,dropN(S.up.gota),dropH(S.up.altura)*.8);}}
     if(t.typ==='esg'){if(t.t<=0&&t.burst<=0){t.burst=.7;t.t=3.2;}if(t.burst>0){t.burst-=dt;if(t.target){const src=hw.clone().add(t.target.clone().sub(hw).normalize().multiplyScalar(.2));t.acc=(t.acc||0)+40*dt;while(t.acc>=1){t.acc--;shootJet(src,t.target,5.2,1,128+Math.round(jetPen(0)*.6));}}}}
     if(t.typ==='bal'&&t.t<=0){t.t=5;if(t.target){lob(hw.clone().add(new THREE.Vector3(0,.1,0)),t.target,.7,55);sfx.whoosh();}}}}
+// ----- feixe visível do jato (sai de baixo/direita da câmera, como uma mangueira na mão)
+const _cr=new THREE.Vector3();
+function jetSource(target){const p=fromCamera(target,1.5,0);_cr.setFromMatrixColumn(camera.matrixWorld,0);p.addScaledVector(_cr,.45);p.y-=.18;const gy=terrainH(p.x,p.z)+.12;if(p.y<gy)p.y=gy;return p;}
+const beamGeo=new THREE.CylinderGeometry(1,1.6,1,10,1,true);beamGeo.translate(0,.5,0);beamGeo.rotateX(Math.PI/2);
+const beamMat=new THREE.MeshPhysicalMaterial({color:0x9fd6ff,roughness:.05,transparent:true,opacity:.42,clearcoat:1,emissive:0x0e2a40,emissiveIntensity:.6,side:THREE.DoubleSide,depthWrite:false});
+const beam=new THREE.Mesh(beamGeo,beamMat);beam.visible=false;beam.renderOrder=3;scene.add(beam);
+function updBeam(on,src,dst,t){if(!on){beam.visible=false;return;}beam.visible=true;beam.position.copy(src);beam.lookAt(dst);const L=src.distanceTo(dst);const r=.028+S.up.gota*.003;
+  beam.scale.set(r*(1+Math.sin(t*40)*.15),r*(1+Math.cos(t*37)*.15),L);beamMat.opacity=.55+Math.sin(t*25)*.1;}
+// ----- borrifo/espuma (só visual)
+const SPRAY_N=900;const sprayMesh=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,0),new THREE.MeshStandardMaterial({color:0xeaf6ff,roughness:.3,transparent:true,opacity:.85}),SPRAY_N);
+sprayMesh.frustumCulled=false;sprayMesh.count=0;scene.add(sprayMesh);const spray=[];
+function addSpray(x,y,z,vx,vy,vz,sz=.012){if(spray.length>=SPRAY_N)return;spray.push({x,y,z,vx,vy,vz,s:sz*(.6+Math.random()*.8),life:.35+Math.random()*.5,t:0});}
+const _sm=new THREE.Matrix4();
+function stepSpray(dt){let n=0;for(let k=spray.length-1;k>=0;k--){const p=spray[k];p.t+=dt;if(p.t>p.life){spray[k]=spray[spray.length-1];spray.pop();continue;}
+  p.vy-=9.8*dt;p.vx*=.98;p.vz*=.98;p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;const g=terrainH(p.x,p.z);if(p.y<g){p.y=g;p.vy=0;p.vx*=.5;p.vz*=.5;}}
+  for(const p of spray){const k=(1-p.t/p.life)*p.s;_sm.makeScale(k,k,k).setPosition(p.x,p.y,p.z);sprayMesh.setMatrixAt(n++,_sm);}
+  sprayMesh.count=n;sprayMesh.instanceMatrix.needsUpdate=true;}
 // ----- peixes garimpeiros
 const fishes=[];const fishMats=[0xff8a3d,0xf2f2f2,0xffc94a,0xd9534f,0x9fb8c9].map(c=>new THREE.MeshStandardMaterial({color:c,roughness:.45,metalness:.15}));
 function makeFish(k){const g=new THREE.Group();const m=fishMats[k%fishMats.length];
@@ -1192,7 +1212,7 @@ function simFrame(){
   for(const k in cdLeft)if(cdLeft[k]>0)cdLeft[k]-=dt;
   // segurar
   if(down&&aim&&S.tool==='gota'&&S.up.chuva){holdAcc+=rainRate(S.up.chuva)/60;while(holdAcc>=1){holdAcc--;const p=aim.clone();p.x+=(R()-.5)*.12;p.z+=(R()-.5)*.12;spawnDrop(p,dropN(S.up.gota),dropH(S.up.altura));}}
-  if(down&&aim&&S.tool==='jato'){holdAcc+=jetRate(S.up.forcaJato)/60;const src=fromCamera(aim,1.35,.15);const thick=1+Math.floor(S.up.gota/3);const spd=Math.min(7,jetSpeed(S.up.forcaJato)+S.up.altura*.2);while(holdAcc>=1){holdAcc--;shootJet(src,aim,spd,thick);}sfx.jet(true);}else sfx.jet(false);
+  if(down&&aim&&S.tool==='jato'){holdAcc+=jetRate(S.up.forcaJato)/60;const src=jetSource(aim);updBeam(true,src,aim,frames/60);const thick=1+Math.floor(S.up.gota/3);const spd=Math.min(7,jetSpeed(S.up.forcaJato)+S.up.altura*.2);while(holdAcc>=1){holdAcc--;shootJet(src,aim,spd,thick);}sfx.jet(true);}else{sfx.jet(false);updBeam(false);}
   stepTurrets(dt);stepSpring(dt);stepDam(dt);stepAqueduct(dt);stepStorm(dt);stepCharge(dt);stepProjs(dt);stepWaves(dt);stepEvents(dt);stepFish(dt);
   // nuvem
   if(S.up.nuvem){cloud.visible=true;cloudT+=1/60;const cx=Math.sin(cloudT*.21)*.55,cz=Math.cos(cloudT*.17)*.45;cloud.position.lerp(new THREE.Vector3(cx,RY0+GY*V+.9,cz),.03);
@@ -1269,7 +1289,7 @@ function stepCamera(dt){
 }
 function loop(now){
   const dt=Math.min(100,now-last);last=now;acc+=dt;let n=0;
-  stepCamera(dt/1000);if(blessT>0){blessT-=dt/1000;}wetDecay();wetU.uT.value=now/1000;
+  stepCamera(dt/1000);stepSpray(dt/1000);if(blessT>0){blessT-=dt/1000;}wetDecay();wetU.uT.value=now/1000;
   if(comboT>0){comboT-=dt/1000;comboDur+=dt/1000;if(comboT<=0){comboN=0;comboGain=0;comboDur=0;}}
   {const cm=comboMul();const el=$('combo');if(cm>1.05){el.style.opacity=1;el.textContent=`Combo ×${cm.toFixed(1).replace('.',',')} · +$${fmt(comboGain)}`;}else el.style.opacity=0;}
   while(acc>=1000/60&&n<2){const t0=performance.now();simFrame();adaptCap(performance.now()-t0);acc-=1000/60;n++;frames++;}if(n===2)acc=0;
@@ -1285,7 +1305,7 @@ function offlineGains(){const away=(Date.now()-(S.t||Date.now()))/1000;const pas
   if(away<60||!passive||!(S.rate>0))return;const sec=Math.min(away,8*3600);const g=Math.round(sec*S.rate*Math.min(.5,.12+passive*.03));if(g<1)return;S.money+=g;S.total+=g;
   const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60);setTimeout(()=>toast('Enquanto você estava fora ('+(h?h+'h ':'')+m+'min)','Suas máquinas renderam +$'+fmt(g)),900);}
 setTimeout(()=>{offlineGains();newRock(false);buildShop();renderHotbar();rebuildTurrets();buildAqueduct();buildExtraSluices();syncFish();ui();hideLoading();requestAnimationFrame(loop);},30);
-window.__dbg={wetData,wetTex,SHOP,buy,wash,costOf,maxed,avail,get simCost(){return simCost},meteorShower,rareVisitor,newRock,get rock(){return rockInfo},hold(v){down=v;},jetAt(x,y,z){aim=new THREE.Vector3(x,y,z);S.tool='jato';down=true;},panGrains:(x,y,z)=>panGrains(new THREE.Vector3(x,y,z)),startStorm,get cap(){return F.cap},aimAt(x,y,z){aim=new THREE.Vector3(x,y,z);},carve(x0,x1,y0,y1){for(let z=0;z<GZ;z++)for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const i=vid(x,y,z);if(vt[i])removeVoxel(i,x,y,z,false);}},frags,setTool,useTool,get aim(){return aim},set aim(v){aim=v},startDam,burstDam,get dam(){return dam},DBG,setRender(v){SIMONLY=!v;},cam:camera,ctl:controls,get frames(){return frames},F,S,rockInfo:()=>rockInfo,spawnDrop:(x,y,z,n,h)=>spawnDrop(new THREE.Vector3(x,y,z),n,h)};
+window.__dbg={beam,wetData,wetTex,SHOP,buy,wash,costOf,maxed,avail,get simCost(){return simCost},meteorShower,rareVisitor,newRock,get rock(){return rockInfo},hold(v){down=v;},jetAt(x,y,z){aim=new THREE.Vector3(x,y,z);S.tool='jato';down=true;},panGrains:(x,y,z)=>panGrains(new THREE.Vector3(x,y,z)),startStorm,get cap(){return F.cap},aimAt(x,y,z){aim=new THREE.Vector3(x,y,z);},carve(x0,x1,y0,y1){for(let z=0;z<GZ;z++)for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const i=vid(x,y,z);if(vt[i])removeVoxel(i,x,y,z,false);}},frags,setTool,useTool,get aim(){return aim},set aim(v){aim=v},startDam,burstDam,get dam(){return dam},DBG,setRender(v){SIMONLY=!v;},cam:camera,ctl:controls,get frames(){return frames},F,S,rockInfo:()=>rockInfo,spawnDrop:(x,y,z,n,h)=>spawnDrop(new THREE.Vector3(x,y,z),n,h)};
 addEventListener('visibilitychange',()=>{if(document.hidden){save();saveRockMask();}});addEventListener('beforeunload',()=>{save();saveRockMask();});
 </script>
 </body>
