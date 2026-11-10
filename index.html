@@ -32,6 +32,8 @@ html,body{margin:0;height:100%;overflow:hidden;background:#1b1a17;font-family:"I
 @keyframes pulse{50%{background:#ffd25a55;box-shadow:0 0 18px #ffd25a66}}
 #shop{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);padding:8px;width:min(1180px,calc(100vw - 24px));box-sizing:border-box}
 #tabs{display:flex;gap:6px;margin-bottom:7px}
+#shop.min #ups{display:none}#shop.min #tabs{margin-bottom:0}
+#shopToggle{margin-left:auto;background:none;border:1px solid rgba(255,240,210,.18);color:inherit;font:inherit;font-size:12px;padding:4px 10px;border-radius:8px;cursor:pointer;opacity:.75}
 .tab{background:none;border:1px solid transparent;color:inherit;font:inherit;font-size:12.5px;font-weight:600;padding:5px 11px;border-radius:8px;cursor:pointer;opacity:.6;position:relative}
 .tab.on{opacity:1;background:rgba(255,245,225,.1);border-color:rgba(255,240,210,.18)}
 .tab .dot{position:absolute;top:3px;right:3px;width:6px;height:6px;border-radius:3px;background:#b9f58f;display:none}
@@ -67,7 +69,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#1b1a17;font-family:"I
 <div id="top" class="panel"><div id="money">$0</div><div id="rate">$0/s</div><div id="rank"><span id="rankName">Aprendiz</span> <span id="rankMul" style="opacity:.6"></span><div class="bar"><div id="rankBar"></div></div><div id="rankNext" style="font-size:11px;opacity:.55;margin-top:3px"></div></div></div>
 <div id="rock" class="panel"><div id="rockName">—</div><div id="rockSub" style="opacity:.7">0% erodido</div><div class="bar"><div id="rockBar"></div></div><div id="mileTxt" style="font-size:11.5px;opacity:.75;margin-top:4px"></div><button id="nextRock">Próxima rocha →</button></div>
 <div id="combo"></div>
-<div id="camHelp" class="panel">WASD mover · Q/E girar · R/F zoom · botão do meio arrasta · <b>C</b> centraliza</div>
+<div id="camHelp" class="panel">WASD mover · Q/E girar · R/F zoom · botão do meio arrasta · <b>C</b> centraliza · <b>B</b> loja · <b>L</b> lava</div>
 <div id="sluice" class="panel"><div><b>Calha de garimpo</b></div><div id="sluiceTxt" style="opacity:.75">$0 / $0</div><div class="bar"><div id="sluiceBar"></div></div><button id="wash">Lavar a calha</button></div>
 <div id="quest" class="panel"></div>
 <div id="hint" class="panel" style="display:none">Clique na rocha para pingar uma gota · botão direito gira · 1–5 trocam a ferramenta</div>
@@ -227,7 +229,7 @@ function stepQuest(){const el=document.getElementById('quest');if(!el)return;con
   const p=Math.min(q.n,qProg(q));if(p>=q.n){S.money+=q.rw;S.total+=q.rw;S.q++;toast('Objetivo concluído ✔','+$'+fmt(q.rw));sfx.coin(q.rw);el.classList.remove('done');void el.offsetWidth;el.classList.add('done');save();return;}
   const h=`🎯 ${q.t}<small>${q.n>1?p+'/'+q.n+' · ':''}recompensa $${fmt(q.rw)} · objetivo ${S.q+1}/${QUESTS.length}</small>`;if(el._h!==h){el.innerHTML=h;el._h=h;}}
 const TABS=['Ferramentas','Água','Torretas','Terreno','Garimpo'];let curTab='Água';
-const TOOLS=[{k:'gota',ic:'💧',n:'Gota'},{k:'jato',ic:'🚿',n:'Jato'},{k:'balao',ic:'🎈',n:'Balão'},{k:'granizo',ic:'🧊',n:'Granizo'},{k:'onda',ic:'🌊',n:'Onda'}];
+const TOOLS=[{k:'gota',ic:'💧',n:'Gota',tip:'Clique: pinga uma gota. Com Chuva, segure para chover.'},{k:'jato',ic:'🚿',n:'Jato',tip:'Segure: jato que perfura a rocha.'},{k:'balao',ic:'🎈',n:'Balão',tip:'Segure para encher, solte para arremessar. Estoura e lança blocos.'},{k:'granizo',ic:'🧊',n:'Granizo',tip:'Clique: blocos de gelo caem, lascam a rocha e derretem.'},{k:'onda',ic:'🌊',n:'Onda',tip:'Clique: parede de água que varre a base e empurra detritos.'}];
 const toolOn=k=>k==='gota'||S.up[k]>0;
 const costOf=u=>Math.floor(u.base*Math.pow(u.mul,S.up[u.k]));
 
@@ -1197,7 +1199,11 @@ const sfx=(()=>{let ac=null,master,nb,muted=false,budget=5,flowG,flowF,windG,jet
 const $=id=>document.getElementById(id);
 function fmt(n){if(n<100)return n.toFixed(n<10?2:1).replace('.',',');n=Math.floor(n);if(n<1e5)return n.toLocaleString('pt-BR');const u=['','K','M','B','T'];let k=0,v=n;while(v>=1000&&k<4){v/=1000;k++;}return v.toFixed(v<10?2:1).replace('.',',')+u[k];}
 // abas da loja
-const tabBtns={};for(const t of TABS){const b=document.createElement('button');b.className='tab';b.innerHTML=t+'<span class="dot"></span>';b.onclick=()=>{curTab=t;buildShop();ui();};$('tabs').appendChild(b);tabBtns[t]=b;}
+const tabBtns={};
+function toggleShop(){const sh=$('shop');sh.classList.toggle('min');S.shopMin=sh.classList.contains('min');$('shopToggle').textContent=S.shopMin?'Loja ▴':'Ocultar ▾';}
+for(const t of TABS){const b=document.createElement('button');b.className='tab';b.innerHTML=t+'<span class="dot"></span>';b.onclick=()=>{curTab=t;buildShop();ui();};$('tabs').appendChild(b);tabBtns[t]=b;}
+{const tg=document.createElement('button');tg.id='shopToggle';tg.title='Mostrar/ocultar a loja (tecla B)';tg.textContent='Ocultar ▾';tg.onclick=toggleShop;$('tabs').appendChild(tg);if(S.shopMin){S.shopMin=false;setTimeout(toggleShop,0);}}
+addEventListener('keydown',e=>{if(e.key==='b'||e.key==='B')toggleShop();});
 let btns=[];
 const avail=u=>(!u.req||S.up[u.req]>0);
 const maxed=u=>(u.max!==undefined&&S.up[u.k]>=u.max)||(u.cap&&!u.cap());
@@ -1213,10 +1219,10 @@ function buy(u){sfx.init();const c=costOf(u);if(S.money<c||maxed(u)||!avail(u))r
   if(u.k==='tempestade'&&S.up.tempestade===1){stormTimer=8;}
   if(u.k==='represa'&&S.up.represa===1){toast('Castores na área 🦫','Em breve uma represa vai surgir no riacho');damTimer=Math.min(damTimer,25);}
   save();buildShop();ui();}
-function buildShop(){$('ups').innerHTML='';btns=SHOP.filter(u=>u.tab===curTab).map(u=>{const b=document.createElement('button');b.className='up';b.onclick=()=>buy(u);b._u=u;$('ups').appendChild(b);return b;});
+function buildShop(){$('ups').innerHTML='';btns=SHOP.filter(u=>u.tab===curTab).map(u=>{const b=document.createElement('button');b.className='up';b.onclick=()=>buy(u);b.setAttribute('aria-label',u.n);b._u=u;$('ups').appendChild(b);return b;});
   for(const t of TABS)tabBtns[t].classList.toggle('on',t===curTab);}
 function renderHotbar(){const hb=$('hotbar');hb.innerHTML='';TOOLS.forEach((t,i)=>{const b=document.createElement('button');const on=toolOn(t.k);b.className='tool'+(S.tool===t.k?' on':'')+(on?'':' lock');
-  b.innerHTML=`<span class="k">${i+1}</span><span class="ic">${on?t.ic:'🔒'}</span><span class="nm">${t.n}</span><span class="cd" id="cd_${t.k}"></span>`;b.onclick=()=>{sfx.init();if(on)setTool(t.k);else{curTab='Ferramentas';buildShop();ui();}};hb.appendChild(b);});}
+  b.title=`${t.n} (tecla ${i+1}): ${on?t.tip:'bloqueado. Desbloqueie na aba Ferramentas.'}`;b.setAttribute('aria-label',b.title);b.innerHTML=`<span class="k">${i+1}</span><span class="ic">${on?t.ic:'🔒'}</span><span class="nm">${t.n}</span><span class="cd" id="cd_${t.k}"></span>`;b.onclick=()=>{sfx.init();if(on)setTool(t.k);else{curTab='Ferramentas';buildShop();ui();}};hb.appendChild(b);});}
 function wash(){if(S.sluice<.01)return;qBump('wash');const v=S.sluice;S.money+=v;S.total+=v;earnBatch+=v;S.sluice=0;sfx.wash();
   const p=new THREE.Vector3((SL_X0+SL_X1)/2,chanBed((SL_X0+SL_X1)/2)+.25,0);floatText(p,'+$'+fmt(v),'#ffe08a',26);save();ui();}
 $('wash').onclick=()=>{sfx.init();wash();};

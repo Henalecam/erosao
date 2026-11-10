@@ -1,89 +1,82 @@
 # Erosão
 
-Idle de física: uma rocha voxel realista no centro de uma clareira, desgastada pela água pouco a pouco.
-Os grãos que se soltam precisam ser levados pela correnteza até a calha de garimpo.
+Idle de física: um objeto de voxels realista fica no centro de uma clareira e você o desgasta com água de verdade.
+A erosão de cada gota é mínima: o progresso vem de melhorias, ferramentas, máquinas e eventos. Os grãos que se soltam
+precisam ser levados pela correnteza até as calhas de garimpo, onde viram dinheiro.
 
-## Como jogar
-- **Clique** na rocha para pingar uma gota. Cada gota tira quase nada, então insistir no mesmo ponto cava um buraco.
-- A água escorre pela rocha, forma um riacho em volta dela e desce pelo canal até a **calha de madeira**.
-- Os riffles da calha retêm parte dos grãos. O resto vai embora com a água.
-- A calha enche: **lave-a** (botão ou tecla `L`) para transformar o que ela reteve em dinheiro. Com a calha cheia, os grãos se perdem.
-- Dentro da rocha há veios de quartzo com ouro, pepitas e, nos geodos, ametista.
+**Jogar:** abra o `index.html` num navegador moderno com WebGL2. É um arquivo único; o Three.js vem do CDN.
 
-## Objetos
-A cada rocha nova, sorteia-se um objeto. Cada um tem formato e materiais próprios:
-- Bloco de arenito, matacão de granito, pilar de basalto, arco natural e pedras gêmeas.
-- Raros: geodo de ametista, rocha com fóssil e meteorito.
-- Lendários: ídolo de jade (com olhos de ouro) e baú enterrado, cheio de ouro.
+## Controles
+| Ação | Comando |
+|---|---|
+| Usar a ferramenta | Clique esquerdo (segurar: chuva, jato, encher o balão) |
+| Trocar de ferramenta | 1 a 5 |
+| Girar a câmera | Botão direito ou Q/E |
+| Mover a câmera | WASD ou setas, ou arrastar com o botão do meio |
+| Zoom | Roda do mouse (em direção ao cursor) ou R/F |
+| Centralizar | C |
+| Lavar a calha | L, botão, ou clique na calha |
+| Mostrar/ocultar a loja | B |
+| Bateia | Clique nos grãos encalhados |
 
-Eventos aleatórios:
-- **Chuva de meteoritos:** crava meteoritos ao redor da rocha.
-- **Visitante raro:** um ídolo ou baú surge ao lado.
+## Ferramentas
+- 💧 **Gota:** com a melhoria Chuva, segure para chover.
+- 🚿 **Jato:** feixe de alta pressão que **perfura**; as partículas atravessam os voxels que quebram.
+- 🎈 **Balão d'água:** segure para encher e solte para arremessar no alvo marcado. Ele estoura numa cratera e **lança os blocos** como fragmentos físicos.
+- 🧊 **Granizo:** blocos de gelo rígidos que caem, lascam a rocha, estilhaçam e derretem.
+- 🌊 **Onda:** parede de água com espuma que varre a base e empurra os detritos.
 
-O objeto fica no nível da água, então o riacho corrói a base.
+As melhorias de água valem para todas as ferramentas:
+- **Gota maior:** mais volume em tudo.
+- **Força da água:** mais impacto e mais penetração do jato.
+- **Acidez:** multiplica toda a erosão.
 
-## Garimpo
-- Calha principal e até 3 calhas extras em volta da rocha, que somam capacidade.
-- Área de extração: deixa as calhas e a bateia maiores.
-- Peixes garimpeiros nadam na água rasa caçando os grãos arrastados.
-- Bateia manual: clique nos grãos encalhados.
+## Objetos e eventos
+- Objetos sorteados a cada rocha:
+  - Comuns: arenito, granito, pilar de basalto, arco natural e pedras gêmeas.
+  - Raros: geodo de ametista, rocha com fóssil e meteorito.
+  - Lendários: ídolo de jade e baú enterrado.
+- Lendários com eventos próprios:
+  - Ídolo: expor o ouro dá a **Bênção** (renda ×2 por 30 s).
+  - Baú: expor o ouro **abre o baú** com um tesouro.
+- **Eventos aleatórios:**
+  - Chuva de meteoritos: crava meteoritos ao redor.
+  - Visitante raro: um ídolo ou baú surge ao lado.
+  - Tempestades.
+  - Represas surpresa: os castores represam o riacho; clique na represa para estourar e ganhar erosão ×2.
+- **Física da rocha:** os pedaços sem apoio viram fragmentos rígidos que caem, rolam, quicam, são empurrados pela água e se desgastam.
 
-## Objetivos e retenção
-- 12 objetivos guiados, com recompensa, ensinam o jogo passo a passo: gota, calha, bateia, jato, nascente, torretas, balão, coleção…
-- **Ganhos offline:** até 8 h, proporcionais às máquinas passivas (torretas, nuvem, aqueduto, nascente, peixes, lavagem automática).
-- **Coleção:** cada tipo de objeto novo dá +6% de renda permanente.
-- **Objetos lendários têm eventos próprios:** o ídolo dá a Bênção (renda ×2 por 30 s) e o baú abre com um tesouro.
-
-## Câmera
-- WASD ou setas: mover
-- Q/E: girar
-- R/F: zoom (a roda do mouse também funciona, com zoom em direção ao cursor)
-- Botão do meio: arrastar
-- Botão direito: orbitar
-- C: centralizar na rocha
+## Garimpo e máquinas
+- A calha principal e até 3 calhas extras somam capacidade. A **área de extração** amplia a zona de captura e a bateia.
+- **Peixes garimpeiros** nadam na água rasa comendo os grãos arrastados.
+- **Torretas:** gotejadora, esguicho e lança-balões, mais o upgrade de cadência.
+- **Terreno:**
+  - Nascente: cria um riacho que bate na rocha.
+  - Aqueduto: despeja água no topo da rocha.
+  - Tempestades e represas.
 
 ## Progressão
-- **Marcos de erosão:** cada rocha tem marcos (0,08%, 0,2%, 0,4%… até 65%) que pagam recompensas crescentes.
-- **Próxima rocha:** depois de 10% erodido, dá para trocar de rocha. Cada nova rocha vale +35% (bônus permanente). Com 65%, a troca é automática.
-- **Ranks de garimpeiro:** sobem conforme o total já ganho (de Aprendiz a Titã da erosão), e cada rank aumenta a renda em 12%.
-- **Combo:** quanto mais tempo você erode sem parar, maior o multiplicador (até ×3), que paga na hora cada voxel arrancado.
-- **Bateia:** clique nos grãos encalhados para recolhê-los na mão.
-- **Água parada** infiltra no solo e evapora; os grãos esquecidos por muito tempo se perdem.
-- A rocha erodida fica salva e continua de onde parou ao recarregar.
-
-## Desbloqueios
-- **Ferramentas (teclas 1 a 5):**
-  - Gota.
-  - Jato: perfura, atravessando os voxels que quebra.
-  - Balão d'água: segure para encher, solte para arremessar no alvo marcado. Ele estoura numa cratera.
-  - Granizo e onda.
-- **Os upgrades de água valem para todas as armas:**
-  - Gota maior: jato mais grosso, balão maior, mais granizo e onda mais larga.
-  - Força da água: mais impacto e mais penetração do jato.
-  - Acidez: multiplica toda a erosão.
-- **Torretas:** gotejadora, esguicho e lança-balões. Elas miram sozinhas e o upgrade de cadência acelera todas.
-- **Terreno:**
-  - Nascente: abre um riacho que bate na rocha.
-  - Aqueduto: despeja água no topo da rocha.
-  - Tempestades: evento de chuva forte, com raios.
-  - Represas surpresa: castores represam o riacho; clique na represa para estourar e causar uma enchente com erosão ×2.
-- **Física da rocha:** os pedaços que se soltam viram fragmentos rígidos que caem, rolam, lascam no impacto e são erodidos pela água.
-- **Garimpo:** calha maior, riffles e lavagem automática. Clicar na calha também a lava.
+- **12 objetivos guiados**, com recompensa, ensinam o jogo.
+- **Marcos de erosão** por rocha: 0,01%, 0,025%… até 65%.
+- **Próxima rocha:** disponível com 10% erodido; cada rocha nova vale +35%.
+- **Ranks de garimpeiro:** +12% de renda por rank.
+- **Coleção:** +6% de renda por tipo de objeto.
+- **Combo:** cresce com o tempo de erosão contínua, até ×3.
+- **Ganhos offline:** até 8 h, proporcionais às máquinas passivas.
+- O progresso e a rocha erodida ficam salvos no navegador (localStorage).
 
 ## Tecnologia
-- **Fluido:** SPH viscoelástico 3D (Clavet et al. 2005), com relaxação de dupla densidade, viscosidade e coesão, a 120 Hz. Os grãos de sedimento são partículas mais pesadas, arrastadas pela água.
-- **Rocha:** grade voxel de 128×104×128 (2,2 cm) gerada com ruído: estratos, fissuras, veios, musgo e líquen. A malha é feita por chunks com oclusão ambiente por vértice.
-- **Colisão:** a água colide com a normal suavizada da rocha, então escorre em vez de parar nos degraus. A erosão depende da velocidade de impacto e do cisalhamento do escoamento.
-- **Água na tela:** renderização em espaço de tela (profundidade das esferas, blur bilateral, normais, refração, absorção de Beer-Lambert, reflexo de Fresnel do céu e brilho do sol).
-- **Cena:** Three.js com sombras suaves, céu de entardecer e ambiente PBR. Os sons (água, pássaros, vento, garimpo) são sintetizados com WebAudio.
+- **Fluido:** SPH viscoelástico 3D (Clavet et al. 2005), com relaxação de dupla densidade, viscosidade e coesão, a 120 Hz. A busca de vizinhos usa partículas ordenadas por célula e meia-casca. O limite de partículas se adapta ao custo medido.
+- **Rocha:** grade voxel de 160×104×160 com voxels de 2,2 cm. A malha é feita por chunks, com oclusão ambiente por vértice. Os materiais são procedurais: estratos, fissuras, veios de quartzo e ouro, musgo e líquen.
+- **Colisão água-rocha:** usa a normal suavizada da vizinhança, então a água escorre em vez de parar nos degraus. A erosão depende do impacto e do cisalhamento.
+- **Água na tela:** renderização em espaço de tela (profundidade das esferas, blur bilateral, normais, refração, absorção de Beer-Lambert, reflexo de Fresnel e brilho do sol).
+- **Rocha molhada:** uma textura 3D de umidade escurece a rocha e a deixa brilhante onde a água passa.
+- **Cena:** clareira ao entardecer com sombras suaves, grama animada, árvores, seixos, neblina e tempestade. Os sons são sintetizados com WebAudio.
 
-## Estrutura
-- `src/fluid.js`: simulação do fluido
-- `src/game.html`: jogo
-- `build.py`: gera o `index.html` final, com o fluido embutido
-
+## Desenvolvimento
 ```
-python3 build.py && npx serve .
+src/fluid.js   simulação do fluido
+src/game.html  jogo
+build.py       gera o index.html com o fluido embutido
 ```
-
-Use `#sim` no fim da URL para rodar só a física, sem renderizar (útil para testes).
+`python3 build.py` gera o `index.html`. Use `#sim` no fim da URL para rodar só a física, sem renderizar (para testes e benchmark).
