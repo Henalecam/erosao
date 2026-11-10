@@ -18,17 +18,21 @@ function createFluid(o){
     used:new Int32Array(MAXP),nUsed:0,cap:MAXP};
   function cellOf(x,y,z){let cx=((x-X0)/h)|0,cy=((y-Y0)/h)|0,cz=((z-Z0)/h)|0;
     if(cx<0)cx=0;else if(cx>=NX)cx=NX-1;if(cy<0)cy=0;else if(cy>=NY)cy=NY-1;if(cz<0)cz=0;else if(cz>=NZ)cz=NZ-1;return (cz*NY+cy)*NX+cx;}
+  // grade com ordenação por célula (memória contígua) + busca em meia-casca (cada par uma vez)
+  const NC=NX*NY*NZ;const cStart=new Int32Array(NC),cEnd=new Int32Array(NC);const sorted=new Int32Array(MAXP),spos=new Int32Array(MAXP);
   let touched=new Int32Array(MAXP);let nt=0;
-  function build(){const n=F.np;for(let k=0;k<nt;k++)head[touched[k]]=-1;nt=0;
-    for(let i=0;i<n;i++){const c=cellOf(px[i],py[i],pz[i]);pcell[i]=c;if(head[c]===-1)touched[nt++]=c;next[i]=head[c];head[c]=i;}}
-  head.fill(-1);
-  function find(){const n=F.np;
-    for(let i=0;i<n;i++){let cnt=0;const x=px[i],y=py[i],z=pz[i];const c=pcell[i];
-      const cx=c%NX,cy=((c/NX)|0)%NY,cz=(c/(NX*NY))|0;const b=i*MAXN;
-      for(let gz=cz-1;gz<=cz+1;gz++){if(gz<0||gz>=NZ)continue;for(let gy=cy-1;gy<=cy+1;gy++){if(gy<0||gy>=NY)continue;
-        let base=(gz*NY+gy)*NX;for(let gx=cx-1;gx<=cx+1;gx++){if(gx<0||gx>=NX)continue;
-          for(let j=head[base+gx];j!==-1;j=next[j]){if(j<=i)continue;const dx=px[j]-x,dy=py[j]-y,dz=pz[j]-z;const r2=dx*dx+dy*dy+dz*dz;
-            if(r2<h2&&cnt<MAXN){nb[b+cnt]=j;nd[b+cnt]=Math.sqrt(r2);cnt++;}}}}}
+  const HALF=[];for(let dz=-1;dz<=1;dz++)for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(dz>0||(dz===0&&dy>0)||(dz===0&&dy===0&&dx>0))HALF.push([dx,dy,dz]);}
+  function build(){const n=F.np;for(let k=0;k<nt;k++){cStart[touched[k]]=0;cEnd[touched[k]]=0;}nt=0;
+    for(let i=0;i<n;i++){const c=cellOf(px[i],py[i],pz[i]);pcell[i]=c;if(cEnd[c]===0)touched[nt++]=c;cEnd[c]++;}
+    let acc=0;for(let k=0;k<nt;k++){const c=touched[k];const m=cEnd[c];cStart[c]=acc;cEnd[c]=acc;acc+=m;}
+    for(let i=0;i<n;i++){const c=pcell[i];const at=cEnd[c]++;sorted[at]=i;spos[i]=at;}}
+  function find(){const n=F.np;for(let i=0;i<n;i++)nc[i]=0;
+    for(let i=0;i<n;i++){const x=px[i],y=py[i],z=pz[i];const c=pcell[i];const b=i*MAXN;let cnt=nc[i];
+      // mesma célula: só os que vêm depois na ordenação
+      for(let q=spos[i]+1,e=cEnd[c];q<e;q++){const j=sorted[q];const dx=px[j]-x,dy=py[j]-y,dz=pz[j]-z;const r2=dx*dx+dy*dy+dz*dz;if(r2<h2&&cnt<MAXN){nb[b+cnt]=j;nd[b+cnt]=Math.sqrt(r2);cnt++;}}
+      const cx=c%NX,cy=((c/NX)|0)%NY,cz=(c/(NX*NY))|0;
+      for(let o=0;o<13;o++){const H=HALF[o];const gx=cx+H[0],gy=cy+H[1],gz=cz+H[2];if(gx<0||gx>=NX||gy<0||gy>=NY||gz<0||gz>=NZ)continue;const cc=(gz*NY+gy)*NX+gx;
+        for(let q=cStart[cc],e=cEnd[cc];q<e;q++){const j=sorted[q];const dx=px[j]-x,dy=py[j]-y,dz=pz[j]-z;const r2=dx*dx+dy*dy+dz*dz;if(r2<h2&&cnt<MAXN){nb[b+cnt]=j;nd[b+cnt]=Math.sqrt(r2);cnt++;}}}
       nc[i]=cnt;}}
   F.add=function(x,y,z,u,v,w,k,m){if(F.np>=F.cap)return -1;const i=F.np++;nc[i]=0;dead[i]=0;px[i]=ox[i]=x;py[i]=oy[i]=y;pz[i]=oz[i]=z;vx[i]=u;vy[i]=v;vz[i]=w;kind[i]=k||0;mat[i]=m||0;ground[i]=0;still[i]=0;return i;};
   F.kill=function(i){if(dead[i])return false;dead[i]=1;F.nDead++;return true;};
@@ -49,7 +53,7 @@ function createFluid(o){
     // viscosidade + arrasto dos grãos (usa a lista de vizinhos do passo anterior, distâncias recalculadas)
     for(let i=0;i<n;i++){avx[i]=avy[i]=avz[i]=awn[i]=0;}
     if(F.listN>0){for(let i=0;i<n;i++){const b=i*MAXN,c=nc[i];for(let k=0;k<c;k++){const j=nb[b+k];
-      let nx=px[j]-px[i],ny=py[j]-py[i],nz=pz[j]-pz[i];const r=Math.sqrt(nx*nx+ny*ny+nz*nz);if(r<1e-6||r>=h)continue;nx/=r;ny/=r;nz/=r;
+      let nx=px[j]-px[i],ny=py[j]-py[i],nz=pz[j]-pz[i];const r2=nx*nx+ny*ny+nz*nz;if(r2<1e-12||r2>=h2)continue;const ir=1/Math.sqrt(r2),r=r2*ir;nx*=ir;ny*=ir;nz*=ir;
       const u=(vx[i]-vx[j])*nx+(vy[i]-vy[j])*ny+(vz[i]-vz[j])*nz;
       if(u>0){const q=1-r/h;const I=q*(SIGMA*u+BETA*u*u)*.5;vx[i]-=I*nx;vy[i]-=I*ny;vz[i]-=I*nz;vx[j]+=I*nx;vy[j]+=I*ny;vz[j]+=I*nz;}
       if(kind[i]&&!kind[j]){avx[i]+=vx[j];avy[i]+=vy[j];avz[i]+=vz[j];awn[i]++;}
