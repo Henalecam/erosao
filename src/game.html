@@ -87,20 +87,20 @@ try{const sv=JSON.parse(localStorage.getItem(KEY)||'null');if(sv){Object.assign(
 const save=()=>{S.t=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
 const dropN=l=>12+l*6, rainRate=l=>l*2.5, dropH=l=>.55+l*.22, acid=l=>Math.pow(1.3,l), cloudRate=l=>l*.6,
       cap=l=>Math.round(25*Math.pow(1.7,l)), capture=l=>Math.min(.92,.32+l*.08), autoWash=l=>l?Math.max(4,32-l*4):0,
-      jetRate=l=>40+l*12,aqRate=l=>l*14, jetSpeed=l=>4.6+l*.45, cad=l=>1+l*.22, springRate=l=>l*16;
+      waterPow=l=>1+l*.14,jetPen=l=>Math.min(120,14+l*9+S.up.altura*7+S.up.gota*3),balloonMax=()=>.6+S.up.gota*.07+S.up.altura*.03,jetRate=l=>40+l*12,aqRate=l=>l*14, jetSpeed=l=>4.6+l*.45, cad=l=>1+l*.22, springRate=l=>l*16;
 const turretCount=()=>S.up.t_gota+S.up.t_esg+S.up.t_bal;
 const SHOP=[
  // Ferramentas
  {k:'jato',tab:'Ferramentas',n:'🚿 Jato',d:l=>l?'Tecla 2 · segure para disparar':'Jato contínuo de alta pressão',base:120,mul:1,max:1,tool:'jato'},
- {k:'balao',tab:'Ferramentas',n:'🎈 Balão d’água',d:l=>l?'Tecla 3 · clique para arremessar':'Explode no impacto, erosão em área',base:450,mul:1,max:1,tool:'balao'},
+ {k:'balao',tab:'Ferramentas',n:'🎈 Balão d’água',d:l=>l?'Tecla 3 · segure para encher, solte para arremessar':'Encha, arremesse e estoure: abre crateras',base:450,mul:1,max:1,tool:'balao'},
  {k:'granizo',tab:'Ferramentas',n:'🧊 Granizo',d:l=>l?'Tecla 4 · pedras de gelo que lascam':'Gelo duro que lasca a rocha e derrete',base:1100,mul:1,max:1,tool:'granizo'},
  {k:'onda',tab:'Ferramentas',n:'🌊 Onda',d:l=>l?'Tecla 5 · parede de água':'Uma parede de água varre a base',base:2800,mul:1,max:1,tool:'onda'},
- {k:'forcaJato',tab:'Ferramentas',n:'Pressão do jato',d:l=>`${jetSpeed(l).toFixed(1)} m/s · ${jetRate(l)} gotas/s`,base:90,mul:1.7,max:8,req:'jato'},
+ {k:'forcaJato',tab:'Ferramentas',n:'Pressão do jato',d:l=>`${jetSpeed(l).toFixed(1)} m/s · penetração ${jetPen(l)}`,base:90,mul:1.7,max:8,req:'jato'},
  {k:'chuva',tab:'Ferramentas',n:'Chuva',d:l=>l?`Gota: segure para ${rainRate(l)} gotas/s`:'Com a gota, segure para chover',base:40,mul:1.65},
  // Água
- {k:'gota',tab:'Água',n:'Gota maior',d:l=>`${dropN(l)} partículas por gota`,base:8,mul:1.5},
- {k:'altura',tab:'Água',n:'Altura da queda',d:l=>`${dropH(l).toFixed(2)} m · mais impacto`,base:25,mul:1.6,max:10},
- {k:'acido',tab:'Água',n:'Acidez',d:l=>`Erosão ×${acid(l).toFixed(2)}`,base:30,mul:1.7},
+ {k:'gota',tab:'Água',n:'Gota maior',d:l=>`${dropN(l)} partículas · jato mais grosso · balão maior`,base:8,mul:1.5},
+ {k:'altura',tab:'Água',n:'Força da água',d:l=>`Impacto ×${waterPow(l).toFixed(2)} em todas as armas · penetração do jato`,base:25,mul:1.6,max:10},
+ {k:'acido',tab:'Água',n:'Acidez',d:l=>`Erosão ×${acid(l).toFixed(2)} em tudo`,base:30,mul:1.7},
  {k:'nuvem',tab:'Água',n:'☁️ Nuvem',d:l=>l?`Chove sozinha ${cloudRate(l).toFixed(1)}/s`:'Uma nuvem que chove sozinha',base:120,mul:1.7},
  // Torretas
  {k:'t_gota',tab:'Torretas',n:'Torreta gotejadora',d:l=>`Pinga gotas na rocha · ${l} instalada${l===1?'':'s'}`,base:200,mul:2.2,cap:()=>turretCount()<6},
@@ -419,7 +419,7 @@ const dmgQ=[];
 let comboN=0,comboT=0,comboShown=0;
 function removeVoxel(i,x,y,z,spawn){
   const t=vt[i];vt[i]=0;rockInfo.left--;markDirty(x,y,z);structDirty=true;
-  comboN++;comboT=1.6;const cm=comboMul();const g=MATS[t].val*valMult()*.12*cm;S.money+=g;S.total+=g;earnBatch+=g;comboGain+=g;
+  comboN++;comboT=1.6;const cm=comboMul();const g=MATS[t].val*valMult()*.04*cm;S.money+=g;S.total+=g;earnBatch+=g;comboGain+=g;
   // revelações
   for(const [dx,dy,dz] of [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]]){const nx=x+dx,ny=y+dy,nz=z+dz;if(nx<0||ny<0||nz<0||nx>=GX||ny>=GY||nz>=GZ)continue;const nt=vt[vid(nx,ny,nz)];
     if(nt===T_GOLD&&!S.found['g'+S.level]){S.found['g'+S.level]=1;discover('Ouro exposto!','Um veio dourado apareceu na rocha',RX0+nx*V,RY0+ny*V,RZ0+nz*V);}
@@ -456,9 +456,13 @@ function collide(){
         // erosão: impacto normal + cisalhamento do escoamento
         const vn=Math.max(0,-inward)*HZ;const tx=dx-nx*inward,ty=dy-ny*inward,tz=dz-nz*inward;const vtg=Math.sqrt(tx*tx+ty*ty+tz*tz)*HZ;
         if(!kind[i]){
-          const dmg=(.0006+.004*vn*vn+.003*vtg)*erosionMul*(1+F.mat[i]*.1);
+          const mt=F.mat[i],jp=mt>=128?mt-128:0;
+          const dmg=(.0006+.004*vn*vn+.003*vtg)*erosionMul*(jp?1+jp*.05:1+mt*.1);
           vhp[hit]-=dmg;DBG.c++;DBG.d+=dmg;
-          if(vhp[hit]<=0)removeVoxel(hit,hx,hy,hz,true);
+          if(vhp[hit]<=0){removeVoxel(hit,hx,hy,hz,R()<.6);
+            // jato penetra: atravessa o voxel quebrado e segue perfurando
+            if(jp>4&&vn>1.2){const sx_=x,sy_=y,sz_=z;x=ox[i]+dx;y=oy[i]+dy;z=oz[i]+dz;const qx=Math.floor((x-RX0)/V),qy=Math.floor((y-RY0)/V),qz=Math.floor((z-RZ0)/V);
+              if(!solid(qx,qy,qz)){const k=.9;ox[i]=x-dx*k;oy[i]=y-dy*k;oz[i]=z-dz*k;F.mat[i]=Math.max(129,mt-5);}else{x=sx_;y=sy_;z=sz_;}}}
           if(vn>2.2&&splashBudget>0){splashBudget--;sfx.drop(Math.min(1,vn/5));}
         }else if(kind[i]===2){ // granizo: lasca e quica
           const dmg=(.02+.06*vn*vn)*erosionMul;vhp[hit]-=dmg;
@@ -485,7 +489,7 @@ function collide(){
 }
 // captura na calha e saída
 let earnBatch=0;const earnHist=[];let lostBatch=0;let comboGain=0;
-const comboMul=()=>1+Math.min(3,Math.max(0,comboN-8)/30);
+let comboDur=0;const comboMul=()=>1+Math.min(2,comboDur/15);
 function postStep(){
   const n=F.np;const capP=capture(S.up.riffle)*.035;const capacity=cap(S.up.calha);
   for(let i=n-1;i>=0;i--){if(F.dead[i])continue;const x=F.px[i],y=F.py[i],z=F.pz[i];
@@ -497,7 +501,7 @@ function postStep(){
     if(F.kind[i]===0&&F.still[i]>2.5&&R()<.004*(F.still[i]-2)){F.kill(i);continue;}
     if(F.kind[i]===1&&F.still[i]>20&&R()<.003){sedCount--;lostBatch+=MATS[F.mat[i]].val*valMult();F.kill(i);continue;}
     if(F.kind[i]===2){if(F.mat[i]>0)F.mat[i]--;else{F.kind[i]=0;}}
-    else if(F.kind[i]===0&&F.mat[i]>0&&(frames&7)===0)F.mat[i]--;
+    else if(F.kind[i]===0&&F.mat[i]>0&&(frames&7)===0){if(F.mat[i]>=128){F.mat[i]--;if(F.mat[i]<=128)F.mat[i]=0;}else F.mat[i]--;}
     if(x>CH_X1||y<-1.4||x>5.8){if(F.kind[i]===1){sedCount--;lostBatch+=MATS[F.mat[i]].val*valMult();}F.kill(i);}
   }
   F.compact();
@@ -714,28 +718,70 @@ function pick(cx,cy){
   return null;}
 const LAT=(()=>{const a=[];const m=5;for(let i=-m;i<=m;i++)for(let j=-m;j<=m;j++)for(let k=-m;k<=m;k++)a.push([Math.hypot(i,j*1.15,k)+Math.random()*.02,i,j,k]);a.sort((x,y)=>x[0]-y[0]);return a;})();
 function spawnBlob(x,y,z,n,vx,vy,vz,kind=0,pow=0){const sp=.05;for(let q=0;q<Math.min(n,LAT.length);q++){const L=LAT[q];const i=F.add(x+L[1]*sp+(R()-.5)*.003,y+L[2]*sp,z+L[3]*sp+(R()-.5)*.003,vx,vy,vz,kind,pow);}}
-function spawnDrop(p,n,hgt){spawnBlob(p.x,p.y+hgt,p.z,n,0,-.005,0);}
+function spawnDrop(p,n,hgt){spawnBlob(p.x,p.y+hgt,p.z,n,0,-.005,0,0,Math.round(S.up.altura*2.5));}
 // ----- ferramentas
 const camDir=new THREE.Vector3();
 function fromCamera(target,dist,lift=0){camDir.copy(camera.position).sub(target);camDir.y=Math.max(camDir.y,.2);camDir.normalize();return target.clone().addScaledVector(camDir,dist).add(new THREE.Vector3(0,lift,0));}
-function shootJet(src,target,speed,n,pow=10){const d=target.clone().sub(src);const L=d.length();d.normalize();const T=L/speed;const v=d.multiplyScalar(speed/HZ);v.y+=9.8*T/2/HZ;
+function shootJet(src,target,speed,n,pow=128+jetPen(S.up.forcaJato)){const d=target.clone().sub(src);const L=d.length();d.normalize();const T=L/speed;const v=d.multiplyScalar(speed/HZ);v.y+=9.8*T/2/HZ;
   for(let k=0;k<n;k++)F.add(src.x+(R()-.5)*.03,src.y+(R()-.5)*.03,src.z+(R()-.5)*.03,v.x+(R()-.5)*.0012,v.y+(R()-.5)*.0012,v.z+(R()-.5)*.0012,0,pow);}
 function lob(src,target,T,n,kind=0,pow=20){const v=target.clone().sub(src).divideScalar(T);v.y+=.5*9.8*T;spawnBlob(src.x,src.y,src.z,n,v.x/HZ,v.y/HZ,v.z/HZ,kind,pow);}
-function iceShot(target){for(let k=0;k<5;k++){const x=target.x+(R()-.5)*.25,z=target.z+(R()-.5)*.25;const i=F.add(x,target.y+1.4+R()*.4,z,(R()-.5)*.002,-5.5/HZ,(R()-.5)*.002,2);if(i>=0)F.mat[i]=220;}}
+function iceShot(target){const n=4+Math.floor(S.up.gota/2),v=(5.5+S.up.altura*.35)/HZ;for(let k=0;k<n;k++){const x=target.x+(R()-.5)*.25,z=target.z+(R()-.5)*.25;const i=F.add(x,target.y+1.4+R()*.4,z,(R()-.5)*.002,-v,(R()-.5)*.002,2);if(i>=0)F.mat[i]=220;}}
 function waveShot(target){const toCam=camera.position.clone().sub(target);toCam.y=0;toCam.normalize();const side=new THREE.Vector3(-toCam.z,0,toCam.x);
   const base=target.clone().addScaledVector(toCam,1.5);const vel=toCam.clone().multiplyScalar(-3.4/HZ);
-  for(let a=-11;a<=11;a++)for(let h=0;h<5;h++)for(let d=0;d<3;d++){const x=base.x+side.x*a*.05+toCam.x*d*.05,z=base.z+side.z*a*.05+toCam.z*d*.05;F.add(x,terrainH(x,z)+.04+h*.05,z,vel.x,0,vel.z,0,15);}}
-const CD={gota:0,jato:0,balao:.55,granizo:.35,onda:4.5};const cdLeft={gota:0,jato:0,balao:0,granizo:0,onda:0};
+  const hw=9+Math.min(10,S.up.gota),pw=Math.min(120,15+S.up.altura*4);vel.multiplyScalar(1+S.up.altura*.06);
+  for(let a=-hw;a<=hw;a++)for(let h=0;h<5;h++)for(let d=0;d<3;d++){const x=base.x+side.x*a*.05+toCam.x*d*.05,z=base.z+side.z*a*.05+toCam.z*d*.05;F.add(x,terrainH(x,z)+.04+h*.05,z,vel.x,0,vel.z,0,pw);}}
+const CD={gota:0,jato:0,balao:.4,granizo:.35,onda:4.5};const cdLeft={gota:0,jato:0,balao:0,granizo:0,onda:0};
 function useTool(first){
   if(!aim)return;const t=S.tool;
   if(t==='gota'){if(first){spawnDrop(aim,dropN(S.up.gota),dropH(S.up.altura));sfx.drip();}return;}
   if(t==='jato')return; // contínuo no tick
   if(!first||cdLeft[t]>0)return;cdLeft[t]=CD[t];
-  if(t==='balao'){lob(fromCamera(aim,1.9,1.1),aim,.62,70);sfx.whoosh();}
+  if(t==='balao'){cdLeft[t]=0;startCharge();}
   if(t==='granizo'){iceShot(aim);sfx.whoosh();}
   if(t==='onda'){waveShot(aim);sfx.wave();}
 }
 function setTool(k){if(!toolOn(k))return;S.tool=k;renderHotbar();}
+// ----- balão carregável: segure para encher, solte para arremessar no alvo marcado, estoura no impacto
+const balloonMatl=new THREE.MeshPhysicalMaterial({color:0x58b4ff,roughness:.18,metalness:0,clearcoat:1,clearcoatRoughness:.1,transparent:true,opacity:.82,sheen:.5});
+const chargeMesh=new THREE.Mesh(new THREE.SphereGeometry(1,28,20),balloonMatl);chargeMesh.visible=false;chargeMesh.castShadow=true;scene.add(chargeMesh);
+const knot=new THREE.Mesh(new THREE.ConeGeometry(.25,.4,10),balloonMatl);knot.position.y=-1.05;knot.rotation.x=Math.PI;chargeMesh.add(knot);
+const targetRing=new THREE.Mesh(new THREE.RingGeometry(.9,1,40),new THREE.MeshBasicMaterial({color:0xffd27a,transparent:true,opacity:.8,depthTest:false,side:THREE.DoubleSide}));targetRing.rotation.x=-Math.PI/2;targetRing.renderOrder=11;targetRing.visible=false;scene.add(targetRing);
+let charge=null;const projs=[];
+const chargeSize=()=>charge?Math.min(1,charge.t/1.3)*balloonMax():0;
+const balloonRad=sz=>.05+.12*sz;
+function startCharge(){if(!aim)return;charge={target:aim.clone(),t:0};sfx.inflate(true);}
+function stepCharge(dt){
+  if(!charge){chargeMesh.visible=false;targetRing.visible=false;return;}
+  if(!down){throwBalloon();return;}
+  charge.t+=dt;const sz=chargeSize();const r=balloonRad(sz);
+  chargeMesh.visible=true;chargeMesh.position.copy(fromCamera(charge.target,1.6,.7));const wob=1+Math.sin(charge.t*18)*.03*(sz>=balloonMax()*.99?1:.3);chargeMesh.scale.set(r*wob,r*1.12/wob,r*wob);
+  targetRing.visible=true;targetRing.position.copy(charge.target).y+=.01;const tr=blastR(sz)*1.0;targetRing.scale.set(tr,tr,tr);}
+const blastR=sz=>(.07+.17*sz)*(1+S.up.altura*.04);
+function throwBalloon(){const sz=Math.max(.12,chargeSize());const src=chargeMesh.position.clone();const tg=charge.target;charge=null;sfx.inflate(false);
+  const T=.5+sz*.15;const v=tg.clone().sub(src).divideScalar(T);v.y+=.5*9.8*T;
+  const m=new THREE.Mesh(chargeMesh.geometry,balloonMatl);m.castShadow=true;const r=balloonRad(sz);m.scale.set(r,r*1.12,r);m.position.copy(src);scene.add(m);
+  projs.push({pos:src,vel:v,sz,mesh:m,t:0});cdLeft.balao=CD.balao;sfx.whoosh();}
+function stepProjs(dt){for(let k=projs.length-1;k>=0;k--){const p=projs[k];p.t+=dt;let hit=false;
+  for(let s=0;s<4&&!hit;s++){const h=dt/4;p.vel.y-=9.8*h;p.pos.addScaledVector(p.vel,h);
+    const r=balloonRad(p.sz)*.7;const gx=Math.floor((p.pos.x-RX0)/V),gy=Math.floor((p.pos.y-r-RY0)/V),gz=Math.floor((p.pos.z-RZ0)/V);
+    if(solid(gx,gy,gz)||solid(Math.floor((p.pos.x-RX0)/V),Math.floor((p.pos.y-RY0)/V),gz)||p.pos.y-r<terrainH(p.pos.x,p.pos.z)||p.t>3)hit=true;
+    for(const f of frags)if(f.pos.distanceTo(p.pos)<f.rad*.8+r)hit=true;}
+  p.mesh.position.copy(p.pos);p.mesh.rotation.z+=dt*3;
+  if(hit){burstBalloon(p);scene.remove(p.mesh);projs.splice(k,1);}}}
+function burstBalloon(p){
+  const sz=p.sz,pos=p.pos,pw=waterPow(S.up.altura);
+  // 1) explosão de água
+  const n=Math.min(340,Math.round((30+dropN(S.up.gota)*2.4)*(.35+sz*1.1)));const sp=.05;const outV=(1.2+2.2*sz)*Math.sqrt(pw);
+  for(let q=0;q<n;q++){const L=LAT[q];const ox=L[1]*sp,oy=L[2]*sp,oz=L[3]*sp;const d=Math.hypot(ox,oy,oz)||1;
+    F.add(pos.x+ox,pos.y+oy+.03,pos.z+oz,(ox/d*outV+p.vel.x*.25)/HZ,(Math.abs(oy/d)*outV*.6+.6)/HZ,(oz/d*outV+p.vel.z*.25)/HZ,0,Math.min(120,25+Math.round(sz*40)));}
+  // 2) cratera: dano direto aos voxels no raio
+  const rb=blastR(sz),D=(1+4.5*sz)*erosionMul*pw;const cx=(pos.x-RX0)/V,cy=(pos.y-RY0)/V,cz=(pos.z-RZ0)/V,rv=rb/V;let broke=0;
+  for(let z=Math.floor(cz-rv);z<=Math.ceil(cz+rv);z++)for(let y=Math.floor(cy-rv);y<=Math.ceil(cy+rv);y++)for(let x=Math.floor(cx-rv);x<=Math.ceil(cx+rv);x++){
+    if(!solid(x,y,z))continue;const d=Math.hypot(x+.5-cx,y+.5-cy,z+.5-cz)/rv;if(d>=1)continue;const i=vid(x,y,z);vhp[i]-=D*Math.pow(1-d,1.2);if(vhp[i]<=0){removeVoxel(i,x,y,z,R()<.55);broke++;}}
+  // 3) empurra fragmentos
+  for(const f of frags){const dv=f.pos.clone().sub(pos);const L=dv.length();if(L<rb*4){f.vel.addScaledVector(dv.normalize(),(1-L/(rb*4))*3*(.5+sz));}}
+  sfx.pop(sz);shake=Math.max(shake,.012+sz*.03);
+  if(broke>30)floatText(pos.clone().add(new THREE.Vector3(0,.2,0)),'💥 '+broke,'#bfe6ff',18+sz*10);}
 addEventListener('keydown',e=>{const n=+e.key;if(n>=1&&n<=5){setTool(TOOLS[n-1].k);}});
 // ----- torretas
 const SLOTS=[200,250,95,300,40,330].map(a=>{const r=a*Math.PI/180;return [Math.cos(r)*2.55,Math.sin(r)*2.55];});
@@ -758,7 +804,7 @@ function stepTurrets(dt){const sp=cad(S.up.cadencia);
     if(!t.target||t.t<=0&&t.burst<=0)t.target=rockSurfacePoint(t.typ==='gota'?hw.clone().setY(hw.y+.5):hw);
     if(t.target){const q=t.head.parent.worldToLocal(t.target.clone());t.head.lookAt(t.target);}
     if(t.typ==='gota'&&t.t<=0){t.t=1.6;const tg=t.target;if(tg){spawnDrop(tg,dropN(S.up.gota),dropH(S.up.altura)*.8);}}
-    if(t.typ==='esg'){if(t.t<=0&&t.burst<=0){t.burst=.7;t.t=3.2;}if(t.burst>0){t.burst-=dt;if(t.target){const src=hw.clone().add(t.target.clone().sub(hw).normalize().multiplyScalar(.2));t.acc=(t.acc||0)+40*dt;while(t.acc>=1){t.acc--;shootJet(src,t.target,5.2,1);}}}}
+    if(t.typ==='esg'){if(t.t<=0&&t.burst<=0){t.burst=.7;t.t=3.2;}if(t.burst>0){t.burst-=dt;if(t.target){const src=hw.clone().add(t.target.clone().sub(hw).normalize().multiplyScalar(.2));t.acc=(t.acc||0)+40*dt;while(t.acc>=1){t.acc--;shootJet(src,t.target,5.2,1,128+Math.round(jetPen(0)*.6));}}}}
     if(t.typ==='bal'&&t.t<=0){t.t=5;if(t.target){lob(hw.clone().add(new THREE.Vector3(0,.1,0)),t.target,.7,55);sfx.whoosh();}}}}
 // ----- aqueduto
 const AQ_A=new THREE.Vector3(-3.1,1.5,-1.7),AQ_B=new THREE.Vector3(-.35,0,-.35);
@@ -878,6 +924,8 @@ const sfx=(()=>{let ac=null,master,nb,muted=false,budget=5,flowG,flowF,windG,jet
     burst(){if(!ac||muted)return;nz(300,'lowpass',1.8,.7);nz(1500,'bandpass',1.5,.2,.6);tone(50,.9,.3,'sine',.6);for(let k=0;k<5;k++)tone(160+R()*80,.2,.08,'sawtooth',.6,.1+k*.12);},
     jet(on){if(!ac)return;jetG.gain.setTargetAtTime(on&&!muted?.12:0,ac.currentTime,.05);},
     thunder(k){if(!ac||muted)return;nz(90,'lowpass',2.6,.7*k);nz(400,'lowpass',1.2,.3*k);tone(40,1.6,.25*k,'sine',.7);},
+    inflate(on){if(!ac||muted)return;if(on){this._inf=ac.createOscillator();const g=ac.createGain();this._inf.type='triangle';this._inf.frequency.setValueAtTime(180,ac.currentTime);this._inf.frequency.linearRampToValueAtTime(420,ac.currentTime+1.4);g.gain.value=.025;this._inf.connect(g).connect(master);this._inf.start();}else if(this._inf){try{this._inf.stop();}catch(e){}this._inf=null;}},
+    pop(sz){if(!ac||muted)return;nz(2200,'highpass',.08,.35);nz(500,'lowpass',.6+sz*.6,.35+sz*.3);tone(90,.35,.2*sz+.05,'sine',.5);},
     reveal(){if(!ac||muted)return;[1047,1319,1568,2093].forEach((f,j)=>tone(f,.4,.06,'sine',0,j*.09));},
   };})();
 
@@ -957,8 +1005,8 @@ function simFrame(){
   for(const k in cdLeft)if(cdLeft[k]>0)cdLeft[k]-=dt;
   // segurar
   if(down&&aim&&S.tool==='gota'&&S.up.chuva){holdAcc+=rainRate(S.up.chuva)/60;while(holdAcc>=1){holdAcc--;const p=aim.clone();p.x+=(R()-.5)*.12;p.z+=(R()-.5)*.12;spawnDrop(p,dropN(S.up.gota),dropH(S.up.altura));}}
-  if(down&&aim&&S.tool==='jato'){holdAcc+=jetRate(S.up.forcaJato)/60;const src=fromCamera(aim,1.35,.15);while(holdAcc>=1){holdAcc--;shootJet(src,aim,jetSpeed(S.up.forcaJato),1);}sfx.jet(true);}else sfx.jet(false);
-  stepTurrets(dt);stepSpring(dt);stepDam(dt);stepAqueduct(dt);stepStorm(dt);
+  if(down&&aim&&S.tool==='jato'){holdAcc+=jetRate(S.up.forcaJato)/60;const src=fromCamera(aim,1.35,.15);const thick=1+Math.floor(S.up.gota/3);const spd=Math.min(7,jetSpeed(S.up.forcaJato)+S.up.altura*.2);while(holdAcc>=1){holdAcc--;shootJet(src,aim,spd,thick);}sfx.jet(true);}else sfx.jet(false);
+  stepTurrets(dt);stepSpring(dt);stepDam(dt);stepAqueduct(dt);stepStorm(dt);stepCharge(dt);stepProjs(dt);
   // nuvem
   if(S.up.nuvem){cloud.visible=true;cloudT+=1/60;const cx=Math.sin(cloudT*.21)*.55,cz=Math.cos(cloudT*.17)*.45;cloud.position.lerp(new THREE.Vector3(cx,RY0+GY*V+.9,cz),.03);
     cloudAcc+=cloudRate(S.up.nuvem)/60;while(cloudAcc>=1){cloudAcc--;const p=new THREE.Vector3(cloud.position.x+(R()-.5)*.6,cloud.position.y-1.1,cloud.position.z+(R()-.5)*.4);
@@ -1035,7 +1083,7 @@ function stepCamera(dt){
 function loop(now){
   const dt=Math.min(100,now-last);last=now;acc+=dt;let n=0;
   stepCamera(dt/1000);
-  if(comboT>0){comboT-=dt/1000;if(comboT<=0){comboN=0;comboGain=0;}}
+  if(comboT>0){comboT-=dt/1000;comboDur+=dt/1000;if(comboT<=0){comboN=0;comboGain=0;comboDur=0;}}
   {const cm=comboMul();const el=$('combo');if(cm>1.05){el.style.opacity=1;el.textContent=`Combo ×${cm.toFixed(1).replace('.',',')} · +$${fmt(comboGain)}`;}else el.style.opacity=0;}
   while(acc>=1000/60&&n<2){const t0=performance.now();simFrame();adaptCap(performance.now()-t0);acc-=1000/60;n++;frames++;}if(n===2)acc=0;
   applyWeather(dt/1000);
@@ -1047,7 +1095,7 @@ function loop(now){
 }
 resize();
 setTimeout(()=>{newRock(false);buildShop();renderHotbar();rebuildTurrets();buildAqueduct();ui();$('loading').style.opacity=0;setTimeout(()=>$('loading').remove(),900);requestAnimationFrame(loop);},30);
-window.__dbg={panGrains:(x,y,z)=>panGrains(new THREE.Vector3(x,y,z)),startStorm,get cap(){return F.cap},aimAt(x,y,z){aim=new THREE.Vector3(x,y,z);},carve(x0,x1,y0,y1){for(let z=0;z<GZ;z++)for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const i=vid(x,y,z);if(vt[i])removeVoxel(i,x,y,z,false);}},frags,setTool,useTool,get aim(){return aim},set aim(v){aim=v},startDam,burstDam,get dam(){return dam},DBG,setRender(v){SIMONLY=!v;},cam:camera,ctl:controls,get frames(){return frames},F,S,rockInfo:()=>rockInfo,spawnDrop:(x,y,z,n,h)=>spawnDrop(new THREE.Vector3(x,y,z),n,h)};
+window.__dbg={hold(v){down=v;},jetAt(x,y,z){aim=new THREE.Vector3(x,y,z);S.tool='jato';down=true;},panGrains:(x,y,z)=>panGrains(new THREE.Vector3(x,y,z)),startStorm,get cap(){return F.cap},aimAt(x,y,z){aim=new THREE.Vector3(x,y,z);},carve(x0,x1,y0,y1){for(let z=0;z<GZ;z++)for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const i=vid(x,y,z);if(vt[i])removeVoxel(i,x,y,z,false);}},frags,setTool,useTool,get aim(){return aim},set aim(v){aim=v},startDam,burstDam,get dam(){return dam},DBG,setRender(v){SIMONLY=!v;},cam:camera,ctl:controls,get frames(){return frames},F,S,rockInfo:()=>rockInfo,spawnDrop:(x,y,z,n,h)=>spawnDrop(new THREE.Vector3(x,y,z),n,h)};
 addEventListener('visibilitychange',()=>{if(document.hidden){save();saveRockMask();}});addEventListener('beforeunload',()=>{save();saveRockMask();});
 </script>
 </body>

@@ -22,13 +22,21 @@ Os grãos que se soltam precisam ser levados pela correnteza até a calha de gar
 - **Marcos de erosão:** cada rocha tem marcos (0,08%, 0,2%, 0,4%… até 65%) que pagam recompensas crescentes.
 - **Próxima rocha:** depois de 10% erodido, dá para trocar de rocha. Cada nova rocha vale +35% (bônus permanente). Com 65%, a troca é automática.
 - **Ranks de garimpeiro:** sobem conforme o total já ganho (de Aprendiz a Titã da erosão), e cada rank aumenta a renda em 12%.
-- **Combo:** erodir sem parar aumenta um multiplicador (até ×4) que paga na hora cada voxel arrancado.
+- **Combo:** quanto mais tempo você erode sem parar, maior o multiplicador (até ×3), que paga na hora cada voxel arrancado.
 - **Bateia:** clique nos grãos encalhados para recolhê-los na mão.
 - **Água parada** infiltra no solo e evapora; os grãos esquecidos por muito tempo se perdem.
 - A rocha erodida fica salva e continua de onde parou ao recarregar.
 
 ## Desbloqueios
-- **Ferramentas (teclas 1 a 5):** gota, jato contínuo, balão d'água (erosão em área), granizo (lasca e quica) e onda (parede de água).
+- **Ferramentas (teclas 1 a 5):**
+  - Gota.
+  - Jato: perfura, atravessando os voxels que quebra.
+  - Balão d'água: segure para encher, solte para arremessar no alvo marcado. Ele estoura numa cratera.
+  - Granizo e onda.
+- **Os upgrades de água valem para todas as armas:**
+  - Gota maior: jato mais grosso, balão maior, mais granizo e onda mais larga.
+  - Força da água: mais impacto e mais penetração do jato.
+  - Acidez: multiplica toda a erosão.
 - **Torretas:** gotejadora, esguicho e lança-balões. Elas miram sozinhas e o upgrade de cadência acelera todas.
 - **Terreno:**
   - Nascente: abre um riacho que bate na rocha.
