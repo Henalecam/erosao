@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Erosão</title>
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:#0d1320;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#eef4ff;user-select:none;-webkit-user-select:none;touch-action:none}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:crosshair}
+.panel{background:rgba(20,28,46,.72);border:1px solid rgba(255,255,255,.1);border-radius:12px;backdrop-filter:blur(6px)}
+#top{position:fixed;left:12px;top:12px;padding:8px 14px}
+#money{font-size:28px;font-weight:800;font-variant-numeric:tabular-nums}
+#rate{font-size:12px;opacity:.7;font-variant-numeric:tabular-nums}
+#lvl{position:fixed;right:12px;top:12px;padding:8px 12px;font-size:13px;text-align:right;display:flex;gap:10px;align-items:center}
+#bar{width:150px;height:7px;background:#ffffff22;border-radius:4px;overflow:hidden;margin-top:5px}
+#barFill{height:100%;width:0;background:linear-gradient(90deg,#3fb6ff,#9ff0ff);transition:width .25s}
+#mute{background:none;border:1px solid #ffffff30;color:inherit;border-radius:8px;padding:5px 8px;cursor:pointer}
+#ups{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);display:grid;grid-template-columns:repeat(6,1fr);gap:7px;padding:7px;width:min(940px,calc(100vw - 24px));box-sizing:border-box}
+.up{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:9px;padding:7px 9px;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.up:hover:not(:disabled){background:rgba(255,255,255,.11)}
+.up b{display:block;font-size:13px}.up span{display:block;font-size:11px;opacity:.75}
+.up .c{margin-top:3px;font-weight:700;color:#8ff59a;opacity:1}
+.up:disabled{opacity:.45;cursor:default}.up:disabled .c{color:#ffa996}
+.up.ok{box-shadow:0 0 0 1.5px #8ff59a77}
+#hint{position:fixed;left:50%;top:14px;transform:translateX(-50%);padding:7px 14px;font-size:13px;pointer-events:none;transition:opacity 1s;white-space:nowrap}
+#toast{position:fixed;left:50%;top:30%;transform:translate(-50%,-50%);font-size:28px;font-weight:900;text-align:center;pointer-events:none;opacity:0;transition:opacity .4s;text-shadow:0 3px 14px #000c}
+#toast small{display:block;font-size:15px;font-weight:600;opacity:.85}
+@media (max-width:700px){#ups{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="top" class="panel"><div id="money">$0</div><div id="rate">$0/s</div></div>
+<div id="lvl" class="panel"><div><div id="lvlName">Pedrinha</div><div id="bar"><div id="barFill"></div></div></div><button id="mute">🔊</button></div>
+<div id="hint" class="panel">Clique para pingar uma gota 💧</div>
+<div id="toast"></div>
+<div id="ups" class="panel"></div>
+<script>
+(()=>{
+const R=Math.random;
+// ================== Mundo ==================
+const W=360,H=270;              // unidades do mundo
+const CS=4;                     // tamanho da célula da pedra
+const GW=W/CS,GH=H/CS;
+const FLOOR=H-28;
+const floorY=x=>FLOOR+14-Math.abs(x-W/2)*.16; // piso em V levemente inclinado para o centro
+// ================== Estado ==================
+const KEY='erosao2d_v1';
+const S={money:0,level:1,total:0,up:{gota:0,chuva:0,forca:0,nuvem:0,ralo:0,jato:0}};
+try{const sv=JSON.parse(localStorage.getItem(KEY)||'null');if(sv){Object.assign(S,sv);S.up=Object.assign({gota:0,chuva:0,forca:0,nuvem:0,ralo:0,jato:0},sv.up||{});}}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
+const dropSize=l=>5+l*3, rainRate=l=>l*5, power=l=>Math.pow(1.35,l), cloudRate=l=>l*.8, drainW=l=>26+l*10;
+const UPS=[
+ {k:'gota',n:'Gota maior',d:l=>`${dropSize(l)} partículas por gota`,base:8,mul:1.5},
+ {k:'chuva',n:'Chuva',d:l=>l?`Segure: ${rainRate(l)} gotas/s`:'Segure o clique para chover',base:22,mul:1.6},
+ {k:'forca',n:'Água ácida',d:l=>`Corrosão ×${power(l).toFixed(2)}`,base:15,mul:1.55},
+ {k:'nuvem',n:'Nuvem',d:l=>l?`Chove sozinha ${cloudRate(l).toFixed(1)}/s`:'Chove sozinha (idle)',base:45,mul:1.6},
+ {k:'ralo',n:'Ralo',d:l=>`Abertura ${drainW(l)}`,base:30,mul:1.7,max:8},
+ {k:'jato',n:'Jato',d:l=>l?'Segure: jato de pressão':'Água em alta velocidade',base:400,mul:1,max:1},
+];
+const costOf=u=>Math.floor(u.base*Math.pow(u.mul,S.up[u.k]));
+
+// ================== Fluido (SPH viscoelástico — Clavet et al.) ==================
+const MAXP=3200;
+const px=new Float32Array(MAXP),py=new Float32Array(MAXP),vx=new Float32Array(MAXP),vy=new Float32Array(MAXP),ox=new Float32Array(MAXP),oy=new Float32Array(MAXP);
+const kind=new Uint8Array(MAXP),mat=new Uint8Array(MAXP); // kind 0 água, 1 sedimento
+let np=0;
+const Hh=9,Hh2=Hh*Hh;           // raio de interação
+const REST=3.2,K=.18,KN=.55,GRAV=.075,SIGMA=.0,BETA=.06;
+const CG=Hh,CGW=Math.ceil(W/CG)+2,CGH=Math.ceil((H+60)/CG)+4;
+const head=new Int32Array(CGW*CGH),nxt=new Int32Array(MAXP);
+const MAXN=48;const nb=new Int32Array(MAXP*MAXN),nbq=new Float32Array(MAXP*MAXN),nbc=new Uint8Array(MAXP);
+function addP(x,y,u,v,k,m){if(np>=MAXP)return -1;const i=np++;px[i]=ox[i]=x;py[i]=oy[i]=y;vx[i]=u;vy[i]=v;kind[i]=k;mat[i]=m||0;return i;}
+function killP(i){np--;px[i]=px[np];py[i]=py[np];vx[i]=vx[np];vy[i]=vy[np];ox[i]=ox[np];oy[i]=oy[np];kind[i]=kind[np];mat[i]=mat[np];}
+const cellOf=(x,y)=>{let cx=((x/CG)|0)+1,cy=((y+30)/CG|0)+1;if(cx<0)cx=0;if(cx>=CGW)cx=CGW-1;if(cy<0)cy=0;if(cy>=CGH)cy=CGH-1;return cy*CGW+cx;};
+function buildGrid(){head.fill(-1);for(let i=0;i<np;i++){const c=cellOf(px[i],py[i]);nxt[i]=head[c];head[c]=i;}}
+function findNeighbors(){
+  for(let i=0;i<np;i++){
+    let n=0;const x=px[i],y=py[i];const cx=((x/CG)|0)+1,cy=((y+30)/CG|0)+1;const b=i*MAXN;
+    for(let gy=cy-1;gy<=cy+1;gy++){if(gy<0||gy>=CGH)continue;for(let gx=cx-1;gx<=cx+1;gx++){if(gx<0||gx>=CGW)continue;
+      for(let j=head[gy*CGW+gx];j!==-1;j=nxt[j]){if(j<=i)continue;const dx=px[j]-x,dy=py[j]-y;const r2=dx*dx+dy*dy;
+        if(r2<Hh2&&n<MAXN){nb[b+n]=j;nbq[b+n]=Math.sqrt(r2);n++;}}}}
+    nbc[i]=n;}
+}
+const dens=new Float32Array(MAXP),densN=new Float32Array(MAXP);
+function viscosity(){
+  for(let i=0;i<np;i++){const b=i*MAXN,n=nbc[i];for(let k=0;k<n;k++){const j=nb[b+k],r=nbq[b+k];if(r<1e-4)continue;
+    const nx=(px[j]-px[i])/r,ny=(py[j]-py[i])/r;const u=(vx[i]-vx[j])*nx+(vy[i]-vy[j])*ny;
+    if(u>0){const q=1-r/Hh;const I=q*(SIGMA*u+BETA*u*u)*.5;vx[i]-=I*nx;vy[i]-=I*ny;vx[j]+=I*nx;vy[j]+=I*ny;}}}
+}
+function relax(){
+  dens.fill(0,0,np);densN.fill(0,0,np);
+  for(let i=0;i<np;i++){const b=i*MAXN,n=nbc[i];for(let k=0;k<n;k++){const j=nb[b+k];const q=1-nbq[b+k]/Hh;const q2=q*q,q3=q2*q;dens[i]+=q2;densN[i]+=q3;dens[j]+=q2;densN[j]+=q3;}}
+  for(let i=0;i<np;i++){const P=K*(dens[i]-REST),PN=KN*densN[i];const b=i*MAXN,n=nbc[i];let dxi=0,dyi=0;
+    for(let k=0;k<n;k++){const j=nb[b+k];const r=nbq[b+k];if(r<1e-4)continue;const q=1-r/Hh;
+      const Pj=K*(dens[j]-REST),PNj=KN*densN[j];
+      const D=((P+Pj)*.5*q+(PN+PNj)*.5*q*q)*.5;
+      const ux=(px[j]-px[i])/r*D,uy=(py[j]-py[i])/r*D;
+      px[j]+=ux;py[j]+=uy;dxi-=ux;dyi-=uy;}
+    px[i]+=dxi;py[i]+=dyi;}
+}
+// ================== Pedra ==================
+const cell=new Uint8Array(GW*GH),chp=new Float32Array(GW*GH),cmax=new Float32Array(GW*GH),cshade=new Uint8Array(GW*GH);
+const DIRT=1,STONE=2,CRYS=3,GOLD=4,GEM=5;
+const MAT={[DIRT]:{hp:1.6,val:1,col:[120,86,58],n:'terra'},[STONE]:{hp:5,val:3,col:[118,116,112],n:'pedra'},[CRYS]:{hp:3,val:6,col:[120,210,235],n:'cristal'},[GOLD]:{hp:7,val:22,col:[235,184,58],n:'ouro'},[GEM]:{hp:10,val:110,col:[240,70,190],n:'gema'}};
+let rockDirty=true,cellsLeft=0,initialCells=1,rockName='',hpScale=1,valMult=1,clearing=false,structDirty=false;
+const RCX=W/2,RCY=H*.4;
+function hash(x,y,s){let h=(x*374761393+y*668265263+s*1013904223)|0;h=Math.imul(h^(h>>>13),1274126177);return ((h^(h>>>16))>>>0)/4294967295;}
+function noise(x,y,s){const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi;const u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf);
+  return (hash(xi,yi,s)*(1-u)+hash(xi+1,yi,s)*u)*(1-v)+(hash(xi,yi+1,s)*(1-u)+hash(xi+1,yi+1,s)*u)*v;}
+const fbm=(x,y,s)=>noise(x,y,s)*.6+noise(x*2.1,y*2.1,s+5)*.3+noise(x*4.3,y*4.3,s+9)*.1;
+const ROCKS=[
+  {n:'Pedrinha',r:12,shell:DIRT,mid:DIRT,core:STONE,coreR:.3,shellT:.4},
+  {n:'Pedra de rio',r:16,shell:DIRT,mid:STONE,core:STONE,coreR:.3,shellT:.3},
+  {n:'Rocha de cristal',r:18,shell:STONE,mid:STONE,core:CRYS,coreR:.5,gems:2},
+  {n:'Geodo',r:20,shell:STONE,mid:STONE,core:CRYS,coreR:.55,hollow:.28,gems:5},
+  {n:'Pedra de ouro',r:21,shell:DIRT,mid:STONE,core:STONE,coreR:.3,gold:.64,gems:3},
+];
+function spawnRock(){
+  const lv=S.level;let c=ROCKS[lv-1];
+  if(!c){const pk=a=>a[(R()*a.length)|0];c={n:pk(['Pedra antiga','Rocha vulcânica','Meteorito','Pedra lunar','Monólito']),r:Math.min(26,20+lv*.4),shell:pk([DIRT,STONE]),mid:STONE,core:pk([CRYS,STONE,GOLD]),coreR:.3+R()*.3,hollow:R()<.3?.25:0,gold:R()<.5?.62:0,gems:3+(lv>>1)};}
+  hpScale=1+(lv-1)*.3;valMult=1+(lv-1)*.35;rockName=c.n;
+  cell.fill(0);const seed=lv*131+((R()*999)|0);const cx=RCX/CS,cy=RCY/CS;const list=[];
+  for(let y=0;y<GH;y++)for(let x=0;x<GW;x++){
+    const dx=(x+.5-cx)/c.r,dy=(y+.5-cy)/(c.r*.85);const d=Math.hypot(dx,dy);const n=fbm(x*.12,y*.12,seed);const dd=d+(n-.5)*.5;
+    if(dd>=1)continue;if(c.hollow&&dd<c.hollow)continue;
+    let t=dd>1-(c.shellT||.22)?c.shell:dd<c.coreR?c.core:c.mid;
+    if(c.gold&&t===STONE&&fbm(x*.25+3,y*.25,seed+2)>c.gold)t=GOLD;
+    if(c.hollow&&dd<c.hollow+.1&&R()<.15)t=GEM;
+    const i=y*GW+x;cell[i]=t;chp[i]=cmax[i]=MAT[t].hp*hpScale;cshade[i]=(n*255)|0;list.push(i);}
+  for(let g=0;g<(c.gems||0)&&list.length;g++){const i=list[(R()*list.length)|0];cell[i]=GEM;chp[i]=cmax[i]=MAT[GEM].hp*hpScale;}
+  initialCells=list.length;cellsLeft=list.length;clearing=false;rockDirty=true;
+  toast(rockName,'Nível '+S.level);sfx.pop();
+}
+function breakCell(i,vxx,vyy){
+  const t=cell[i];if(!t)return;cell[i]=0;cellsLeft--;rockDirty=true;structDirty=true;
+  const x=(i%GW)*CS+CS/2,y=((i/GW)|0)*CS+CS/2;
+  addP(x,y,vxx+(R()-.5)*.5,vyy+(R()-.5)*.5,1,t);
+  if(t===GEM){floatText(x,y-8,'💎','#ff8ce6',22);sfx.gem();}
+  sfx.crumble(t);
+}
+// pedaços soltos (sem ligação com o núcleo) desmoronam
+function checkStructure(){
+  structDirty=false;if(!cellsLeft)return;
+  const seen=new Uint8Array(GW*GH);let best=null;const comps=[];
+  for(let i=0;i<GW*GH;i++){if(!cell[i]||seen[i])continue;const q=[i];seen[i]=1;
+    for(let h=0;h<q.length;h++){const c=q[h],x=c%GW;const ns=[x>0?c-1:-1,x<GW-1?c+1:-1,c-GW,c+GW];for(const n of ns){if(n<0||n>=GW*GH||seen[n]||!cell[n])continue;seen[n]=1;q.push(n);}}
+    comps.push(q);if(!best||q.length>best.length)best=q;}
+  if(comps.length<2)return;
+  let n=0;for(const q of comps){if(q===best)continue;for(const c of q){const x=(c%GW)*CS,y=((c/GW)|0)*CS;breakCell(c,(x-RCX)*.01+(R()-.5)*.6,-R()*.4);n++;}}
+  if(n>6){sfx.rumble(Math.min(1,n/80));shake=Math.min(6,2+n*.05);}
+}
+
+// ================== Colisões / erosão ==================
+let erosionPow=1;const hitT=new Float32Array(GW*GH);
+function collide(){
+  const half=drainW(S.up.ralo)/2;
+  for(let i=0;i<np;i++){
+    let x=px[i],y=py[i];
+    if(x<3){x=3;}else if(x>W-3){x=W-3;}
+    if(y<-40)y=-40;
+    const fy=floorY(x);
+    if(y>fy&&Math.abs(x-W/2)>half){
+      if(oy[i]<=floorY(ox[i])+3){const sl=x<W/2?.16:-.16;const L2=1+sl*sl;const d=y-fy;x+=sl*d/L2;y-=d/L2;
+        // leve atrito no piso
+        ox[i]+=(x-ox[i])*.02;}
+      else{x=x<W/2?W/2-half-.5:W/2+half+.5;}}
+    // pedra
+    const gx=(x/CS)|0,gy=(y/CS)|0;
+    if(gx>=0&&gx<GW&&gy>=0&&gy<GH){const c=gy*GW+gx;
+      if(cell[c]){
+        const lx=x-gx*CS,ly=y-gy*CS;let best=1e9,bx=x,by=y,nx=0,ny=0;
+        if(gx>0&&!cell[c-1]&&lx<best){best=lx;bx=gx*CS-.05;by=y;nx=-1;ny=0;}
+        if(gx<GW-1&&!cell[c+1]&&CS-lx<best){best=CS-lx;bx=(gx+1)*CS+.05;by=y;nx=1;ny=0;}
+        if(gy>0&&!cell[c-GW]&&ly<best){best=ly;bx=x;by=gy*CS-.05;nx=0;ny=-1;}
+        if(gy<GH-1&&!cell[c+GW]&&CS-ly<best){best=CS-ly;bx=x;by=(gy+1)*CS+.05;nx=0;ny=1;}
+        if(best===1e9){bx=ox[i];by=oy[i];}
+        // velocidade de impacto contra a face
+        const ux=x-ox[i],uy=y-oy[i];const vn=-(ux*nx+uy*ny);const vt=Math.abs(ux*ny-uy*nx);
+        if(kind[i]===0){const dmg=(.012+Math.max(0,vn-.35)*.22+vt*.02)*erosionPow;chp[c]-=dmg;hitT[c]=1;
+          if(vn>1.4)sfx.splash(Math.min(1,vn/4));
+          if(chp[c]<=0)breakCell(c,-nx*.3,-ny*.3);}
+        x=bx;y=by;
+        // atrito
+        ox[i]+= (x-ox[i])*0.0; }}
+    px[i]=x;py[i]=y;
+  }
+}
+// ================== Passo ==================
+let earnBatch=0;const earnHist=[];
+function step(){
+  for(let i=0;i<np;i++){vy[i]+=GRAV*(kind[i]?1.6:1);}
+  buildGrid();findNeighbors();viscosity();
+  for(let i=0;i<np;i++){ox[i]=px[i];oy[i]=py[i];px[i]+=vx[i];py[i]+=vy[i];}
+  buildGrid();findNeighbors();relax();
+  collide();
+  for(let i=np-1;i>=0;i--){let u=px[i]-ox[i],v=py[i]-oy[i];const s=u*u+v*v;if(s>16){const k=4/Math.sqrt(s);u*=k;v*=k;}vx[i]=u;vy[i]=v;
+    if(py[i]>H+20){if(kind[i]===1){const m=MAT[mat[i]];const g=m.val*valMult;S.money+=g;S.total+=g;earnBatch+=g;}killP(i);}}
+}
+
+// ================== Entrada ==================
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+let scale=1,offX=0,offY=0,dpr=1;
+function resize(){dpr=Math.min(2,devicePixelRatio||1);cv.width=innerWidth*dpr;cv.height=innerHeight*dpr;
+  const availH=innerHeight-(innerWidth<700?170:110);scale=Math.min(innerWidth/W,availH/H)*dpr;offX=(cv.width-W*scale)/2;offY=Math.max(0,(availH*dpr-H*scale)/2);}
+addEventListener('resize',resize);resize();
+let mx=W/2,my=60,down=false,holdAcc=0,lastInput=0;
+const toWorld=e=>{mx=(e.clientX*dpr-offX)/scale;my=(e.clientY*dpr-offY)/scale;};
+function drop(x,y,n,vx0,vy0){const r=Math.sqrt(n)*1.6;for(let k=0;k<n;k++){const a=R()*6.283,d=Math.sqrt(R())*r;addP(x+Math.cos(a)*d,y+Math.sin(a)*d,vx0+(R()-.5)*.1,vy0+(R()-.5)*.1,0);}}
+function jetShot(){const dx=RCX-mx,dy=RCY-my;const L=Math.hypot(dx,dy)||1;for(let k=0;k<3;k++)addP(mx+(R()-.5)*3,my+(R()-.5)*3,dx/L*3.8+(R()-.5)*.3,dy/L*3.8+(R()-.5)*.3,0);}
+cv.addEventListener('pointerdown',e=>{sfx.init();toWorld(e);down=true;lastInput=performance.now();
+  if(S.up.jato)jetShot();else{drop(mx,my,dropSize(S.up.gota),0,.5);sfx.drip();}
+  document.getElementById('hint').style.opacity=0;try{cv.setPointerCapture(e.pointerId);}catch(_){} });
+cv.addEventListener('pointermove',e=>toWorld(e));
+const up=()=>{down=false;};cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
+
+// ================== Render ==================
+const FR=2,FW=W/FR,FH=(H+20)/FR|0;
+const fieldW=new Float32Array(FW*FH),fieldF=new Float32Array(FW*FH);
+const fc=document.createElement('canvas');fc.width=FW;fc.height=FH;const fctx=fc.getContext('2d');
+const fimg=fctx.createImageData(FW,FH);const f32=new Uint32Array(fimg.data.buffer);
+const rc=document.createElement('canvas');rc.width=W*2;rc.height=H*2;const rctx=rc.getContext('2d');
+const KR=5;const KW=[];for(let dy=-KR;dy<=KR;dy++)for(let dx=-KR;dx<=KR;dx++){const d2=(dx*dx+dy*dy)/(KR*KR);KW.push(d2<1?(1-d2)*(1-d2):0);}
+function drawRock(){
+  rctx.clearRect(0,0,rc.width,rc.height);const s=2*CS;
+  for(let y=0;y<GH;y++)for(let x=0;x<GW;x++){const i=y*GW+x,t=cell[i];if(!t)continue;
+    const m=MAT[t];const v=(cshade[i]/255-.5)*36;const dmg=1-chp[i]/cmax[i];
+    let r=m.col[0]+v,g=m.col[1]+v,b=m.col[2]+v;
+    if(t===DIRT&&y>0&&!cell[i-GW]&&y*CS<RCY){r=78+v;g=118+v;b=58+v;} // musgo
+    const k=1-dmg*.45;r*=k;g*=k;b*=k;
+    rctx.fillStyle=`rgb(${r|0},${g|0},${b|0})`;rctx.fillRect(x*s,y*s,s,s);
+    if(y>0&&!cell[i-GW]){rctx.fillStyle='rgba(255,255,255,.22)';rctx.fillRect(x*s,y*s,s,2);}
+    if(y<GH-1&&!cell[i+GW]){rctx.fillStyle='rgba(0,0,0,.28)';rctx.fillRect(x*s,y*s+s-2,s,2);}
+    if(x>0&&!cell[i-1]){rctx.fillStyle='rgba(255,255,255,.1)';rctx.fillRect(x*s,y*s,2,s);}
+    if(t===CRYS&&((x+y)%5===0)){rctx.fillStyle='rgba(255,255,255,.5)';rctx.fillRect(x*s+2,y*s+2,2,2);}
+  }
+  rockDirty=false;
+}
+let shake=0,time=0;
+function render(){
+  time++;
+  // campo de densidade da água
+  fieldW.fill(0);fieldF.fill(0);
+  for(let i=0;i<np;i++){if(kind[i])continue;const cx=(px[i]/FR)|0,cy=(py[i]/FR)|0;const sp=Math.min(1,(vx[i]*vx[i]+vy[i]*vy[i])*.25);let k=0;
+    for(let dy=-KR;dy<=KR;dy++){const yy=cy+dy;if(yy<0||yy>=FH){k+=2*KR+1;continue;}const row=yy*FW;
+      for(let dx=-KR;dx<=KR;dx++,k++){const xx=cx+dx;if(xx<0||xx>=FW)continue;const w=KW[k];if(w){fieldW[row+xx]+=w;fieldF[row+xx]+=w*sp;}}}}
+  const T=1.1;
+  for(let p=0;p<FW*FH;p++){const f=fieldW[p];if(f<T*.75){f32[p]=0;continue;}
+    const a=Math.min(1,(f-T*.75)/(T*.5));const depth=Math.min(1,f/7);const foam=Math.min(1,fieldF[p]/Math.max(f,.01)*1.3);
+    const edge=f<T*1.3?1-(f-T)/(T*.3):0;const e=Math.max(0,Math.min(1,edge));
+    let r=22+e*90-depth*10,g=104+e*100-depth*42,b=200+e*50-depth*55;
+    r+=(240-r)*foam*.45;g+=(250-g)*foam*.45;b+=(255-b)*foam*.45;
+    if(p>=FW&&fieldW[p-FW]<T*.75){r+=(255-r)*.6;g+=(255-g)*.6;b+=(255-b)*.5;}
+    const al=(a*(.8+depth*.15+e*.1))*255;
+    f32[p]=((Math.min(255,al)|0)<<24)|((Math.min(255,b)|0)<<16)|((Math.min(255,g)|0)<<8)|(Math.min(255,r)|0);}
+  fctx.putImageData(fimg,0,0);
+  if(rockDirty)drawRock();
+  // desenhar
+  ctx.setTransform(1,0,0,1,0,0);
+  const bg=ctx.createLinearGradient(0,0,0,cv.height);bg.addColorStop(0,'#16223a');bg.addColorStop(1,'#0b111d');ctx.fillStyle=bg;ctx.fillRect(0,0,cv.width,cv.height);
+  let sx=0,sy=0;if(shake>.05){sx=(R()-.5)*shake*scale*.5;sy=(R()-.5)*shake*scale*.5;shake*=.88;}
+  ctx.setTransform(scale,0,0,scale,offX+sx,offY+sy);
+  // pedestal-fantasma: suporte da pedra
+  // chão
+  const half=drainW(S.up.ralo)/2;
+  ctx.fillStyle='#2a3348';
+  ctx.beginPath();ctx.moveTo(0,floorY(0));ctx.lineTo(W/2-half,floorY(W/2-half));ctx.lineTo(W/2-half,H+30);ctx.lineTo(0,H+30);ctx.fill();
+  ctx.beginPath();ctx.moveTo(W,floorY(W));ctx.lineTo(W/2+half,floorY(W/2+half));ctx.lineTo(W/2+half,H+30);ctx.lineTo(W,H+30);ctx.fill();
+  ctx.strokeStyle='#4a5878';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(0,floorY(0));ctx.lineTo(W/2-half,floorY(W/2-half));ctx.moveTo(W/2+half,floorY(W/2+half));ctx.lineTo(W,floorY(W));ctx.stroke();
+  // grade do ralo
+  ctx.fillStyle='#05070c';ctx.fillRect(W/2-half,floorY(W/2)+2,half*2,H+30);
+  ctx.fillStyle='#3a4560';for(let x=W/2-half+3;x<W/2+half;x+=6)ctx.fillRect(x,floorY(W/2)+4,2,14);
+  // paredes
+  ctx.fillStyle='#222a3c';ctx.fillRect(-20,-60,20,H+90);ctx.fillRect(W,-60,20,H+90);
+  // pedra
+  ctx.imageSmoothingEnabled=false;ctx.drawImage(rc,0,0,W,H);
+  // sedimentos
+  for(let i=0;i<np;i++){if(!kind[i])continue;const c=MAT[mat[i]].col;ctx.fillStyle=`rgb(${c[0]},${c[1]},${c[2]})`;ctx.fillRect(px[i]-1.4,py[i]-1.4,2.8,2.8);}
+  // água
+  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(fc,0,0,FW*FR,FH*FR);
+  // cursor
+  ctx.strokeStyle='rgba(160,220,255,.55)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(mx,my,4+Math.sin(time*.1)*1,0,6.283);ctx.stroke();
+  // nuvem
+  if(S.up.nuvem){const cxp=RCX+Math.sin(time*.006)*60;ctx.fillStyle='rgba(235,242,255,.9)';for(let k=0;k<7;k++){ctx.beginPath();ctx.arc(cxp-30+k*10,26+Math.sin(k*1.7)*4,10+Math.sin(k*2.3)*3,0,6.283);ctx.fill();}cloudX=cxp;}
+  // textos
+  ctx.textAlign='center';
+  for(let k=fts.length-1;k>=0;k--){const f=fts[k];f.life--;f.y-=.3;if(f.life<=0){fts.splice(k,1);continue;}
+    ctx.globalAlpha=Math.min(1,f.life/20);ctx.font=`800 ${f.sz*.5}px system-ui,sans-serif`;ctx.lineWidth=2;ctx.strokeStyle='#000b';ctx.strokeText(f.t,f.x,f.y);ctx.fillStyle=f.c;ctx.fillText(f.t,f.x,f.y);}
+  ctx.globalAlpha=1;
+}
+let cloudX=RCX;
+const fts=[];function floatText(x,y,t,c,sz){fts.push({x,y,t,c,sz:sz||22,life:70});}
+const toastEl=document.getElementById('toast');let tt=0;function toast(a,b){toastEl.innerHTML=a+(b?`<small>${b}</small>`:'');toastEl.style.opacity=1;clearTimeout(tt);tt=setTimeout(()=>toastEl.style.opacity=0,2200);}
+
+// ================== Som ==================
+const sfx=(()=>{let ac=null,master,nbuf,muted=false,budget=5,flow,flowG;
+  function init(){if(ac){if(ac.state==='suspended')ac.resume();return;}try{ac=new (window.AudioContext||window.webkitAudioContext)();}catch(e){return;}
+    master=ac.createGain();master.gain.value=.5;master.connect(ac.destination);
+    nbuf=ac.createBuffer(1,ac.sampleRate*2,ac.sampleRate);const d=nbuf.getChannelData(0);let l=0;for(let i=0;i<d.length;i++){l=l*.97+(R()*2-1)*.03;d[i]=l*6+(R()*2-1)*.15;}
+    const s=ac.createBufferSource();s.buffer=nbuf;s.loop=true;flow=ac.createBiquadFilter();flow.type='lowpass';flow.frequency.value=900;flowG=ac.createGain();flowG.gain.value=0;s.connect(flow).connect(flowG).connect(master);s.start();}
+  const ok=c=>{if(!ac||muted||budget<c)return false;budget-=c;return true;};
+  function tone(f,d,v,w,sl,dl){const o=ac.createOscillator();o.type=w||'sine';const t=ac.currentTime+(dl||0);o.frequency.setValueAtTime(f,t);if(sl)o.frequency.exponentialRampToValueAtTime(f*sl,t+d);const g=ac.createGain();g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(v,t+.006);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(master);o.start(t);o.stop(t+d+.02);}
+  function nz(f,ft,d,v){const s=ac.createBufferSource();s.buffer=nbuf;const fl=ac.createBiquadFilter();fl.type=ft;fl.frequency.value=f;const g=ac.createGain();const t=ac.currentTime;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);s.connect(fl).connect(g).connect(master);s.start(t,R());s.stop(t+d+.02);}
+  return{init,toggle(){muted=!muted;if(flowG)flowG.gain.value=0;return muted;},
+    frame(motion){budget=Math.min(6,budget+.35);if(ac&&!muted){flowG.gain.setTargetAtTime(Math.min(.5,motion*.004),ac.currentTime,.15);flow.frequency.setTargetAtTime(500+Math.min(1500,motion*4),ac.currentTime,.2);}},
+    drip(){if(!ok(.5))return;tone(1100+R()*400,.12,.07,'sine',.45);},
+    splash(k){if(R()>.08||!ok(1))return;tone(500+R()*900,.07,.05*k+.02,'sine',2);},
+    crumble(t){if(!ok(1))return;if(t===CRYS)tone(2800+R()*2600,.16,.05,'triangle');else if(t===GOLD)tone(1900+R()*500,.12,.05,'triangle');else nz(t===STONE?700:1300,'bandpass',.07,.25);},
+    rumble(k){if(!ac||muted)return;nz(180,'lowpass',.6,.6*k+.2);tone(60,.4,.25*k+.1,'sine',.6);},
+    coin(v){if(!ok(1))return;const p=Math.min(14,Math.log2(1+v)*1.4);const f=660*Math.pow(2,p/12);tone(f,.12,.06);tone(f*1.5,.14,.045,'sine',0,.06);},
+    gem(){if(!ac||muted)return;[1318,1760,2637].forEach((f,j)=>tone(f,.25,.07,'sine',0,j*.07));},
+    pop(){if(!ac||muted)return;tone(200,.25,.1,'sine',2.2);},
+    win(){if(!ac||muted)return;[523,659,784,1047,1319].forEach((f,j)=>tone(f,.3,.08,'triangle',0,j*.09));},
+  };})();
+document.getElementById('mute').onclick=e=>{sfx.init();e.currentTarget.textContent=sfx.toggle()?'🔇':'🔊';};
+
+// ================== UI ==================
+function fmt(n){n=Math.floor(n);if(n<1e4)return n.toLocaleString('pt-BR');const u=['','K','M','B','T'];let k=0,v=n;while(v>=1000&&k<4){v/=1000;k++;}return v.toFixed(v<10?2:1).replace('.',',')+u[k];}
+const upsEl=document.getElementById('ups');
+const btns=UPS.map(u=>{const b=document.createElement('button');b.className='up';b.onclick=()=>{sfx.init();const c=costOf(u);if(S.money<c||(u.max!==undefined&&S.up[u.k]>=u.max))return;S.money-=c;S.up[u.k]++;sfx.coin(c);
+  if(u.k==='chuva'&&S.up.chuva===1)toast('Chuva!','Segure o clique');if(u.k==='jato')toast('Jato destravado','Segure e mire');if(u.k==='nuvem'&&S.up.nuvem===1)toast('Nuvem ☁️','Ela chove sozinha');save();ui();};upsEl.appendChild(b);return b;});
+const $=id=>document.getElementById(id);
+function ui(){$('money').textContent='$'+fmt(S.money);const r=earnHist.length?earnHist.reduce((a,b)=>a+b,0)/(earnHist.length*.4):0;$('rate').textContent='$'+fmt(r)+'/s';
+  $('lvlName').textContent=rockName+' · nv '+S.level;$('barFill').style.width=(clearing?100:Math.min(100,(1-cellsLeft/initialCells)/.97*100))+'%';
+  UPS.forEach((u,j)=>{const b=btns[j],l=S.up[u.k],mx_=u.max!==undefined&&l>=u.max,c=costOf(u);const h=`<b>${u.n}</b><span>${u.d(l)}</span><span class="c">${mx_?'✓':'$'+fmt(c)}</span>`;if(b._h!==h){b.innerHTML=h;b._h=h;}b.disabled=mx_||S.money<c;b.classList.toggle('ok',!mx_&&S.money>=c);});}
+
+// ================== Loop ==================
+spawnRock();ui();
+let acc=0,last=performance.now(),frames=0,cloudAcc=0,earnT=0;
+function tick(){
+  erosionPow=power(S.up.forca);
+  if(down){const rate=S.up.jato?20:rainRate(S.up.chuva);if(rate){holdAcc+=rate/60;while(holdAcc>=1){holdAcc--;if(S.up.jato)jetShot();else drop(mx+(R()-.5)*6,my,dropSize(S.up.gota),0,.5);}}}
+  if(S.up.nuvem&&!clearing){cloudAcc+=cloudRate(S.up.nuvem)/60;while(cloudAcc>=1){cloudAcc--;drop(cloudX+(R()-.5)*50,34,dropSize(S.up.gota),0,.3);}}
+  step();step();
+  if(structDirty&&frames%4===0)checkStructure();
+  for(let i=0;i<GW*GH;i++){}
+  if(!clearing&&cellsLeft<=Math.max(2,initialCells*.03)){clearing=true;
+    for(let i=0;i<GW*GH;i++)if(cell[i])breakCell(i,(R()-.5)*.8,-R()*.6);
+    const bonus=Math.round(25*S.level*valMult);S.money+=bonus;S.total+=bonus;toast(rockName+' dissolvida!','+$'+fmt(bonus));sfx.win();shake=5;
+    S.level++;save();setTimeout(spawnRock,2600);}
+  earnT++;if(earnT>=24){earnT=0;if(earnBatch>0){floatText(W/2,floorY(W/2)-8,'+$'+fmt(earnBatch),'#9dff9f',24);sfx.coin(earnBatch);}earnHist.push(earnBatch);if(earnHist.length>15)earnHist.shift();earnBatch=0;}
+  if(frames%240===0)save();
+}
+function loop(now){acc+=Math.min(100,now-last);last=now;let n=0;
+  while(acc>=1000/60&&n<2){tick();acc-=1000/60;n++;frames++;}if(n===2)acc=0;
+  let motion=0;for(let i=0;i<np;i+=4)motion+=Math.abs(vx[i])+Math.abs(vy[i]);sfx.frame(motion);
+  render();if(frames%6===0)ui();requestAnimationFrame(loop);}
+requestAnimationFrame(loop);
+addEventListener('visibilitychange',()=>{if(document.hidden)save();});
+window.__dbg={get np(){return np},get cells(){return cellsLeft},S};
+})();
+</script>
+</body>
+</html>
