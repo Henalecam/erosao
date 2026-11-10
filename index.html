@@ -164,8 +164,8 @@ const R=Math.random;
 // =================================================================
 const KEY='erosao3d_v2';
 const UP0={calhas:0,extracao:0,peixes:0,aqueduto:0,tempestade:0,gota:0,chuva:0,altura:0,acido:0,nuvem:0,calha:0,riffle:0,auto:0,jato:0,balao:0,granizo:0,onda:0,forcaJato:0,t_gota:0,t_esg:0,t_bal:0,cadencia:0,nascente:0,represa:0};
-const S={money:0,level:1,total:0,sluice:0,t:Date.now(),tool:'gota',up:{...UP0},found:{},mile:0,rockSeed:0,rocks:0,extras:[]};
-try{const sv=JSON.parse(localStorage.getItem(KEY)||'null');if(sv){Object.assign(S,sv);S.up=Object.assign({...UP0},sv.up||{});S.found=sv.found||{};}}catch(e){}
+const S={money:0,level:1,total:0,sluice:0,t:Date.now(),tool:'gota',up:{...UP0},found:{},mile:0,rockSeed:0,rocks:0,extras:[],col:{},rate:0};
+try{const sv=JSON.parse(localStorage.getItem(KEY)||'null');if(sv){Object.assign(S,sv);S.up=Object.assign({...UP0},sv.up||{});S.found=sv.found||{};S.col=sv.col||{};}}catch(e){}
 const save=()=>{S.t=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
 const dropN=l=>12+l*6, rainRate=l=>l*2.5, dropH=l=>.55+l*.22, acid=l=>Math.pow(1.3,l), cloudRate=l=>l*.6,
       cap=l=>Math.round(25*Math.pow(1.7,l)), capture=l=>Math.min(.92,.32+l*.08), autoWash=l=>l?Math.max(4,32-l*4):0,
@@ -539,6 +539,10 @@ function removeVoxel(i,x,y,z,spawn){
   comboN++;comboT=1.6;const cm=comboMul();const g=MATS[t].val*valMult()*.04*cm;S.money+=g;S.total+=g;earnBatch+=g;comboGain+=g;
   // revelações
   for(const [dx,dy,dz] of [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]]){const nx=x+dx,ny=y+dy,nz=z+dz;if(nx<0||ny<0||nz<0||nx>=GX||ny>=GY||nz>=GZ)continue;const nt=vt[vid(nx,ny,nz)];
+    if(nt===T_GOLD&&rockInfo.kind==='idolo'&&!S.found['idol'+S.rockSeed]){S.found['idol'+S.rockSeed]=1;blessT=30;discover('Bênção do ídolo! 🗿✨','Renda ×2 por 30 segundos',RX0+nx*V,RY0+ny*V,RZ0+nz*V);}
+    if(nt===T_GOLD&&rockInfo.kind==='bau'&&!S.found['bau'+S.rockSeed]){S.found['bau'+S.rockSeed]=1;const bn=Math.round(80*S.level*valMult());S.money+=bn;S.total+=bn;discover('O baú abriu! 💰','Tesouro +$'+fmt(bn),RX0+nx*V,RY0+ny*V,RZ0+nz*V);coinFountain(RX0+nx*V,RY0+ny*V,RZ0+nz*V);}
+    if(nt===T_OLIV&&!S.found['ol'+S.rockSeed]){S.found['ol'+S.rockSeed]=1;discover('Olivina cósmica ☄️','Cristais verdes de fora da Terra',RX0+nx*V,RY0+ny*V,RZ0+nz*V);}
+    if(nt===T_BONE&&!S.found['bo'+S.rockSeed]){S.found['bo'+S.rockSeed]=1;discover('Fóssil exposto! 🦴','Ossos valem caro: erosione com cuidado',RX0+nx*V,RY0+ny*V,RZ0+nz*V);}
     if(nt===T_GOLD&&!S.found['g'+S.level]){S.found['g'+S.level]=1;discover('Ouro exposto!','Um veio dourado apareceu na rocha',RX0+nx*V,RY0+ny*V,RZ0+nz*V);}
     if(nt===T_AME&&!S.found['a'+S.level]){S.found['a'+S.level]=1;discover('Ametista!','Você chegou ao coração do geodo',RX0+nx*V,RY0+ny*V,RZ0+nz*V);}}
   if(spawn&&sedCount<MAXSED){const k=F.add(RX0+(x+.5)*V,RY0+(y+.5)*V,RZ0+(z+.5)*V,(R()-.5)*.002,.001,(R()-.5)*.002,1,t);if(k>=0)sedCount++;}
@@ -636,7 +640,8 @@ function postStep(){
 const RANKS=[[0,'Aprendiz'],[120,'Bateador'],[500,'Garimpeiro'],[1800,'Faiscador'],[6000,'Mineiro'],[18000,'Prospector'],[55000,'Capataz'],[160000,'Mestre das águas'],[500000,'Lenda do rio'],[2e6,'Titã da erosão']];
 const rankIdx=()=>{let k=0;for(let i=0;i<RANKS.length;i++)if(S.total>=RANKS[i][0])k=i;return k;};
 const rankMult=()=>1+rankIdx()*.12;
-const valMult=()=>(1+(S.level-1)*.35)*rankMult();
+const colCount=()=>Object.keys(S.col||{}).length;const colMult=()=>1+colCount()*.06;let blessT=0;
+const valMult=()=>(1+(S.level-1)*.35)*rankMult()*colMult()*(blessT>0?2:1);
 const MILES=[.08,.2,.4,.7,1,1.5,2.2,3,4,5.5,7.5,10,14,20,28,38,50,65];
 const mileReward=k=>Math.round(8*Math.pow(k+1,1.55)*(1+(S.level-1)*.6)*rankMult());
 function spawnGrain(x,y,z,t,vx=0,vy=0,vz=0){if(sedCount>=MAXSED)return;const k=F.add(x,y,z,vx+(R()-.5)*.002,vy+.001,vz+(R()-.5)*.002,1,t);if(k>=0)sedCount++;}
@@ -1168,7 +1173,7 @@ function ui(){
   $('mileTxt').textContent=nxt?`Próximo marco: ${String(nxt).replace('.',',')}% → +$${fmt(mileReward(S.mile))}`:'Todos os marcos atingidos!';
   $('nextRock').style.display=pct>=10&&!rockInfo.done?'block':'none';
   const ri=rankIdx(),r0=RANKS[ri][0],r1=RANKS[ri+1]?RANKS[ri+1][0]:null;$('rankName').textContent='🏅 '+RANKS[ri][1];$('rankMul').textContent='· renda ×'+rankMult().toFixed(2).replace('.',',');
-  $('rankBar').style.width=(r1?Math.min(100,(S.total-r0)/(r1-r0)*100):100)+'%';$('rankNext').textContent=r1?`Próximo: ${RANKS[ri+1][1]} ($${fmt(r1)} ganhos no total)`:'Rank máximo';
+  $('rankMul').textContent='· renda ×'+(rankMult()*colMult()).toFixed(2).replace('.',',')+' · coleção '+colCount()+'/'+OBJ_TYPES.length+(blessT>0?' · ✨×2 '+Math.ceil(blessT)+'s':'');$('rankBar').style.width=(r1?Math.min(100,(S.total-r0)/(r1-r0)*100):100)+'%';$('rankNext').textContent=r1?`Próximo: ${RANKS[ri+1][1]} ($${fmt(r1)} ganhos no total)`:'Rank máximo';
   const c=totalCap();$('sluiceTxt').textContent='$'+fmt(S.sluice)+' / $'+fmt(c)+(lostBatchShown>0?' · perdeu $'+fmt(lostBatchShown):'');$('sluiceBar').style.width=Math.min(100,S.sluice/c*100)+'%';
   $('wash').disabled=S.sluice<.01;$('wash').classList.toggle('full',S.sluice>=c*.98);
   for(const b of btns){const u=b._u,l=S.up[u.k],mx=maxed(u),c2=costOf(u),av=avail(u);const h=`<b>${u.n}${l&&u.max!==1?` · ${l}`:''}</b><span>${av?u.d(l):'Requer: '+SHOP.find(x=>x.k===u.req).n}</span><span class="c">${mx?(u.max===1?'✓ desbloqueado':'✓ máximo'):'$'+fmt(c2)}</span>`;if(b._h!==h){b.innerHTML=h;b._h=h;}b.disabled=mx||!av||S.money<c2;b.classList.toggle('ok',!mx&&av&&S.money>=c2);}
@@ -1181,6 +1186,7 @@ function floatText(p,t,c,sz){const el=document.createElement('div');el.className
 function updTexts(){for(let k=fts.length-1;k>=0;k--){const f=fts[k];f.life--;f.p.y+=.004;if(f.life<=0){f.el.remove();fts.splice(k,1);continue;}
   v3.copy(f.p).project(camera);f.el.style.left=((v3.x+1)/2*innerWidth)+'px';f.el.style.top=((1-v3.y)/2*innerHeight)+'px';f.el.style.opacity=Math.min(1,f.life/25);}}
 let tt=0;function toast(a,b){$('toast').innerHTML=a+(b?`<small>${b}</small>`:'');$('toast').style.opacity=1;clearTimeout(tt);tt=setTimeout(()=>$('toast').style.opacity=0,2600);}
+function coinFountain(x,y,z){for(let k=0;k<14;k++)setTimeout(()=>floatText(new THREE.Vector3(x+(Math.random()-.5)*.4,y+.1+Math.random()*.3,z+(Math.random()-.5)*.4),'🪙','#ffd970',18+Math.random()*10),k*70);}
 function discover(a,b,x,y,z){toast(a,b);sfx.reveal();floatText(new THREE.Vector3(x,y+.1,z),'✦','#ffe9a0',30);}
 $('hint').ondblclick=null;
 
@@ -1199,7 +1205,8 @@ function saveRockMask(){try{let out=[],cur=0,run=0;for(let i=0;i<GN;i++){const a
 function loadRockMask(){try{const raw=localStorage.getItem(KEY+'_rock');if(!raw)return false;const [hd,data]=raw.split('|');const hp=hd.split(':');if(hp[0]!=='v3'||+hp[1]!==GN||+hp[2]!==S.rockSeed)return false;
   const runs=data.split(',').map(v=>parseInt(v,36));let i=0,cur=0,left=0;for(const r of runs){if(!cur){for(let k=0;k<r&&i<GN;k++,i++)vt[i]=0;}else{for(let k=0;k<r&&i<GN;k++,i++)if(vt[i])left++;}cur^=1;}
   rockInfo.left=left;return true;}catch(e){return false;}}
-function finishRock(auto){if(rockInfo.done)return;rockInfo.done=true;S.rocks++;const bonus=Math.round(60*S.level*valMult()*(1+rockPct()/20));S.money+=bonus;S.total+=bonus;
+function addCol(k,name){if(!S.col)S.col={};if(S.col[k])return;S.col[k]=1;toast('Nova peça na coleção: '+name,'Renda permanente +6% · coleção '+colCount()+'/'+OBJ_TYPES.length);sfx.reveal();}
+function finishRock(auto){if(rockInfo.done)return;rockInfo.done=true;S.rocks++;setTimeout(()=>addCol(rockInfo.kind,rockInfo.name),1200);const bonus=Math.round(60*S.level*valMult()*(1+rockPct()/20));S.money+=bonus;S.total+=bonus;
   toast((auto?rockInfo.name+' desfeita!':'Rocha trocada!'),'Bônus +$'+fmt(bonus)+' · a próxima rocha vale '+Math.round((valMultAt(S.level+1)/valMultAt(S.level)-1)*100)+'% mais');sfx.reveal();
   S.level++;for(const f of [...frags])dissolveFragment(f,false);save();setTimeout(()=>{showLoading('Uma nova rocha está surgindo…');setTimeout(()=>{newRock(true);buildAqueduct();hideLoading();},60);},2300);}
 function showLoading(t){let el=document.getElementById('loading');if(!el){el=document.createElement('div');el.id='loading';document.body.appendChild(el);}el.textContent=t;el.style.display='flex';el.style.opacity=.85;}
@@ -1210,7 +1217,7 @@ function freeSpot(rad){for(let t=0;t<60;t++){const a=Math.random()*6.283,r=1.05+
   const gx=Math.floor((x-RX0)/V),gz=Math.floor((z-RZ0)/V),gr=Math.ceil(rad/V);let ok=true;for(let a2=-gr;a2<=gr&&ok;a2+=3)for(let c=-gr;c<=gr&&ok;c+=3)for(let y=0;y<8;y+=2)if(solid(gx+a2,y,gz+c)){ok=false;break;}
   if(ok&&Math.abs(x)+rad<GX*V/2&&Math.abs(z)+rad<GZ*V/2)return {x,z};}return null;}
 function markRegion(x,z,r){for(let cz=0;cz<CNZ;cz++)for(let cy=0;cy<CNY;cy++)for(let cx=0;cx<CNX;cx++){const wx=RX0+(cx+.5)*CK*V,wz=RZ0+(cz+.5)*CK*V;if(Math.abs(wx-x)<r+CK*V&&Math.abs(wz-z)<r+CK*V)chunkDirty[(cz*CNY+cy)*CNX+cx]=1;}}
-function addExtra(e){S.extras.push(e);const n=buildObject(e.k,e.x,e.z,e.s,e.seed,1+(S.level-1)*.15);rockInfo.total+=n;rockInfo.left+=n;markRegion(e.x,e.z,e.s*1.6);saveRockMask();return n;}
+function addExtra(e){S.extras.push(e);const ot=OBJ_TYPES.find(o=>o.k===e.k);if(ot)setTimeout(()=>addCol(ot.k,ot.n),2500);const n=buildObject(e.k,e.x,e.z,e.s,e.seed,1+(S.level-1)*.15);rockInfo.total+=n;rockInfo.left+=n;markRegion(e.x,e.z,e.s*1.6);saveRockMask();return n;}
 const meteorMat=new THREE.MeshStandardMaterial({color:0x2a2420,emissive:0xff6a1a,emissiveIntensity:2.2,roughness:.6});
 function meteorShower(){toast('Chuva de meteoritos! ☄️','Pedras do céu caíram ao redor da rocha');sfx.thunder(.6);
   const n=2+Math.floor(Math.random()*3);for(let k=0;k<n;k++){const sp=freeSpot(.32);if(!sp)continue;const tg=new THREE.Vector3(sp.x,terrainH(sp.x,sp.z),sp.z);
@@ -1224,7 +1231,7 @@ function rareVisitor(){const k=Math.random()<.5?'idolo':'bau';const sp=freeSpot(
   toast(k==='idolo'?'Um ídolo de jade emergiu! 🗿':'Um baú enterrado apareceu! 💰','Erosione até o tesouro dentro dele');sfx.reveal();
   floatText(new THREE.Vector3(sp.x,terrainH(sp.x,sp.z)+.9,sp.z),'✦','#ffe9a0',34);}
 function stepEvents(dt){if(S.level<2&&S.total<300)return;evTimer-=dt;if(evTimer<=0){evTimer=140+Math.random()*120;if(Math.random()<.6)meteorShower();else rareVisitor();}}
-const valMultAt=l=>(1+(l-1)*.35)*rankMult();
+const valMultAt=l=>(1+(l-1)*.35)*rankMult()*colMult();
 const rockPct=()=>(1-rockInfo.left/rockInfo.total)*100;
 function simFrame(){
   const dt=1/60;erosionMul=acid(S.up.acido)*(floodT>0?2:1);splashBudget=3;
@@ -1242,7 +1249,7 @@ function simFrame(){
   if(structDirty){structT++;if(structT>40){structT=0;checkStructure();}}
   // lavagem automática
   if(S.up.auto){washT+=1/60;if(washT>=autoWash(S.up.auto)&&S.sluice>0){washT=0;wash();}}
-  earnT++;if(earnT>=60){earnT=0;earnHist.push(earnBatch);if(earnHist.length>20)earnHist.shift();earnBatch=0;lostBatchShown=lostBatch;lostBatch=0;
+  earnT++;if(earnT>=60){earnT=0;earnHist.push(earnBatch);{const r=earnHist.reduce((a,b)=>a+b,0)/Math.max(1,earnHist.length);S.rate=S.rate*.9+r*.1;}if(earnHist.length>20)earnHist.shift();earnBatch=0;lostBatchShown=lostBatch;lostBatch=0;
     if(sluiceAdd>0){const p=new THREE.Vector3((SL_X0+SL_X1)/2,chanBed(SL_X0)+.12,0);floatText(p,'+$'+fmt(sluiceAdd),'#ffd970',16);sfx.coin(sluiceAdd);sluiceAdd=0;}}
   // marcos de erosão
   const pct=rockPct();
@@ -1308,7 +1315,7 @@ function stepCamera(dt){
 }
 function loop(now){
   const dt=Math.min(100,now-last);last=now;acc+=dt;let n=0;
-  stepCamera(dt/1000);
+  stepCamera(dt/1000);if(blessT>0){blessT-=dt/1000;}
   if(comboT>0){comboT-=dt/1000;comboDur+=dt/1000;if(comboT<=0){comboN=0;comboGain=0;comboDur=0;}}
   {const cm=comboMul();const el=$('combo');if(cm>1.05){el.style.opacity=1;el.textContent=`Combo ×${cm.toFixed(1).replace('.',',')} · +$${fmt(comboGain)}`;}else el.style.opacity=0;}
   while(acc>=1000/60&&n<2){const t0=performance.now();simFrame();adaptCap(performance.now()-t0);acc-=1000/60;n++;frames++;}if(n===2)acc=0;
@@ -1320,7 +1327,10 @@ function loop(now){
   requestAnimationFrame(loop);
 }
 resize();
-setTimeout(()=>{newRock(false);buildShop();renderHotbar();rebuildTurrets();buildAqueduct();buildExtraSluices();syncFish();ui();hideLoading();requestAnimationFrame(loop);},30);
+function offlineGains(){const away=(Date.now()-(S.t||Date.now()))/1000;const passive=turretCount()+S.up.nuvem+S.up.aqueduto+S.up.nascente+S.up.peixes+S.up.auto;
+  if(away<60||!passive||!(S.rate>0))return;const sec=Math.min(away,8*3600);const g=Math.round(sec*S.rate*Math.min(.5,.12+passive*.03));if(g<1)return;S.money+=g;S.total+=g;
+  const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60);setTimeout(()=>toast('Enquanto você estava fora ('+(h?h+'h ':'')+m+'min)','Suas máquinas renderam +$'+fmt(g)),900);}
+setTimeout(()=>{offlineGains();newRock(false);buildShop();renderHotbar();rebuildTurrets();buildAqueduct();buildExtraSluices();syncFish();ui();hideLoading();requestAnimationFrame(loop);},30);
 window.__dbg={get simCost(){return simCost},meteorShower,rareVisitor,newRock,get rock(){return rockInfo},hold(v){down=v;},jetAt(x,y,z){aim=new THREE.Vector3(x,y,z);S.tool='jato';down=true;},panGrains:(x,y,z)=>panGrains(new THREE.Vector3(x,y,z)),startStorm,get cap(){return F.cap},aimAt(x,y,z){aim=new THREE.Vector3(x,y,z);},carve(x0,x1,y0,y1){for(let z=0;z<GZ;z++)for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const i=vid(x,y,z);if(vt[i])removeVoxel(i,x,y,z,false);}},frags,setTool,useTool,get aim(){return aim},set aim(v){aim=v},startDam,burstDam,get dam(){return dam},DBG,setRender(v){SIMONLY=!v;},cam:camera,ctl:controls,get frames(){return frames},F,S,rockInfo:()=>rockInfo,spawnDrop:(x,y,z,n,h)=>spawnDrop(new THREE.Vector3(x,y,z),n,h)};
 addEventListener('visibilitychange',()=>{if(document.hidden){save();saveRockMask();}});addEventListener('beforeunload',()=>{save();saveRockMask();});
 </script>
