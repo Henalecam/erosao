@@ -517,7 +517,7 @@ function spawnGrain(x,y,z,t,vx=0,vy=0,vz=0){if(sedCount>=MAXSED)return;const k=F
 // =================================================================
 // Fragmentos rígidos (a rocha tem física)
 // =================================================================
-const frags=[];const FRAG_MAX=28;
+const frags=[];const FRAG_MAX=60;
 const fragMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.9});
 function fragGeometry(f){
   const set=new Set();for(const v of f.vox)set.add(v.k);
@@ -529,6 +529,20 @@ function fragGeometry(f){
         pos.push(cx+(Fc[3]*su+Fc[6]*sv)*V*.5,cy+(Fc[4]*su+Fc[7]*sv)*V*.5,cz+(Fc[5]*su+Fc[8]*sv)*V*.5);nor.push(Fc[0],Fc[1],Fc[2]);
         const sh=.78+.22*(q===2?1:q===3?.6:.85);col.push(r*sh,g*sh,b*sh);}}}
   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));geo.setAttribute('color',new THREE.Float32BufferAttribute(col,3));geo.computeBoundingSphere();return geo;}
+// arranca voxels da rocha e os lança como fragmentos/grãos (o balão e o gelo MOVEM os blocos)
+function ejectVoxels(list,cx,cy,cz,power,chunk=5){
+  if(!list.length)return;const recs=[];
+  for(const v of list){const i=v.i;if(!vt[i])continue;recs.push({x:v.x,y:v.y,z:v.z,t:vt[i],r:vr[i],g:vg[i],b:vb[i]});removeVoxel(i,v.x,v.y,v.z,false);}
+  const seed=(R()*1000)|0;const buckets=new Map();
+  for(const v of recs){const wx=v.x+(vnoise(v.x*.2,v.y*.2,v.z*.2,seed)-.5)*6,wy=v.y+(vnoise(v.x*.2+5,v.y*.2,v.z*.2,seed)-.5)*6,wz=v.z+(vnoise(v.x*.2,v.y*.2+5,v.z*.2,seed)-.5)*6;
+    const key=Math.floor(wx/chunk)+','+Math.floor(wy/chunk)+','+Math.floor(wz/chunk);let b=buckets.get(key);if(!b){b=[];buckets.set(key,b);}b.push(v);}
+  const tmp=new THREE.Vector3();
+  for(const b of buckets.values()){let mx=0,my=0,mz=0;for(const v of b){mx+=v.x;my+=v.y;mz+=v.z;}mx/=b.length;my/=b.length;mz/=b.length;
+    tmp.set(RX0+(mx+.5)*V-cx,RY0+(my+.5)*V-cy,RZ0+(mz+.5)*V-cz);const d=tmp.length()||.01;tmp.multiplyScalar(1/d);
+    const k=power*(.55+R()*.6);const vel=new THREE.Vector3(tmp.x*k,Math.max(tmp.y,.15)*k*.8+power*.35,tmp.z*k);
+    if(b.length<4){for(const v of b)spawnGrain(RX0+(v.x+.5)*V,RY0+(v.y+.5)*V,RZ0+(v.z+.5)*V,v.t,vel.x/HZ+(R()-.5)*.004,vel.y/HZ,vel.z/HZ+(R()-.5)*.004);}
+    else{const f=makeFragment(b,vel);f.w.set((R()-.5)*12,(R()-.5)*12,(R()-.5)*12);}}
+}
 function makeFragment(list,vel){
   if(frags.length>=FRAG_MAX){const old=frags.shift();dissolveFragment(old,true);}
   let cx=0,cy=0,cz=0;for(const v of list){cx+=v.x;cy+=v.y;cz+=v.z;}cx/=list.length;cy/=list.length;cz/=list.length;
@@ -563,7 +577,7 @@ function stepFragments(dt){
     if(maxPen>0){f.pos.x+=cn[0]*maxPen;f.pos.y+=cn[1]*maxPen;f.pos.z+=cn[2]*maxPen;
       _n.set(cn[0],cn[1],cn[2]);const vn=f.vel.dot(_n);
       if(vn<0){f.vel.addScaledVector(_n,-vn*1.3);
-        if(-vn>2.2&&f.vox.length>6){chipFragment(f,Math.min(12,Math.round(-vn*2)));sfx.thud(Math.min(1,-vn/6));}
+        if(-vn>3.2&&f.vox.length>12){chipFragment(f,Math.min(5,Math.round((-vn-3)*2)));sfx.thud(Math.min(1,-vn/6));}
         else if(-vn>.8)sfx.thud(Math.min(.5,-vn/8));}
       // atrito e rolamento
       const vt2=f.vel.clone().addScaledVector(_n,-f.vel.dot(_n));f.vel.addScaledVector(vt2,-.06);
@@ -572,21 +586,26 @@ function stepFragments(dt){
     // separação entre fragmentos
     for(let fj=0;fj<fi;fj++){const g=frags[fj];const d=_r.copy(f.pos).sub(g.pos);const L=d.length(),m=(f.rad+g.rad)*.7;if(L<m&&L>1e-4){d.multiplyScalar((m-L)/L*.5);f.pos.add(d);g.pos.sub(d);}}
     const sp=f.vel.length();if(sp<.08&&maxPen>0)f.settle+=dt;else f.settle=0;
-    if(f.pos.y<-2||f.pos.x>6.5){dissolveFragment(f,false);continue;}
+    {const sp2=f.vel.length();if(sp2>4.5)f.vel.multiplyScalar(4.5/sp2);}
+    if(Math.abs(f.pos.x)>7.5){f.pos.x=Math.sign(f.pos.x)*7.5;f.vel.x*=-.4;}if(Math.abs(f.pos.z)>7.5){f.pos.z=Math.sign(f.pos.z)*7.5;f.vel.z*=-.4;}
+    if(f.pos.y<-2||(f.pos.x>CH_X1-.1&&Math.abs(f.pos.z)<CH_W+.1)){dissolveFragment(f,false);continue;}
     if(f.dirty){f.dirty=false;scene.remove(f.mesh);f.mesh.geometry.dispose();fragShape(f);f.mesh.geometry=fragGeometry(f);scene.add(f.mesh);}
     f.mesh.position.copy(f.pos);f.mesh.quaternion.copy(f.q);}
 }
 // água ↔ fragmentos: empurra partículas, recebe impulso e sofre erosão
+const FH_C=.4;const fragHash=new Map();
 function fragWater(){
   if(!frags.length)return;const n=F.np,px=F.px,py=F.py,pz=F.pz,ox=F.ox,oy=F.oy,oz=F.oz,kind=F.kind;
-  for(const f of frags){const R2=f.rWater,R2s=R2*R2,bx=f.pos.x,by=f.pos.y,bz=f.pos.z;let ix=0,iy=0,iz=0,hits=0,dm=0;
-    for(let i=0;i<n;i++){const dx=px[i]-bx;if(dx>R2||dx<-R2)continue;const dz=pz[i]-bz;if(dz>R2||dz<-R2)continue;const dy=py[i]-by;const d2=dx*dx+dy*dy+dz*dz;if(d2>=R2s||d2<1e-8)continue;
+  fragHash.clear();for(const f of frags){f._ix=0;f._iy=0;f._iz=0;f._h=0;f._dm=0;const r=f.rWater;
+    for(let gx=Math.floor((f.pos.x-r)/FH_C);gx<=Math.floor((f.pos.x+r)/FH_C);gx++)for(let gz=Math.floor((f.pos.z-r)/FH_C);gz<=Math.floor((f.pos.z+r)/FH_C);gz++){const k=gx*4096+gz;let l=fragHash.get(k);if(!l){l=[];fragHash.set(k,l);}l.push(f);}}
+  for(let i=0;i<n;i++){const l=fragHash.get(Math.floor(px[i]/FH_C)*4096+Math.floor(pz[i]/FH_C));if(!l)continue;
+    for(const f of l){const R2=f.rWater;const dx=px[i]-f.pos.x,dy=py[i]-f.pos.y,dz=pz[i]-f.pos.z;const d2=dx*dx+dy*dy+dz*dz;if(d2>=R2*R2||d2<1e-8)continue;
       const d=Math.sqrt(d2),k=(R2-d)/d;const vx=px[i]-ox[i],vy=py[i]-oy[i],vz=pz[i]-oz[i];
       px[i]+=dx*k;py[i]+=dy*k;pz[i]+=dz*k;
-      const vin=-(vx*dx+vy*dy+vz*dz)/d;ix+=vx;iy+=vy;iz+=vz;hits++;
-      if(kind[i]!==1)dm+=(.0006+.004*(vin*HZ)**2*(vin>0?1:0)+.002*Math.hypot(vx,vy,vz)*HZ)*(kind[i]===2?6:1);}
-    if(hits){const m=1/(f.mass*.35+hits);f.vel.x+=ix*HZ*m*.8;f.vel.y+=iy*HZ*m*.3;f.vel.z+=iz*HZ*m*.8;
-      f.dmg+=dm*erosionMul;const per=.45;if(f.dmg>per){const c=Math.min(6,Math.floor(f.dmg/per));f.dmg-=c*per;chipFragment(f,c);}}}
+      const vin=-(vx*dx+vy*dy+vz*dz)/d;const sp=Math.hypot(vx,vy,vz)*HZ;const w=1+sp*.8;f._ix+=vx*w;f._iy+=vy*w;f._iz+=vz*w;f._h++;
+      if(kind[i]!==1)f._dm+=(.0006+.004*(vin*HZ)**2*(vin>0?1:0)+.002*sp)*(kind[i]===2?6:1)*(F.mat[i]>=128?1+(F.mat[i]-128)*.02:1+Math.min(F.mat[i],30)*.03);}}
+  for(const f of [...frags]){if(!f._h)continue;const m=1/(f.mass*.6+f._h*1.5);f.vel.x+=f._ix*HZ*m*.8;f.vel.y+=f._iy*HZ*m*.3;f.vel.z+=f._iz*HZ*m*.8;
+    f.dmg+=f._dm*erosionMul;const per=1.4;if(f.dmg>per){const c=Math.min(6,Math.floor(f.dmg/per));f.dmg-=c*per;chipFragment(f,c);}}
 }
 let sluiceAdd=0;
 
@@ -725,8 +744,37 @@ function fromCamera(target,dist,lift=0){camDir.copy(camera.position).sub(target)
 function shootJet(src,target,speed,n,pow=128+jetPen(S.up.forcaJato)){const d=target.clone().sub(src);const L=d.length();d.normalize();const T=L/speed;const v=d.multiplyScalar(speed/HZ);v.y+=9.8*T/2/HZ;
   for(let k=0;k<n;k++)F.add(src.x+(R()-.5)*.03,src.y+(R()-.5)*.03,src.z+(R()-.5)*.03,v.x+(R()-.5)*.0012,v.y+(R()-.5)*.0012,v.z+(R()-.5)*.0012,0,pow);}
 function lob(src,target,T,n,kind=0,pow=20){const v=target.clone().sub(src).divideScalar(T);v.y+=.5*9.8*T;spawnBlob(src.x,src.y,src.z,n,v.x/HZ,v.y/HZ,v.z/HZ,kind,pow);}
+const iceMat=new THREE.MeshPhysicalMaterial({color:0xcfefff,roughness:.08,metalness:0,clearcoat:1,transparent:true,opacity:.78,emissive:0x1a3344,emissiveIntensity:.4});
+const iceGeo=new THREE.BoxGeometry(1,1,1);
+function iceBlocks(target){const n=2+Math.min(4,Math.floor(S.up.gota/3));const sz=.07+Math.min(8,S.up.gota)*.012;
+  for(let k=0;k<n;k++){const m=new THREE.Mesh(iceGeo,iceMat);m.scale.setScalar(sz*(.8+R()*.4));m.castShadow=true;scene.add(m);
+    const pos=new THREE.Vector3(target.x+(R()-.5)*.2,target.y+2+R()*.4,target.z+(R()-.5)*.2);
+    projs.push({type:'ice',pos,vel:new THREE.Vector3((R()-.5)*.3,-(3+S.up.altura*.3),(R()-.5)*.3),sz,mesh:m,t:0,delay:k*.12});}}
+function shatterIce(p){const pw=waterPow(S.up.altura);const sz=p.sz,pos=p.pos;const sp=-p.vel.y;
+  // lasca: dano concentrado e ejeção de pedaços
+  const rv=(sz*1.05)/V,D=(1.2+sp*.35)*erosionMul*pw;const cx=(pos.x-RX0)/V,cy=(pos.y-sz*.5-RY0)/V,cz=(pos.z-RZ0)/V;const list=[];
+  for(let z=Math.floor(cz-rv);z<=Math.ceil(cz+rv);z++)for(let y=Math.floor(cy-rv);y<=Math.ceil(cy+rv);y++)for(let x=Math.floor(cx-rv);x<=Math.ceil(cx+rv);x++){if(!solid(x,y,z))continue;
+    const d=Math.hypot(x+.5-cx,(y+.5-cy)*1.3,z+.5-cz)/rv;if(d>=1)continue;const i=vid(x,y,z);vhp[i]-=D*(1-d);if(vhp[i]<=0)list.push({i,x,y,z});}
+  ejectVoxels(list,pos.x,pos.y+.05,pos.z,.6+sp*.12,4);
+  // estilhaços de gelo (derretem em água)
+  for(let q=0;q<10;q++){const a=R()*6.283,e=R()*.9;const v=(1+R()*1.6)/HZ;const i=F.add(pos.x,pos.y+.02,pos.z,Math.cos(a)*Math.cos(e)*v,Math.sin(e)*v+.006,Math.sin(a)*Math.cos(e)*v,2);if(i>=0)F.mat[i]=150;}
+  for(const f of frags){const dv=f.pos.clone().sub(pos);const L=dv.length();if(L<.35)f.vel.addScaledVector(dv.normalize(),(1-L/.35)*2);}
+  sfx.ice(1);sfx.thud(.4);shake=Math.max(shake,.01);}
 function iceShot(target){const n=4+Math.floor(S.up.gota/2),v=(5.5+S.up.altura*.35)/HZ;for(let k=0;k<n;k++){const x=target.x+(R()-.5)*.25,z=target.z+(R()-.5)*.25;const i=F.add(x,target.y+1.4+R()*.4,z,(R()-.5)*.002,-v,(R()-.5)*.002,2);if(i>=0)F.mat[i]=220;}}
+const waves=[];
 function waveShot(target){const toCam=camera.position.clone().sub(target);toCam.y=0;toCam.normalize();const side=new THREE.Vector3(-toCam.z,0,toCam.x);
+  waves.push({base:target.clone().addScaledVector(toCam,1.7),toCam,side,t:0,layers:0,target:target.clone()});}
+function stepWaves(dt){for(let k=waves.length-1;k>=0;k--){const w=waves[k];w.t+=dt;const want=Math.min(6,Math.floor(w.t/.06)+1);
+  const hw=10+Math.min(12,S.up.gota),pw=Math.min(120,20+S.up.altura*5),spd=(3.6+S.up.altura*.25)/HZ;
+  while(w.layers<want){const d=w.layers;const rows=d<2?9:6;
+    for(let a=-hw;a<=hw;a++)for(let h=0;h<rows;h++){const x=w.base.x+w.side.x*a*.05+w.toCam.x*d*.02,z=w.base.z+w.side.z*a*.05+w.toCam.z*d*.02;
+      F.add(x,terrainH(x,z)+.04+h*.05,z,-w.toCam.x*spd*(1+h*.04),-.002+h*.0004,-w.toCam.z*spd*(1+h*.04),0,pw);}
+    w.layers++;}
+  // a frente da onda empurra fragmentos que estão no caminho
+  const front=w.base.clone().addScaledVector(w.toCam,-w.t*3.6);
+  for(const f of frags){const rel=f.pos.clone().sub(front);const along=-rel.dot(w.toCam),lat=Math.abs(rel.dot(w.side));if(Math.abs(along)<.35&&lat<hw*.05+.1){f.vel.addScaledVector(w.toCam,-dt*9);f.vel.y+=dt*2;}}
+  if(w.t>1.2)waves.splice(k,1);}}
+function waveShotOld(target){const toCam=camera.position.clone().sub(target);toCam.y=0;toCam.normalize();const side=new THREE.Vector3(-toCam.z,0,toCam.x);
   const base=target.clone().addScaledVector(toCam,1.5);const vel=toCam.clone().multiplyScalar(-3.4/HZ);
   const hw=9+Math.min(10,S.up.gota),pw=Math.min(120,15+S.up.altura*4);vel.multiplyScalar(1+S.up.altura*.06);
   for(let a=-hw;a<=hw;a++)for(let h=0;h<5;h++)for(let d=0;d<3;d++){const x=base.x+side.x*a*.05+toCam.x*d*.05,z=base.z+side.z*a*.05+toCam.z*d*.05;F.add(x,terrainH(x,z)+.04+h*.05,z,vel.x,0,vel.z,0,pw);}}
@@ -737,7 +785,7 @@ function useTool(first){
   if(t==='jato')return; // contínuo no tick
   if(!first||cdLeft[t]>0)return;cdLeft[t]=CD[t];
   if(t==='balao'){cdLeft[t]=0;startCharge();}
-  if(t==='granizo'){iceShot(aim);sfx.whoosh();}
+  if(t==='granizo'){iceBlocks(aim);sfx.whoosh();}
   if(t==='onda'){waveShot(aim);sfx.wave();}
 }
 function setTool(k){if(!toolOn(k))return;S.tool=k;renderHotbar();}
@@ -761,13 +809,13 @@ function throwBalloon(){const sz=Math.max(.12,chargeSize());const src=chargeMesh
   const T=.5+sz*.15;const v=tg.clone().sub(src).divideScalar(T);v.y+=.5*9.8*T;
   const m=new THREE.Mesh(chargeMesh.geometry,balloonMatl);m.castShadow=true;const r=balloonRad(sz);m.scale.set(r,r*1.12,r);m.position.copy(src);scene.add(m);
   projs.push({pos:src,vel:v,sz,mesh:m,t:0});cdLeft.balao=CD.balao;sfx.whoosh();}
-function stepProjs(dt){for(let k=projs.length-1;k>=0;k--){const p=projs[k];p.t+=dt;let hit=false;
+function stepProjs(dt){for(let k=projs.length-1;k>=0;k--){const p=projs[k];p.t+=dt;if(p.delay>0){p.delay-=dt;p.mesh.visible=false;continue;}p.mesh.visible=true;let hit=false;
   for(let s=0;s<4&&!hit;s++){const h=dt/4;p.vel.y-=9.8*h;p.pos.addScaledVector(p.vel,h);
-    const r=balloonRad(p.sz)*.7;const gx=Math.floor((p.pos.x-RX0)/V),gy=Math.floor((p.pos.y-r-RY0)/V),gz=Math.floor((p.pos.z-RZ0)/V);
+    const r=p.type==='ice'?p.sz*.5:balloonRad(p.sz)*.7;const gx=Math.floor((p.pos.x-RX0)/V),gy=Math.floor((p.pos.y-r-RY0)/V),gz=Math.floor((p.pos.z-RZ0)/V);
     if(solid(gx,gy,gz)||solid(Math.floor((p.pos.x-RX0)/V),Math.floor((p.pos.y-RY0)/V),gz)||p.pos.y-r<terrainH(p.pos.x,p.pos.z)||p.t>3)hit=true;
     for(const f of frags)if(f.pos.distanceTo(p.pos)<f.rad*.8+r)hit=true;}
-  p.mesh.position.copy(p.pos);p.mesh.rotation.z+=dt*3;
-  if(hit){burstBalloon(p);scene.remove(p.mesh);projs.splice(k,1);}}}
+  p.mesh.position.copy(p.pos);p.mesh.rotation.z+=dt*3;if(p.type==='ice')p.mesh.rotation.x+=dt*4;
+  if(hit){if(p.type==='ice')shatterIce(p);else burstBalloon(p);scene.remove(p.mesh);projs.splice(k,1);}}}
 function burstBalloon(p){
   const sz=p.sz,pos=p.pos,pw=waterPow(S.up.altura);
   // 1) explosão de água
@@ -775,13 +823,14 @@ function burstBalloon(p){
   for(let q=0;q<n;q++){const L=LAT[q];const ox=L[1]*sp,oy=L[2]*sp,oz=L[3]*sp;const d=Math.hypot(ox,oy,oz)||1;
     F.add(pos.x+ox,pos.y+oy+.03,pos.z+oz,(ox/d*outV+p.vel.x*.25)/HZ,(Math.abs(oy/d)*outV*.6+.6)/HZ,(oz/d*outV+p.vel.z*.25)/HZ,0,Math.min(120,25+Math.round(sz*40)));}
   // 2) cratera: dano direto aos voxels no raio
-  const rb=blastR(sz),D=(1+4.5*sz)*erosionMul*pw;const cx=(pos.x-RX0)/V,cy=(pos.y-RY0)/V,cz=(pos.z-RZ0)/V,rv=rb/V;let broke=0;
+  const blast=[];const rb=blastR(sz),D=(1+4.5*sz)*erosionMul*pw;const cx=(pos.x-RX0)/V,cy=(pos.y-RY0)/V,cz=(pos.z-RZ0)/V,rv=rb/V;let broke=0;
   for(let z=Math.floor(cz-rv);z<=Math.ceil(cz+rv);z++)for(let y=Math.floor(cy-rv);y<=Math.ceil(cy+rv);y++)for(let x=Math.floor(cx-rv);x<=Math.ceil(cx+rv);x++){
-    if(!solid(x,y,z))continue;const d=Math.hypot(x+.5-cx,y+.5-cy,z+.5-cz)/rv;if(d>=1)continue;const i=vid(x,y,z);vhp[i]-=D*Math.pow(1-d,1.2);if(vhp[i]<=0){removeVoxel(i,x,y,z,R()<.55);broke++;}}
+    if(!solid(x,y,z))continue;const d=Math.hypot(x+.5-cx,y+.5-cy,z+.5-cz)/rv;if(d>=1)continue;const i=vid(x,y,z);vhp[i]-=D*Math.pow(1-d,1.2);if(vhp[i]<=0){blast.push({i,x,y,z});broke++;}}
+  ejectVoxels(blast,pos.x-p.vel.x*.02,pos.y-.05,pos.z-p.vel.z*.02,(.7+1.3*sz)*Math.sqrt(pw),6+Math.round(sz*3));
   // 3) empurra fragmentos
   for(const f of frags){const dv=f.pos.clone().sub(pos);const L=dv.length();if(L<rb*4){f.vel.addScaledVector(dv.normalize(),(1-L/(rb*4))*3*(.5+sz));}}
   sfx.pop(sz);shake=Math.max(shake,.012+sz*.03);
-  if(broke>30)floatText(pos.clone().add(new THREE.Vector3(0,.2,0)),'💥 '+broke,'#bfe6ff',18+sz*10);}
+  if(broke>30)floatText(pos.clone().add(new THREE.Vector3(0,.2,0)),'💥 '+broke+' blocos','#bfe6ff',18+sz*10);}
 addEventListener('keydown',e=>{const n=+e.key;if(n>=1&&n<=5){setTool(TOOLS[n-1].k);}});
 // ----- torretas
 const SLOTS=[200,250,95,300,40,330].map(a=>{const r=a*Math.PI/180;return [Math.cos(r)*2.55,Math.sin(r)*2.55];});
@@ -1006,7 +1055,7 @@ function simFrame(){
   // segurar
   if(down&&aim&&S.tool==='gota'&&S.up.chuva){holdAcc+=rainRate(S.up.chuva)/60;while(holdAcc>=1){holdAcc--;const p=aim.clone();p.x+=(R()-.5)*.12;p.z+=(R()-.5)*.12;spawnDrop(p,dropN(S.up.gota),dropH(S.up.altura));}}
   if(down&&aim&&S.tool==='jato'){holdAcc+=jetRate(S.up.forcaJato)/60;const src=fromCamera(aim,1.35,.15);const thick=1+Math.floor(S.up.gota/3);const spd=Math.min(7,jetSpeed(S.up.forcaJato)+S.up.altura*.2);while(holdAcc>=1){holdAcc--;shootJet(src,aim,spd,thick);}sfx.jet(true);}else sfx.jet(false);
-  stepTurrets(dt);stepSpring(dt);stepDam(dt);stepAqueduct(dt);stepStorm(dt);stepCharge(dt);stepProjs(dt);
+  stepTurrets(dt);stepSpring(dt);stepDam(dt);stepAqueduct(dt);stepStorm(dt);stepCharge(dt);stepProjs(dt);stepWaves(dt);
   // nuvem
   if(S.up.nuvem){cloud.visible=true;cloudT+=1/60;const cx=Math.sin(cloudT*.21)*.55,cz=Math.cos(cloudT*.17)*.45;cloud.position.lerp(new THREE.Vector3(cx,RY0+GY*V+.9,cz),.03);
     cloudAcc+=cloudRate(S.up.nuvem)/60;while(cloudAcc>=1){cloudAcc--;const p=new THREE.Vector3(cloud.position.x+(R()-.5)*.6,cloud.position.y-1.1,cloud.position.z+(R()-.5)*.4);
