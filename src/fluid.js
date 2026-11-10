@@ -4,7 +4,7 @@ function createFluid(o){
   const px=new Float32Array(MAXP),py=new Float32Array(MAXP),pz=new Float32Array(MAXP);
   const vx=new Float32Array(MAXP),vy=new Float32Array(MAXP),vz=new Float32Array(MAXP);
   const ox=new Float32Array(MAXP),oy=new Float32Array(MAXP),oz=new Float32Array(MAXP);
-  const kind=new Uint8Array(MAXP),mat=new Uint8Array(MAXP),ground=new Uint8Array(MAXP),dead=new Uint8Array(MAXP);
+  const kind=new Uint8Array(MAXP),mat=new Uint8Array(MAXP),ground=new Uint8Array(MAXP),dead=new Uint8Array(MAXP),still=new Float32Array(MAXP);
   const [X0,Y0,Z0,X1,Y1,Z1]=o.bounds;
   const NX=Math.ceil((X1-X0)/h)+1,NY=Math.ceil((Y1-Y0)/h)+1,NZ=Math.ceil((Z1-Z0)/h)+1;
   const head=new Int32Array(NX*NY*NZ),next=new Int32Array(MAXP),pcell=new Int32Array(MAXP);
@@ -13,7 +13,7 @@ function createFluid(o){
   const avx=new Float32Array(MAXP),avy=new Float32Array(MAXP),avz=new Float32Array(MAXP),awn=new Float32Array(MAXP);
   // densidade de repouso calculada numa malha ideal com o espaçamento desejado
   let REST=0;{const m=Math.ceil(h/sp)+1;for(let i=-m;i<=m;i++)for(let j=-m;j<=m;j++)for(let k=-m;k<=m;k++){if(!i&&!j&&!k)continue;const r=sp*Math.sqrt(i*i+j*j+k*k);if(r<h){const q=1-r/h;REST+=q*q;}}}
-  const F={MAXP,h,REST,px,py,pz,vx,vy,vz,ox,oy,oz,kind,mat,ground,np:0,
+  const F={MAXP,h,REST,px,py,pz,vx,vy,vz,ox,oy,oz,kind,mat,ground,still,np:0,
     K:o.K,KN:o.KN,G:o.G,BETA:o.BETA,SIGMA:o.SIGMA||0,MAXV:o.maxV,
     used:new Int32Array(MAXP),nUsed:0,cap:MAXP};
   function cellOf(x,y,z){let cx=((x-X0)/h)|0,cy=((y-Y0)/h)|0,cz=((z-Z0)/h)|0;
@@ -30,14 +30,14 @@ function createFluid(o){
           for(let j=head[base+gx];j!==-1;j=next[j]){if(j<=i)continue;const dx=px[j]-x,dy=py[j]-y,dz=pz[j]-z;const r2=dx*dx+dy*dy+dz*dz;
             if(r2<h2&&cnt<MAXN){nb[b+cnt]=j;nd[b+cnt]=Math.sqrt(r2);cnt++;}}}}}
       nc[i]=cnt;}}
-  F.add=function(x,y,z,u,v,w,k,m){if(F.np>=F.cap)return -1;const i=F.np++;nc[i]=0;dead[i]=0;px[i]=ox[i]=x;py[i]=oy[i]=y;pz[i]=oz[i]=z;vx[i]=u;vy[i]=v;vz[i]=w;kind[i]=k||0;mat[i]=m||0;ground[i]=0;return i;};
+  F.add=function(x,y,z,u,v,w,k,m){if(F.np>=F.cap)return -1;const i=F.np++;nc[i]=0;dead[i]=0;px[i]=ox[i]=x;py[i]=oy[i]=y;pz[i]=oz[i]=z;vx[i]=u;vy[i]=v;vz[i]=w;kind[i]=k||0;mat[i]=m||0;ground[i]=0;still[i]=0;return i;};
   F.kill=function(i){if(dead[i])return false;dead[i]=1;F.nDead++;return true;};
   F.nDead=0;F.dead=dead;
   // compactação estável: mantém a ordem e remapeia as listas de vizinhos
   const remap=new Int32Array(MAXP);
   F.compact=function(){if(!F.nDead)return;const n=F.np;let j=0;
     for(let i=0;i<n;i++){if(dead[i]){remap[i]=-1;continue;}remap[i]=j;
-      if(j!==i){px[j]=px[i];py[j]=py[i];pz[j]=pz[i];vx[j]=vx[i];vy[j]=vy[i];vz[j]=vz[i];ox[j]=ox[i];oy[j]=oy[i];oz[j]=oz[i];kind[j]=kind[i];mat[j]=mat[i];ground[j]=ground[i];}
+      if(j!==i){px[j]=px[i];py[j]=py[i];pz[j]=pz[i];vx[j]=vx[i];vy[j]=vy[i];vz[j]=vz[i];ox[j]=ox[i];oy[j]=oy[i];oz[j]=oz[i];kind[j]=kind[i];mat[j]=mat[i];ground[j]=ground[i];still[j]=still[i];}
       j++;}
     for(let i=0;i<n;i++){const ni=remap[i];if(ni<0)continue;const b=i*MAXN,c=nc[i],nb2=ni*MAXN;let k2=0;
       for(let k=0;k<c;k++){const t=remap[nb[b+k]];if(t>=0){nb[nb2+k2]=t;nd[nb2+k2]=nd[b+k];k2++;}}nc[ni]=k2;}

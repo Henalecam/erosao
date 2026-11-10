@@ -16,6 +16,11 @@ html,body{margin:0;height:100%;overflow:hidden;background:#1b1a17;font-family:"I
 .bar{height:7px;background:#ffffff1f;border-radius:4px;overflow:hidden;margin-top:6px}
 .bar>div{height:100%;width:0;transition:width .3s}
 #rockBar{background:linear-gradient(90deg,#c9a46a,#f1d9a8)}
+#rank{margin-top:8px;font-size:12.5px;font-weight:600}#rankBar{background:linear-gradient(90deg,#8fd18a,#d6ff9f)}
+#nextRock{display:none;margin-top:8px;width:100%;padding:7px;border-radius:9px;border:1px solid #f1d9a866;background:#f1d9a822;color:#fbe9c4;font:inherit;font-weight:700;cursor:pointer}
+#combo{position:fixed;left:50%;bottom:140px;transform:translateX(-50%);font-size:22px;font-weight:900;color:#ffe08a;text-shadow:0 3px 14px #000c;pointer-events:none;opacity:0;transition:opacity .3s}
+#camHelp{position:fixed;right:14px;bottom:140px;padding:6px 11px;font-size:11px;opacity:.7}
+#sluice{top:150px!important}
 #sluice{position:fixed;right:14px;top:96px;padding:10px 14px;font-size:13px;min-width:190px;text-align:right}
 #sluiceBar{background:linear-gradient(90deg,#d8a73a,#ffe08a)}
 #wash{margin-top:8px;width:100%;padding:8px;border-radius:10px;border:1px solid #ffe08a66;background:#ffd25a22;color:#ffe9b0;font:inherit;font-weight:700;cursor:pointer}
@@ -56,10 +61,12 @@ html,body{margin:0;height:100%;overflow:hidden;background:#1b1a17;font-family:"I
 <body>
 <canvas id="gl"></canvas>
 <div id="loading">Esculpindo a rocha…</div>
-<div id="top" class="panel"><div id="money">$0</div><div id="rate">$0/s</div></div>
-<div id="rock" class="panel"><div id="rockName">—</div><div id="rockSub" style="opacity:.7">0% erodido</div><div class="bar"><div id="rockBar"></div></div></div>
+<div id="top" class="panel"><div id="money">$0</div><div id="rate">$0/s</div><div id="rank"><span id="rankName">Aprendiz</span> <span id="rankMul" style="opacity:.6"></span><div class="bar"><div id="rankBar"></div></div><div id="rankNext" style="font-size:11px;opacity:.55;margin-top:3px"></div></div></div>
+<div id="rock" class="panel"><div id="rockName">—</div><div id="rockSub" style="opacity:.7">0% erodido</div><div class="bar"><div id="rockBar"></div></div><div id="mileTxt" style="font-size:11.5px;opacity:.75;margin-top:4px"></div><button id="nextRock">Próxima rocha →</button></div>
+<div id="combo"></div>
+<div id="camHelp" class="panel">WASD mover · Q/E girar · R/F zoom · botão do meio arrasta · <b>C</b> centraliza</div>
 <div id="sluice" class="panel"><div><b>Calha de garimpo</b></div><div id="sluiceTxt" style="opacity:.75">$0 / $0</div><div class="bar"><div id="sluiceBar"></div></div><button id="wash">Lavar a calha</button></div>
-<div id="hint" class="panel">Clique na rocha para pingar uma gota · botão direito gira · roda dá zoom · 1–5 trocam a ferramenta</div>
+<div id="hint" class="panel">Clique na rocha para pingar uma gota · botão direito gira · 1–5 trocam a ferramenta</div>
 <div id="toast"></div>
 <div id="shop" class="panel"><div id="tabs"></div><div id="ups"></div></div>
 <div id="hotbar" class="panel"></div>
@@ -70,7 +77,7 @@ function createFluid(o){
   const px=new Float32Array(MAXP),py=new Float32Array(MAXP),pz=new Float32Array(MAXP);
   const vx=new Float32Array(MAXP),vy=new Float32Array(MAXP),vz=new Float32Array(MAXP);
   const ox=new Float32Array(MAXP),oy=new Float32Array(MAXP),oz=new Float32Array(MAXP);
-  const kind=new Uint8Array(MAXP),mat=new Uint8Array(MAXP),ground=new Uint8Array(MAXP),dead=new Uint8Array(MAXP);
+  const kind=new Uint8Array(MAXP),mat=new Uint8Array(MAXP),ground=new Uint8Array(MAXP),dead=new Uint8Array(MAXP),still=new Float32Array(MAXP);
   const [X0,Y0,Z0,X1,Y1,Z1]=o.bounds;
   const NX=Math.ceil((X1-X0)/h)+1,NY=Math.ceil((Y1-Y0)/h)+1,NZ=Math.ceil((Z1-Z0)/h)+1;
   const head=new Int32Array(NX*NY*NZ),next=new Int32Array(MAXP),pcell=new Int32Array(MAXP);
@@ -79,7 +86,7 @@ function createFluid(o){
   const avx=new Float32Array(MAXP),avy=new Float32Array(MAXP),avz=new Float32Array(MAXP),awn=new Float32Array(MAXP);
   // densidade de repouso calculada numa malha ideal com o espaçamento desejado
   let REST=0;{const m=Math.ceil(h/sp)+1;for(let i=-m;i<=m;i++)for(let j=-m;j<=m;j++)for(let k=-m;k<=m;k++){if(!i&&!j&&!k)continue;const r=sp*Math.sqrt(i*i+j*j+k*k);if(r<h){const q=1-r/h;REST+=q*q;}}}
-  const F={MAXP,h,REST,px,py,pz,vx,vy,vz,ox,oy,oz,kind,mat,ground,np:0,
+  const F={MAXP,h,REST,px,py,pz,vx,vy,vz,ox,oy,oz,kind,mat,ground,still,np:0,
     K:o.K,KN:o.KN,G:o.G,BETA:o.BETA,SIGMA:o.SIGMA||0,MAXV:o.maxV,
     used:new Int32Array(MAXP),nUsed:0,cap:MAXP};
   function cellOf(x,y,z){let cx=((x-X0)/h)|0,cy=((y-Y0)/h)|0,cz=((z-Z0)/h)|0;
@@ -96,14 +103,14 @@ function createFluid(o){
           for(let j=head[base+gx];j!==-1;j=next[j]){if(j<=i)continue;const dx=px[j]-x,dy=py[j]-y,dz=pz[j]-z;const r2=dx*dx+dy*dy+dz*dz;
             if(r2<h2&&cnt<MAXN){nb[b+cnt]=j;nd[b+cnt]=Math.sqrt(r2);cnt++;}}}}}
       nc[i]=cnt;}}
-  F.add=function(x,y,z,u,v,w,k,m){if(F.np>=F.cap)return -1;const i=F.np++;nc[i]=0;dead[i]=0;px[i]=ox[i]=x;py[i]=oy[i]=y;pz[i]=oz[i]=z;vx[i]=u;vy[i]=v;vz[i]=w;kind[i]=k||0;mat[i]=m||0;ground[i]=0;return i;};
+  F.add=function(x,y,z,u,v,w,k,m){if(F.np>=F.cap)return -1;const i=F.np++;nc[i]=0;dead[i]=0;px[i]=ox[i]=x;py[i]=oy[i]=y;pz[i]=oz[i]=z;vx[i]=u;vy[i]=v;vz[i]=w;kind[i]=k||0;mat[i]=m||0;ground[i]=0;still[i]=0;return i;};
   F.kill=function(i){if(dead[i])return false;dead[i]=1;F.nDead++;return true;};
   F.nDead=0;F.dead=dead;
   // compactação estável: mantém a ordem e remapeia as listas de vizinhos
   const remap=new Int32Array(MAXP);
   F.compact=function(){if(!F.nDead)return;const n=F.np;let j=0;
     for(let i=0;i<n;i++){if(dead[i]){remap[i]=-1;continue;}remap[i]=j;
-      if(j!==i){px[j]=px[i];py[j]=py[i];pz[j]=pz[i];vx[j]=vx[i];vy[j]=vy[i];vz[j]=vz[i];ox[j]=ox[i];oy[j]=oy[i];oz[j]=oz[i];kind[j]=kind[i];mat[j]=mat[i];ground[j]=ground[i];}
+      if(j!==i){px[j]=px[i];py[j]=py[i];pz[j]=pz[i];vx[j]=vx[i];vy[j]=vy[i];vz[j]=vz[i];ox[j]=ox[i];oy[j]=oy[i];oz[j]=oz[i];kind[j]=kind[i];mat[j]=mat[i];ground[j]=ground[i];still[j]=still[i];}
       j++;}
     for(let i=0;i<n;i++){const ni=remap[i];if(ni<0)continue;const b=i*MAXN,c=nc[i],nb2=ni*MAXN;let k2=0;
       for(let k=0;k<c;k++){const t=remap[nb[b+k]];if(t>=0){nb[nb2+k2]=t;nd[nb2+k2]=nd[b+k];k2++;}}nc[ni]=k2;}
@@ -153,7 +160,7 @@ const R=Math.random;
 // =================================================================
 const KEY='erosao3d_v2';
 const UP0={aqueduto:0,tempestade:0,gota:0,chuva:0,altura:0,acido:0,nuvem:0,calha:0,riffle:0,auto:0,jato:0,balao:0,granizo:0,onda:0,forcaJato:0,t_gota:0,t_esg:0,t_bal:0,cadencia:0,nascente:0,represa:0};
-const S={money:0,level:1,total:0,sluice:0,t:Date.now(),tool:'gota',up:{...UP0},found:{}};
+const S={money:0,level:1,total:0,sluice:0,t:Date.now(),tool:'gota',up:{...UP0},found:{},mile:0,rockSeed:0,rocks:0};
 try{const sv=JSON.parse(localStorage.getItem(KEY)||'null');if(sv){Object.assign(S,sv);S.up=Object.assign({...UP0},sv.up||{});S.found=sv.found||{};}}catch(e){}
 const save=()=>{S.t=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
 const dropN=l=>12+l*6, rainRate=l=>l*2.5, dropH=l=>.55+l*.22, acid=l=>Math.pow(1.3,l), cloudRate=l=>l*.6,
@@ -258,8 +265,9 @@ const MATS={
 };
 let rockInfo={name:'',total:1,left:1};
 function srgb(c){return c;}
-function genRock(level){
+function genRock(level,rseed){
   vt.fill(0);
+  let _s=rseed>>>0;const R=()=>{_s=(_s+0x6D2B79F5)|0;let t=Math.imul(_s^(_s>>>15),1|_s);t=(t+Math.imul(t^(t>>>7),61|t))^t;return ((t^(t>>>14))>>>0)/4294967296;};
   const seed=level*7919+((R()*9999)|0);
   const kind=level===1?'arenito':level===2?'granito':level===3?'geodo':(['arenito','granito','geodo'][(R()*3)|0]);
   const cx=GX/2,cz=GZ/2;const sc=Math.min(1.25,1+(level-1)*.04);
@@ -327,9 +335,9 @@ const camera=new THREE.PerspectiveCamera(40,innerWidth/innerHeight,.05,120);
 camera.position.set(-1.6,3.5,6.9);
 const controls=new OrbitControls(camera,canvas);
 controls.target.set(-1,.3,.9);controls.enableDamping=true;controls.dampingFactor=.08;controls.enablePan=false;
-controls.minDistance=2.4;controls.maxDistance=11;controls.minPolarAngle=.25;controls.maxPolarAngle=1.32;
-controls.mouseButtons={LEFT:null,MIDDLE:THREE.MOUSE.DOLLY,RIGHT:THREE.MOUSE.ROTATE};
-controls.touches={ONE:null,TWO:THREE.TOUCH.DOLLY_ROTATE};controls.update();
+controls.minDistance=1.2;controls.maxDistance=14;controls.minPolarAngle=.25;controls.maxPolarAngle=1.32;
+controls.mouseButtons={LEFT:null,MIDDLE:THREE.MOUSE.PAN,RIGHT:THREE.MOUSE.ROTATE};controls.screenSpacePanning=false;controls.zoomToCursor=true;controls.zoomSpeed=1.2;controls.panSpeed=1.1;
+controls.touches={ONE:null,TWO:THREE.TOUCH.DOLLY_PAN};controls.update();
 
 // céu (mesma função usada na reflexão da água)
 const SUN_DIR=new THREE.Vector3(-.5,.42,.55).normalize();
@@ -486,8 +494,10 @@ const F=createFluid({max:4600,h:.1,spacing:.05,bounds:[-9.6,-1.5,-6.2,6,3.6,6.6]
 const MAXSED=1800;let sedCount=0;
 let erosionMul=1;
 const dmgQ=[];
+let comboN=0,comboT=0,comboShown=0;
 function removeVoxel(i,x,y,z,spawn){
   const t=vt[i];vt[i]=0;rockInfo.left--;markDirty(x,y,z);structDirty=true;
+  comboN++;comboT=1.6;const cm=comboMul();const g=MATS[t].val*valMult()*.12*cm;S.money+=g;S.total+=g;earnBatch+=g;comboGain+=g;
   // revelações
   for(const [dx,dy,dz] of [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]]){const nx=x+dx,ny=y+dy,nz=z+dz;if(nx<0||ny<0||nz<0||nx>=GX||ny>=GY||nz>=GZ)continue;const nt=vt[vid(nx,ny,nz)];
     if(nt===T_GOLD&&!S.found['g'+S.level]){S.found['g'+S.level]=1;discover('Ouro exposto!','Um veio dourado apareceu na rocha',RX0+nx*V,RY0+ny*V,RZ0+nz*V);}
@@ -552,20 +562,30 @@ function collide(){
   }
 }
 // captura na calha e saída
-let earnBatch=0;const earnHist=[];let lostBatch=0;
+let earnBatch=0;const earnHist=[];let lostBatch=0;let comboGain=0;
+const comboMul=()=>1+Math.min(3,Math.max(0,comboN-8)/30);
 function postStep(){
   const n=F.np;const capP=capture(S.up.riffle)*.035;const capacity=cap(S.up.calha);
   for(let i=n-1;i>=0;i--){if(F.dead[i])continue;const x=F.px[i],y=F.py[i],z=F.pz[i];
     if(F.kind[i]===1&&x>SL_X0&&x<SL_X1&&Math.abs(z)<CH_W){
       const sp=Math.hypot(F.vx[i],F.vy[i],F.vz[i])*HZ;
       if(R()<capP*(sp<1.2?1.6:.5)){const v=MATS[F.mat[i]].val*valMult();if(S.sluice<capacity){S.sluice=Math.min(capacity,S.sluice+v);sluiceAdd+=v;}else lostBatch+=v;F.kill(i);sedCount--;continue;}}
+    const spd=Math.abs(F.vx[i])+Math.abs(F.vy[i])+Math.abs(F.vz[i]);
+    if(spd<.0015)F.still[i]+=1/HZ;else F.still[i]=Math.max(0,F.still[i]-2/HZ);
+    if(F.kind[i]===0&&F.still[i]>2.5&&R()<.004*(F.still[i]-2)){F.kill(i);continue;}
+    if(F.kind[i]===1&&F.still[i]>20&&R()<.003){sedCount--;lostBatch+=MATS[F.mat[i]].val*valMult();F.kill(i);continue;}
     if(F.kind[i]===2){if(F.mat[i]>0)F.mat[i]--;else{F.kind[i]=0;}}
     else if(F.kind[i]===0&&F.mat[i]>0&&(frames&7)===0)F.mat[i]--;
     if(x>CH_X1||y<-1.4||x>5.8){if(F.kind[i]===1){sedCount--;lostBatch+=MATS[F.mat[i]].val*valMult();}F.kill(i);}
   }
   F.compact();
 }
-const valMult=()=>1+(S.level-1)*.3;
+const RANKS=[[0,'Aprendiz'],[120,'Bateador'],[500,'Garimpeiro'],[1800,'Faiscador'],[6000,'Mineiro'],[18000,'Prospector'],[55000,'Capataz'],[160000,'Mestre das águas'],[500000,'Lenda do rio'],[2e6,'Titã da erosão']];
+const rankIdx=()=>{let k=0;for(let i=0;i<RANKS.length;i++)if(S.total>=RANKS[i][0])k=i;return k;};
+const rankMult=()=>1+rankIdx()*.12;
+const valMult=()=>(1+(S.level-1)*.35)*rankMult();
+const MILES=[.08,.2,.4,.7,1,1.5,2.2,3,4,5.5,7.5,10,14,20,28,38,50,65];
+const mileReward=k=>Math.round(8*Math.pow(k+1,1.55)*(1+(S.level-1)*.6)*rankMult());
 function spawnGrain(x,y,z,t,vx=0,vy=0,vz=0){if(sedCount>=MAXSED)return;const k=F.add(x,y,z,vx+(R()-.5)*.002,vy+.001,vz+(R()-.5)*.002,1,t);if(k>=0)sedCount++;}
 
 // =================================================================
@@ -888,7 +908,14 @@ canvas.addEventListener('pointermove',e=>{aim=pick(e.clientX,e.clientY);lastMove
 canvas.addEventListener('pointerdown',e=>{sfx.init();if(e.button!==0)return;aim=pick(e.clientX,e.clientY);down=true;
   if(dam&&dam.active&&aim&&Math.hypot(aim.x-dam.x,aim.z-dam.z)<.75){burstDam();return;}
   if(aim&&aim.x>SL_X0-.1&&aim.x<SL_X1+.1&&Math.abs(aim.z)<CH_W+.2&&S.sluice>.01){wash();return;}
+  if(aim&&panGrains(aim))return;
   if(aim){useTool(true);document.getElementById('hint').style.opacity=0;}});
+function panGrains(p){ // bateia: recolhe grãos encalhados perto do clique
+  const gx=Math.floor((p.x-RX0)/V),gy=Math.floor((p.y-RY0)/V),gz=Math.floor((p.z-RZ0)/V);if(solid(gx,gy,gz)||solid(gx,gy-1,gz))return false;
+  let got=0,n=0;const r2=.3*.3;for(let i=0;i<F.np;i++){if(F.kind[i]!==1||F.dead[i]||F.still[i]<1)continue;const dx=F.px[i]-p.x,dz=F.pz[i]-p.z;if(dx*dx+dz*dz>r2||Math.abs(F.py[i]-p.y)>.3)continue;
+    got+=MATS[F.mat[i]].val*valMult()*.6;F.kill(i);sedCount--;n++;}
+  if(!n)return false;F.compact();S.money+=got;S.total+=got;earnBatch+=got;floatText(p.clone().add(new THREE.Vector3(0,.15,0)),'🥘 +$'+fmt(got),'#ffd970',20);sfx.coin(got);
+  if(!S.found.bateia){S.found.bateia=1;toast('Bateia!','Clique nos grãos encalhados para recolher na mão');}return true;}
 addEventListener('pointerup',()=>{down=false;});
 
 // =================================================================
@@ -959,10 +986,16 @@ function renderHotbar(){const hb=$('hotbar');hb.innerHTML='';TOOLS.forEach((t,i)
 function wash(){if(S.sluice<.01)return;const v=S.sluice;S.money+=v;S.total+=v;earnBatch+=v;S.sluice=0;sfx.wash();
   const p=new THREE.Vector3((SL_X0+SL_X1)/2,chanBed((SL_X0+SL_X1)/2)+.25,0);floatText(p,'+$'+fmt(v),'#ffe08a',26);save();ui();}
 $('wash').onclick=()=>{sfx.init();wash();};
+$('nextRock').onclick=()=>{sfx.init();finishRock(false);};
 addEventListener('keydown',e=>{if(e.key==='l'||e.key==='L'){sfx.init();wash();}});
 function ui(){
   $('money').textContent='$'+fmt(S.money);const r=earnHist.length?earnHist.reduce((a,b)=>a+b,0)/(earnHist.length):0;$('rate').textContent='$'+fmt(r)+'/s em média';
-  $('rockName').textContent=rockInfo.name;const pct=(1-rockInfo.left/rockInfo.total)*100;$('rockSub').textContent=pct.toFixed(pct<10?2:1).replace('.',',')+'% erodido · nível '+S.level;$('rockBar').style.width=Math.min(100,pct/0.85)+'%';
+  $('rockName').textContent=rockInfo.name;const pct=rockPct();$('rockSub').textContent=pct.toFixed(pct<10?2:1).replace('.',',')+'% erodido · rocha '+S.level;
+  const prev=S.mile?MILES[S.mile-1]:0,nxt=MILES[S.mile];$('rockBar').style.width=(nxt?Math.min(100,(pct-prev)/(nxt-prev)*100):100)+'%';
+  $('mileTxt').textContent=nxt?`Próximo marco: ${String(nxt).replace('.',',')}% → +$${fmt(mileReward(S.mile))}`:'Todos os marcos atingidos!';
+  $('nextRock').style.display=pct>=10&&!rockInfo.done?'block':'none';
+  const ri=rankIdx(),r0=RANKS[ri][0],r1=RANKS[ri+1]?RANKS[ri+1][0]:null;$('rankName').textContent='🏅 '+RANKS[ri][1];$('rankMul').textContent='· renda ×'+rankMult().toFixed(2).replace('.',',');
+  $('rankBar').style.width=(r1?Math.min(100,(S.total-r0)/(r1-r0)*100):100)+'%';$('rankNext').textContent=r1?`Próximo: ${RANKS[ri+1][1]} ($${fmt(r1)} ganhos no total)`:'Rank máximo';
   const c=cap(S.up.calha);$('sluiceTxt').textContent='$'+fmt(S.sluice)+' / $'+fmt(c)+(lostBatchShown>0?' · perdeu $'+fmt(lostBatchShown):'');$('sluiceBar').style.width=Math.min(100,S.sluice/c*100)+'%';
   $('wash').disabled=S.sluice<.01;$('wash').classList.toggle('full',S.sluice>=c*.98);
   for(const b of btns){const u=b._u,l=S.up[u.k],mx=maxed(u),c2=costOf(u),av=avail(u);const h=`<b>${u.n}${l&&u.max!==1?` · ${l}`:''}</b><span>${av?u.d(l):'Requer: '+SHOP.find(x=>x.k===u.req).n}</span><span class="c">${mx?(u.max===1?'✓ desbloqueado':'✓ máximo'):'$'+fmt(c2)}</span>`;if(b._h!==h){b.innerHTML=h;b._h=h;}b.disabled=mx||!av||S.money<c2;b.classList.toggle('ok',!mx&&av&&S.money>=c2);}
@@ -982,7 +1015,21 @@ $('hint').ondblclick=null;
 // Loop
 // =================================================================
 let shake=0,frames=0,acc=0,last=performance.now(),washT=0,earnT=0;
-function newRock(){genRock(S.level);rebuildAll();structDirty=false;}
+function newRock(fresh){
+  if(fresh||!S.rockSeed){S.rockSeed=(Math.random()*2**31)|0;S.mile=0;try{localStorage.removeItem(KEY+'_rock');}catch(e){}}
+  genRock(S.level,S.rockSeed);
+  if(!fresh)loadRockMask();
+  rebuildAll();structDirty=false;}
+function saveRockMask(){try{let out=[],cur=0,run=0;for(let i=0;i<GN;i++){const a=vt[i]?1:0;if(a===cur)run++;else{out.push(run.toString(36));cur=a;run=1;}}out.push(run.toString(36));
+  localStorage.setItem(KEY+'_rock',S.rockSeed+'|'+out.join(','));}catch(e){}}
+function loadRockMask(){try{const raw=localStorage.getItem(KEY+'_rock');if(!raw)return;const [sd,data]=raw.split('|');if(+sd!==S.rockSeed)return;
+  const runs=data.split(',').map(v=>parseInt(v,36));let i=0,cur=0,left=0;for(const r of runs){if(!cur){for(let k=0;k<r&&i<GN;k++,i++)vt[i]=0;}else{for(let k=0;k<r&&i<GN;k++,i++)if(vt[i])left++;}cur^=1;}
+  rockInfo.left=left;}catch(e){}}
+function finishRock(auto){if(rockInfo.done)return;rockInfo.done=true;S.rocks++;const bonus=Math.round(60*S.level*valMult()*(1+rockPct()/20));S.money+=bonus;S.total+=bonus;
+  toast((auto?rockInfo.name+' desfeita!':'Rocha trocada!'),'Bônus +$'+fmt(bonus)+' · a próxima rocha vale '+Math.round((valMultAt(S.level+1)/valMultAt(S.level)-1)*100)+'% mais');sfx.reveal();
+  S.level++;for(const f of [...frags])dissolveFragment(f,false);save();setTimeout(()=>{newRock(true);buildAqueduct();},2500);}
+const valMultAt=l=>(1+(l-1)*.35)*rankMult();
+const rockPct=()=>(1-rockInfo.left/rockInfo.total)*100;
 function simFrame(){
   const dt=1/60;erosionMul=acid(S.up.acido)*(floodT>0?2:1);splashBudget=3;
   for(const k in cdLeft)if(cdLeft[k]>0)cdLeft[k]-=dt;
@@ -1001,7 +1048,12 @@ function simFrame(){
   if(S.up.auto){washT+=1/60;if(washT>=autoWash(S.up.auto)&&S.sluice>0){washT=0;wash();}}
   earnT++;if(earnT>=60){earnT=0;earnHist.push(earnBatch);if(earnHist.length>20)earnHist.shift();earnBatch=0;lostBatchShown=lostBatch;lostBatch=0;
     if(sluiceAdd>0){const p=new THREE.Vector3((SL_X0+SL_X1)/2,chanBed(SL_X0)+.12,0);floatText(p,'+$'+fmt(sluiceAdd),'#ffd970',16);sfx.coin(sluiceAdd);sluiceAdd=0;}}
-  if(rockInfo.left<=rockInfo.total*.15&&!rockInfo.done){rockInfo.done=true;const bonus=Math.round(80*S.level*valMult());S.money+=bonus;toast(rockInfo.name+' desfeito!','Bônus +$'+fmt(bonus)+' · uma nova rocha vem aí');sfx.reveal();S.level++;save();setTimeout(newRock,3500);}
+  // marcos de erosão
+  const pct=rockPct();
+  while(S.mile<MILES.length&&pct>=MILES[S.mile]){const rw=mileReward(S.mile);S.money+=rw;S.total+=rw;toast('Marco: '+String(MILES[S.mile]).replace('.',',')+'% erodido','Recompensa +$'+fmt(rw));sfx.reveal();S.mile++;
+    floatText(new THREE.Vector3(0,RY0+GY*V*.8,0),'+$'+fmt(rw),'#f1d9a8',30);}
+  if(pct>=65&&!rockInfo.done)finishRock(true);
+  if(frames%1800===0)saveRockMask();
   if(frames%300===0)save();
 }
 const M4=new THREE.Matrix4(),Cc=new THREE.Color();
@@ -1042,8 +1094,27 @@ function render(time){
   renderer.setRenderTarget(null);renderer.render(compScene,quadCam);
   camera.position.x-=sx;camera.position.y-=sy;
 }
+const keys={};addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;keys[e.key.toLowerCase()]=true;if(e.key.toLowerCase()==='c'){camGoal=new THREE.Vector3(0,.5,0);}});addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});addEventListener('blur',()=>{for(const k in keys)keys[k]=false;});
+let camGoal=null;const _f=new THREE.Vector3(),_rt=new THREE.Vector3(),_off=new THREE.Vector3();
+function stepCamera(dt){
+  const sp=Math.max(1.2,camera.position.distanceTo(controls.target))*.7*dt;
+  _f.copy(controls.target).sub(camera.position);_f.y=0;_f.normalize();_rt.set(-_f.z,0,_f.x);
+  const mv=new THREE.Vector3();
+  if(keys['w']||keys['arrowup'])mv.add(_f);if(keys['s']||keys['arrowdown'])mv.sub(_f);if(keys['d']||keys['arrowright'])mv.add(_rt);if(keys['a']||keys['arrowleft'])mv.sub(_rt);
+  if(mv.lengthSq()){mv.normalize().multiplyScalar(sp*1.6);camera.position.add(mv);controls.target.add(mv);camGoal=null;}
+  if(keys['q']||keys['e']){const a=(keys['q']?1:-1)*dt*1.4;_off.copy(camera.position).sub(controls.target);_off.applyAxisAngle(new THREE.Vector3(0,1,0),a);camera.position.copy(controls.target).add(_off);}
+  if(keys['r']||keys['f']){_off.copy(camera.position).sub(controls.target);const k=keys['r']?1-dt*1.5:1+dt*1.5;const L=THREE.MathUtils.clamp(_off.length()*k,controls.minDistance,controls.maxDistance);_off.setLength(L);camera.position.copy(controls.target).add(_off);}
+  if(camGoal){const d=camGoal.clone().sub(controls.target);if(d.length()<.01)camGoal=null;else{d.multiplyScalar(Math.min(1,dt*4));controls.target.add(d);camera.position.add(d);}}
+  // limites: alvo dentro da clareira, câmera acima do chão
+  const tl=Math.hypot(controls.target.x,controls.target.z);if(tl>8){const k=8/tl;const dx=controls.target.x*(k-1),dz=controls.target.z*(k-1);controls.target.x+=dx;controls.target.z+=dz;camera.position.x+=dx;camera.position.z+=dz;}
+  controls.target.y=THREE.MathUtils.clamp(controls.target.y,-.2,2.5);
+  const gy=terrainH(camera.position.x,camera.position.z)+.25;if(camera.position.y<gy)camera.position.y=gy;
+}
 function loop(now){
   const dt=Math.min(100,now-last);last=now;acc+=dt;let n=0;
+  stepCamera(dt/1000);
+  if(comboT>0){comboT-=dt/1000;if(comboT<=0){comboN=0;comboGain=0;}}
+  {const cm=comboMul();const el=$('combo');if(cm>1.05){el.style.opacity=1;el.textContent=`Combo ×${cm.toFixed(1).replace('.',',')} · +$${fmt(comboGain)}`;}else el.style.opacity=0;}
   while(acc>=1000/60&&n<2){const t0=performance.now();simFrame();adaptCap(performance.now()-t0);acc-=1000/60;n++;frames++;}if(n===2)acc=0;
   applyWeather(dt/1000);
   rebuildDirty(6);
@@ -1053,9 +1124,9 @@ function loop(now){
   requestAnimationFrame(loop);
 }
 resize();
-setTimeout(()=>{newRock();buildShop();renderHotbar();rebuildTurrets();buildAqueduct();ui();$('loading').style.opacity=0;setTimeout(()=>$('loading').remove(),900);requestAnimationFrame(loop);},30);
-window.__dbg={startStorm,get cap(){return F.cap},aimAt(x,y,z){aim=new THREE.Vector3(x,y,z);},carve(x0,x1,y0,y1){for(let z=0;z<GZ;z++)for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const i=vid(x,y,z);if(vt[i])removeVoxel(i,x,y,z,false);}},frags,setTool,useTool,get aim(){return aim},set aim(v){aim=v},startDam,burstDam,get dam(){return dam},DBG,setRender(v){SIMONLY=!v;},cam:camera,ctl:controls,get frames(){return frames},F,S,rockInfo:()=>rockInfo,spawnDrop:(x,y,z,n,h)=>spawnDrop(new THREE.Vector3(x,y,z),n,h)};
-addEventListener('visibilitychange',()=>{if(document.hidden)save();});
+setTimeout(()=>{newRock(false);buildShop();renderHotbar();rebuildTurrets();buildAqueduct();ui();$('loading').style.opacity=0;setTimeout(()=>$('loading').remove(),900);requestAnimationFrame(loop);},30);
+window.__dbg={panGrains:(x,y,z)=>panGrains(new THREE.Vector3(x,y,z)),startStorm,get cap(){return F.cap},aimAt(x,y,z){aim=new THREE.Vector3(x,y,z);},carve(x0,x1,y0,y1){for(let z=0;z<GZ;z++)for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const i=vid(x,y,z);if(vt[i])removeVoxel(i,x,y,z,false);}},frags,setTool,useTool,get aim(){return aim},set aim(v){aim=v},startDam,burstDam,get dam(){return dam},DBG,setRender(v){SIMONLY=!v;},cam:camera,ctl:controls,get frames(){return frames},F,S,rockInfo:()=>rockInfo,spawnDrop:(x,y,z,n,h)=>spawnDrop(new THREE.Vector3(x,y,z),n,h)};
+addEventListener('visibilitychange',()=>{if(document.hidden){save();saveRockMask();}});addEventListener('beforeunload',()=>{save();saveRockMask();});
 </script>
 </body>
 </html>
