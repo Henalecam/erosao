@@ -82,7 +82,7 @@ const R=Math.random;
 // =================================================================
 const KEY='erosao3d_v2';
 const UP0={aqueduto:0,tempestade:0,gota:0,chuva:0,altura:0,acido:0,nuvem:0,calha:0,riffle:0,auto:0,jato:0,balao:0,granizo:0,onda:0,forcaJato:0,t_gota:0,t_esg:0,t_bal:0,cadencia:0,nascente:0,represa:0};
-const S={money:0,level:1,total:0,sluice:0,t:Date.now(),tool:'gota',up:{...UP0},found:{},mile:0,rockSeed:0,rocks:0};
+const S={money:0,level:1,total:0,sluice:0,t:Date.now(),tool:'gota',up:{...UP0},found:{},mile:0,rockSeed:0,rocks:0,extras:[]};
 try{const sv=JSON.parse(localStorage.getItem(KEY)||'null');if(sv){Object.assign(S,sv);S.up=Object.assign({...UP0},sv.up||{});S.found=sv.found||{};}}catch(e){}
 const save=()=>{S.t=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
 const dropN=l=>12+l*6, rainRate=l=>l*2.5, dropH=l=>.55+l*.22, acid=l=>Math.pow(1.3,l), cloudRate=l=>l*.6,
@@ -146,9 +146,8 @@ function creekPoint(t){const L=t*CRK.L;for(const sg of CRK.seg){if(L<=sg.L0+sg.l
 const creekBed=t=>.33-.5*t,CR_W=.25;
 function terrainBase(x,z){
   const r=Math.hypot(x,z);
-  let h=-.11-.035*x+Math.min(.34,.045*(r-1.85)*(r-1.85));
+  const rq=Math.max(0,r-1.9);let h=-.11-.035*x+Math.min(.34,.045*rq*rq*1.6);
   h+=(fbm(x*.7,0,z*.7,7,3)-.5)*.06*Math.min(1,Math.max(0,(r-1.6)/1.5));
-  if(r<1.35)h=Math.max(h,-.03+(1.35-r)*.04);
   return h;}
 function terrainRaw(x,z){
   let h=terrainBase(x,z);
@@ -174,74 +173,106 @@ function terrainH(x,z){let fx=(x+HM_S/2)/HM_D,fz=(z+HM_S/2)/HM_D;if(fx<0)fx=0;if
 // =================================================================
 // Rocha voxel
 // =================================================================
-const V=.022,GX=128,GY=104,GZ=128,GN=GX*GY*GZ;
-const RX0=-GX*V/2,RZ0=-GZ*V/2,RY0=terrainRaw(0,0)-.04;
+const V=.022,GX=160,GY=104,GZ=160,GN=GX*GY*GZ;
+const RX0=-GX*V/2,RZ0=-GZ*V/2,RY0=terrainRaw(0,0)-.03;
 const vt=new Uint8Array(GN),vhp=new Float32Array(GN),vr=new Uint8Array(GN),vg=new Uint8Array(GN),vb=new Uint8Array(GN);
 const vid=(x,y,z)=>x+GX*(y+GY*z);
-// tipos
-const T_SAND=1,T_SAND2=2,T_GRAN=3,T_QTZ=4,T_GOLD=5,T_AME=6,T_MOSS=7,T_CRACK=8,T_IRON=9;
+// tipos de material
+const T_SAND=1,T_SAND2=2,T_GRAN=3,T_QTZ=4,T_GOLD=5,T_AME=6,T_MOSS=7,T_CRACK=8,T_IRON=9,T_MET=10,T_BONE=11,T_JADE=12,T_WOOD=13,T_OLIV=14,T_BAS=15;
 const MATS={
  [T_SAND]:{n:'arenito',hp:.3,val:.5},[T_SAND2]:{n:'arenito duro',hp:.6,val:.7},[T_GRAN]:{n:'granito',hp:.9,val:1.2},
  [T_QTZ]:{n:'quartzo',hp:1.2,val:3},[T_GOLD]:{n:'ouro',hp:.8,val:45},[T_AME]:{n:'ametista',hp:1.1,val:90},
  [T_MOSS]:{n:'musgo',hp:.12,val:.2},[T_CRACK]:{n:'fissura',hp:.1,val:.5},[T_IRON]:{n:'óxido de ferro',hp:.45,val:1},
+ [T_MET]:{n:'ferro meteórico',hp:1,val:7},[T_BONE]:{n:'fóssil',hp:.45,val:12},[T_JADE]:{n:'jade',hp:.75,val:9},
+ [T_WOOD]:{n:'madeira antiga',hp:.25,val:2},[T_OLIV]:{n:'olivina',hp:.9,val:40},[T_BAS]:{n:'basalto',hp:1.1,val:1.5},
 };
+const GRAIN_COL={[T_GOLD]:[1,.62,.12],[T_AME]:[.35,.1,.55],[T_QTZ]:[.8,.78,.74],[T_MOSS]:[.08,.13,.04],[T_IRON]:[.3,.08,.03],[T_GRAN]:[.3,.25,.24],[T_MET]:[.12,.12,.13],[T_BONE]:[.75,.68,.55],[T_JADE]:[.12,.4,.25],[T_WOOD]:[.25,.14,.07],[T_OLIV]:[.3,.55,.12],[T_BAS]:[.1,.1,.11]};
 let rockInfo={name:'',total:1,left:1};
-function srgb(c){return c;}
+// ---------- biblioteca de objetos ----------
+// cada objeto: forma(px,py,pz)->d (<1 dentro) e material(px,py,pz,d,x,y,z)->[t,r,g,b]; coordenadas em metros a partir do centro da base
+function setV(x,y,z,t,r,g,b,hpMul){if(x<0||y<0||z<0||x>=GX||y>=GY||z>=GZ)return 0;const i=vid(x,y,z);const was=vt[i]?0:1;vt[i]=t;vhp[i]=MATS[t].hp*hpMul;
+  const jn=(hash3(x,y,z,77)-.5)*.12;vr[i]=Math.max(0,Math.min(255,r*(1+jn)));vg[i]=Math.max(0,Math.min(255,g*(1+jn)));vb[i]=Math.max(0,Math.min(255,b*(1+jn)));return was;}
+function stamp(cxW,czW,y0,hx,hy,hz,shape,mat,hpMul){let n=0;
+  const gx0=Math.max(0,Math.floor((cxW-hx-RX0)/V)),gx1=Math.min(GX-1,Math.ceil((cxW+hx-RX0)/V)),gz0=Math.max(0,Math.floor((czW-hz-RZ0)/V)),gz1=Math.min(GZ-1,Math.ceil((czW+hz-RZ0)/V)),gy1=Math.min(GY-1,y0+Math.ceil(hy/V));
+  for(let z=gz0;z<=gz1;z++)for(let y=y0;y<=gy1;y++)for(let x=gx0;x<=gx1;x++){const px=RX0+(x+.5)*V-cxW,py=(y-y0+.5)*V,pz=RZ0+(z+.5)*V-czW;
+    const d=shape(px,py,pz);if(d>=1)continue;const m=mat(px,py,pz,d,x,y,z);if(!m)continue;n+=setV(x,y,z,m[0],m[1],m[2],m[3],hpMul);}
+  return n;}
+// materiais
+function sandMat(seed){const sN=[.1,.98,.08];const pal=[[186,160,128],[170,138,106],[152,116,88],[198,180,152],[136,104,80],[176,150,118],[160,140,120]];
+  return (px,py,pz,d,x,y,z)=>{const st=(px*sN[0]+py*sN[1]+pz*sN[2])*5.5+fbm(px*1.4,py*1.4,pz*1.4,seed+5,3)*1.2;const band=Math.floor(st);const bh=hash3(band,0,0,seed);
+    const c=pal[(bh*pal.length)|0];const f=1+(vnoise(px*14,py*30,pz*14,seed+6)-.5)*.1;if(fbm(px*2.5,py*2.5,pz*2.5,seed+11,2)>.72)return [T_IRON,132,82,56];return [bh>.62?T_SAND2:T_SAND,c[0]*f,c[1]*f,c[2]*f];};}
+function granMat(seed){return (px,py,pz,d,x,y,z)=>{const sp=hash3(x>>1,y>>1,z>>1,seed+1);if(sp<.12)return [T_GRAN,38,36,38];if(sp>.86)return [T_GRAN,232,226,220];const f=fbm(px*3,py*3,pz*3,seed+4,2);return [T_GRAN,150+f*40,128+f*30,124+f*28];};}
+function basMat(seed){return (px,py,pz,d,x,y,z)=>{const f=fbm(px*4,py*4,pz*4,seed,2);const joint=Math.abs(((py*3.2+fbm(px,0,pz,seed+2,2)*.6)%1+1)%1-.5)<.035;
+  return joint?[T_CRACK,40,40,44]:[T_BAS,62+f*30,62+f*28,68+f*30];};}
+function withVeins(base,seed,qtz=.955,gold=.07){return (px,py,pz,d,x,y,z)=>{let m=base(px,py,pz,d,x,y,z);if(!m)return m;
+  if(Math.abs(fbm(px*2.2,py*2.2,pz*2.2,seed+21,3)-.5)<.011)return [T_CRACK,m[1]*.45,m[2]*.43,m[3]*.42];
+  if(ridge(px*1.7+3,py*1.7,pz*1.7,seed+31)>qtz){if(hash3(x,y,z,seed+41)<gold)return [T_GOLD,255,196,70];return [T_QTZ,236,232,222];}return m;};}
+// formas
+function boulderShape(ax,ay,az,seed,nPlanes=9){const rr=mulberry(seed);const planes=[];for(let k=0;k<nPlanes;k++){const th=rr()*Math.PI*2,ph=Math.acos(rr()*1.6-.6);planes.push([Math.sin(ph)*Math.cos(th),Math.cos(ph),Math.sin(ph)*Math.sin(th),.78+rr()*.25]);}
+  const cy=ay*.78;
+  return (px,py,pz)=>{const y=py-cy;if(Math.hypot(px/ax,y/ay,pz/az)>1.38)return 9;
+    const wx=px+(fbm(px*1.3,y*1.3,pz*1.3,seed,3)-.5)*.35,wy=y+(fbm(px*1.3+5,y*1.3,pz*1.3,seed,3)-.5)*.3,wz=pz+(fbm(px*1.3,y*1.3+9,pz*1.3,seed,3)-.5)*.35;
+    let d=Math.hypot(wx/ax,wy/ay,wz/az)+(fbm(px*4,y*4,pz*4,seed+3,3)-.5)*.12;if(d>=1)return 9;
+    for(const p of planes)if(wx/ax*p[0]+wy/ay*p[1]+wz/az*p[2]>p[3])return 9;return d;};}
+function mulberry(a){let s=a>>>0;return ()=>{s=(s+0x6D2B79F5)|0;let t=Math.imul(s^(s>>>15),1|s);t=(t+Math.imul(t^(t>>>7),61|t))^t;return ((t^(t>>>14))>>>0)/4294967296;};}
+const OBJ_TYPES=[
+ {k:'arenito',n:'Bloco de arenito',w:20,r:''},{k:'granito',n:'Matacão de granito',w:16,r:''},{k:'geodo',n:'Geodo de ametista',w:9,r:'Raro'},
+ {k:'pilar',n:'Pilar de basalto',w:10,r:''},{k:'arco',n:'Arco natural',w:9,r:''},{k:'gemeas',n:'Pedras gêmeas',w:12,r:''},
+ {k:'fossil',n:'Rocha com fóssil',w:8,r:'Raro'},{k:'meteoro',n:'Meteorito',w:6,r:'Raro'},{k:'idolo',n:'Ídolo antigo',w:4,r:'Lendário'},{k:'bau',n:'Baú enterrado',w:4,r:'Lendário'},
+];
+function pickObj(level,rr){if(level===1)return OBJ_TYPES[0];if(level===2)return OBJ_TYPES[1];if(level===3)return OBJ_TYPES[2];
+  let tot=0;for(const o of OBJ_TYPES)tot+=o.w;let x=rr()*tot;for(const o of OBJ_TYPES){x-=o.w;if(x<=0)return o;}return OBJ_TYPES[0];}
+function buildObject(k,cx,cz,scale,seed,hpMul){let n=0;const rr=mulberry(seed);
+  if(k==='arenito'||k==='granito'||k==='geodo'){const ax=1.18*scale,ay=.98*scale,az=1.04*scale;let mat=withVeins(k==='granito'?granMat(seed):sandMat(seed),seed);
+    if(k==='geodo'){const base=mat;mat=(px,py,pz,d,x,y,z)=>{if(d<.3)return null;if(d<.42){const q=hash3(x,y,z,seed+51);return [T_AME,120+q*70,60+q*30,170+q*60];}if(d<.47)return [T_QTZ,228,226,232];return base(px,py,pz,d,x,y,z);};}
+    n+=stamp(cx,cz,0,ax*1.5,ay*1.7,az*1.5,boulderShape(ax,ay,az,seed),mat,hpMul);}
+  else if(k==='pilar'){const R0=.5*scale,H=Math.min(GY*V-.05,1.9*scale);
+    n+=stamp(cx,cz,0,R0*1.3,H,R0*1.3,(px,py,pz)=>{const a=Math.atan2(pz,px);const hex=Math.cos(Math.PI/6)/Math.cos(((a%(Math.PI/3))+Math.PI/3)%(Math.PI/3)-Math.PI/6);const rad=R0*hex*(1-py/H*.18)+(fbm(px*3,py*3,pz*3,seed,2)-.5)*.06;
+      const r=Math.hypot(px,pz);if(py>H-(fbm(px*2,0,pz*2,seed+1,2))*.25)return 9;return r/rad;},withVeins(basMat(seed),seed,.97,.12),hpMul);}
+  else if(k==='arco'){const Ra=.85*scale,th=.32*scale;
+    n+=stamp(cx,cz,0,Ra+th*1.5,Ra+th*1.6,th*1.6,(px,py,pz)=>{const w=(fbm(px*2,py*2,pz*2,seed,3)-.5)*.18;const rr2=Math.hypot(px,py)-Ra;const d=Math.hypot(rr2,pz*.9)/(th+w);return py<0?9:d;},withVeins(sandMat(seed),seed),hpMul);}
+  else if(k==='gemeas'){const m=2+(rr()<.5?1:0);for(let q=0;q<m;q++){const a=q/m*Math.PI*2+rr();const s=(.5+rr()*.2)*scale;const ox=Math.cos(a)*.62*scale,oz=Math.sin(a)*.62*scale;
+      const mat=withVeins(rr()<.5?granMat(seed+q):sandMat(seed+q),seed+q);n+=stamp(cx+ox,cz+oz,0,s*1.9,s*1.9,s*1.9,boulderShape(s*1.05,s*.9,s,seed+q*31,7),mat,hpMul);}}
+  else if(k==='fossil'){const ax=1.15*scale,ay=.9*scale,az=1*scale;const base=withVeins(sandMat(seed),seed);
+    const mat=(px,py,pz,d,x,y,z)=>{const sy=ay*.78;const yy=py-sy;// espinha + costelas
+      const spine=Math.hypot(yy-.05*Math.sin(px*3),pz*.9)<.06&&Math.abs(px)<.7;const rib=Math.abs(((px+.7)%.14+.14)%.14-.07)<.022&&Math.abs(px)<.55&&Math.abs(Math.hypot(yy+.08,pz)-.28)<.035&&yy<0.05;
+      const skull=Math.hypot((px-.78)/1.3,yy,pz)<.13;if((spine||rib||skull)&&d<.8)return [T_BONE,214,198,166];return base(px,py,pz,d,x,y,z);};
+    n+=stamp(cx,cz,0,ax*1.5,ay*1.7,az*1.5,boulderShape(ax,ay,az,seed,6),mat,hpMul);}
+  else if(k==='meteoro'){const Rm=.78*scale;const cyy=Rm*.75;
+    n+=stamp(cx,cz,0,Rm*1.3,Rm*1.8,Rm*1.3,(px,py,pz)=>{const y=py-cyy;let d=Math.hypot(px,y,pz)/Rm+(fbm(px*3,y*3,pz*3,seed,3)-.5)*.25;
+      // crateras de ablação
+      for(let c=0;c<6;c++){const a=hash3(c,1,0,seed)*6.28,b=hash3(c,2,0,seed)*3.14;const cxp=Math.sin(b)*Math.cos(a)*Rm,cyp=Math.cos(b)*Rm,czp=Math.sin(b)*Math.sin(a)*Rm;if(Math.hypot(px-cxp,y-cyp,pz-czp)<Rm*.28)return 9;}return d;},
+      (px,py,pz,d,x,y,z)=>{if(d>.9)return [T_MET,28,26,25];if(hash3(x>>1,y>>1,z>>1,seed+3)<.06)return [T_OLIV,110,170,40];const f=fbm(px*6,py*6,pz*6,seed+5,2);return [T_MET,70+f*50,68+f*45,66+f*40];},hpMul);}
+  else if(k==='idolo'){const s=scale;
+    n+=stamp(cx,cz,0,.8*s,2.2*s,.8*s,(px,py,pz)=>{const w=(fbm(px*4,py*4,pz*4,seed,2)-.5)*.05;
+      if(py<.35*s)return Math.max(Math.abs(px)/(.7*s),Math.abs(pz)/(.6*s))+w;// base
+      if(py<1.25*s)return Math.hypot(px/(.42*s),pz/(.36*s))+w;// corpo
+      if(py<1.95*s)return Math.hypot(px/(.4*s),(py-1.58*s)/(.36*s),pz/(.38*s))+w;return 9;},
+      (px,py,pz,d,x,y,z)=>{const s2=scale;if(py>1.5*s2&&py<1.62*s2&&pz<-.25*s2&&Math.abs(Math.abs(px)-.14*s2)<.06*s2)return [T_GOLD,255,200,70];
+        if(Math.abs(py-.9*s2)<.03*s2)return [T_GOLD,240,180,60];if(d<.35&&py>.4*s2)return [T_GOLD,255,196,70];const f=fbm(px*5,py*5,pz*5,seed,2);return [T_JADE,60+f*40,128+f*50,92+f*40];},hpMul);}
+  else if(k==='bau'){const s=scale;const W=.75*s,Hh=.55*s,D=.5*s;
+    n+=stamp(cx,cz,0,W*1.1,Hh*1.6,D*1.1,(px,py,pz)=>{const lid=py>Hh?Math.hypot(px/W*.7,(py-Hh)/(D*.9),pz/D):0;if(py>Hh&&lid>1)return 9;return Math.max(Math.abs(px)/W,Math.abs(pz)/D,py>Hh?lid:0)*.99;},
+      (px,py,pz,d,x,y,z)=>{const s2=scale;const shell=Math.abs(px)>W-.06*s2||Math.abs(pz)>D-.06*s2||py<.06*s2||py>Hh-.04*s2;
+        if(!shell)return hash3(x,y,z,seed)<.04?[T_AME,150,60,200]:[T_GOLD,255,190+hash3(x,y,z,seed+1)*30,60];
+        if(Math.abs(Math.abs(px)-W*.55)<.05*s2||Math.abs(py-Hh)<.03*s2)return [T_MET,58,54,50];const f=fbm(px*3,py*14,pz*3,seed,2);return [T_WOOD,92+f*30,60+f*18,34+f*10];},hpMul);}
+  return n;}
+function decorate(seed){// pepitas no interior, musgo/líquen no topo
+  const rr=mulberry(seed+9);
+  for(let k=0;k<10;k++){const x=(GX*.3+rr()*GX*.4)|0,y=(GY*.1+rr()*GY*.4)|0,z=(GZ*.3+rr()*GZ*.4)|0;
+    for(let a=-1;a<=1;a++)for(let b2=-1;b2<=1;b2++)for(let c=-1;c<=1;c++){const i=vid(x+a,y+b2,z+c);if(vt[i]&&vt[i]!==T_WOOD&&rr()<.6){vt[i]=T_GOLD;vhp[i]=MATS[T_GOLD].hp;vr[i]=255;vg[i]=190+rr()*20;vb[i]=60;}}}
+  for(let z=1;z<GZ-1;z++)for(let x=1;x<GX-1;x++){for(let y=GY-2;y>0;y--){const i=vid(x,y,z);if(!vt[i])continue;const t0=vt[i];if(t0===T_GOLD||t0===T_WOOD||t0===T_MET||t0===T_JADE)break;
+      const m=fbm(x*.09,0,z*.09,seed+61,3);
+      if(m>.6&&y>GY*.3){const depth=1+((m-.6)*6|0);for(let k=0;k<depth&&y-k>0;k++){const j=vid(x,y-k,z);if(!vt[j])break;vt[j]=T_MOSS;vhp[j]=MATS[T_MOSS].hp;const q=hash3(x,y-k,z,seed+71);vr[j]=72+q*26;vg[j]=86+q*30+m*14;vb[j]=44+q*14;}}
+      else if(hash3(x>>1,0,z>>1,seed+81)>.93){vr[i]=vr[i]*.6+80;vg[i]=vg[i]*.6+68;vb[i]=vb[i]*.6+24;}
+      break;}}}
 function genRock(level,rseed){
-  vt.fill(0);
-  let _s=rseed>>>0;const R=()=>{_s=(_s+0x6D2B79F5)|0;let t=Math.imul(_s^(_s>>>15),1|_s);t=(t+Math.imul(t^(t>>>7),61|t))^t;return ((t^(t>>>14))>>>0)/4294967296;};
-  const seed=level*7919+((R()*9999)|0);
-  const kind=level===1?'arenito':level===2?'granito':level===3?'geodo':(['arenito','granito','geodo'][(R()*3)|0]);
-  const cx=GX/2,cz=GZ/2;const sc=Math.min(1.25,1+(level-1)*.04);
-  const ax=1.18*sc,ay=.98*sc,az=1.04*sc;const cy=ay*.78;
-  // planos de faceta (cortes de rocha)
-  const planes=[];for(let k=0;k<9;k++){const th=R()*Math.PI*2,ph=Math.acos(R()*1.6-.6);const n=[Math.sin(ph)*Math.cos(th),Math.cos(ph),Math.sin(ph)*Math.sin(th)];planes.push({n,o:.78+R()*.25});}
-  const sN=[Math.sin(.35)*.3,1,Math.cos(.35)*.25];const sl=Math.hypot(...sN);sN[0]/=sl;sN[1]/=sl;sN[2]/=sl;
-  const pal=kind==='granito'?null:[[186,160,128],[170,138,106],[152,116,88],[198,180,152],[136,104,80],[176,150,118],[160,140,120]];
-  let cnt=0;
-  for(let z=0;z<GZ;z++)for(let y=0;y<GY;y++)for(let x=0;x<GX;x++){
-    const px=(x+.5-cx)*V,py=(y+.5)*V-cy,pz=(z+.5-cz)*V;
-    if(Math.hypot(px/ax,py/ay,pz/az)>1.38)continue;
-    const wx=px+(fbm(px*1.3,py*1.3,pz*1.3,seed,3)-.5)*.35,wy=py+(fbm(px*1.3+5,py*1.3,pz*1.3,seed,3)-.5)*.3,wz=pz+(fbm(px*1.3,py*1.3+9,pz*1.3,seed,3)-.5)*.35;
-    let d=Math.hypot(wx/ax,wy/ay,wz/az);
-    d+=(fbm(px*4,py*4,pz*4,seed+3,3)-.5)*.12;
-    if(d>=1.0)continue;
-    let cut=false;for(const p of planes){if(wx/ax*p.n[0]+wy/ay*p.n[1]+wz/az*p.n[2]>p.o){cut=true;break;}}if(cut)continue;
-    if(py<-cy+.01)continue;
-    const i=vid(x,y,z);let t,r,g,b;const j=hash3(x,y,z,seed);const jn=(j-.5)*.12;
-    if(kind==='granito'){
-      const sp=hash3(x>>1,y>>1,z>>1,seed+1);
-      if(sp<.12){t=T_GRAN;r=38;g=36;b=38;}else if(sp>.86){t=T_GRAN;r=232;g=226;b=220;}
-      else{const f=fbm(px*3,py*3,pz*3,seed+4,2);t=T_GRAN;r=150+f*40;g=128+f*30;b=124+f*28;}
-    }else{
-      const st=(px*sN[0]+py*sN[1]+pz*sN[2])*5.5+fbm(px*1.4,py*1.4,pz*1.4,seed+5,3)*1.2;const band=Math.floor(st);const bh=hash3(band,0,0,seed);
-      const c=pal[(bh*pal.length)|0];r=c[0];g=c[1];b=c[2];t=bh>.62?T_SAND2:T_SAND;
-      const fine=(vnoise(px*14,py*30,pz*14,seed+6)-.5)*.1;r*=1+fine;g*=1+fine;b*=1+fine;
-      if(fbm(px*2.5,py*2.5,pz*2.5,seed+11,2)>.72){t=T_IRON;r=132;g=82;b=56;}
-    }
-    // fissuras
-    const cr=Math.abs(fbm(px*2.2,py*2.2,pz*2.2,seed+21,3)-.5);if(cr<.011){t=T_CRACK;r*=.45;g*=.43;b*=.42;}
-    // veios de quartzo com ouro
-    const rv=ridge(px*1.7+3,py*1.7,pz*1.7,seed+31);
-    if(rv>.955&&t!==T_CRACK){t=T_QTZ;r=236;g=232;b=222;if(hash3(x,y,z,seed+41)<.07){t=T_GOLD;r=255;g=196;b=70;}}
-    // geodo
-    if(kind==='geodo'){const dc=Math.hypot(px/ax,(py+.05)/ay,pz/az);if(dc<.3)continue;if(dc<.42){t=T_AME;const k=hash3(x,y,z,seed+51);r=120+k*70;g=60+k*30;b=170+k*60;}else if(dc<.47){t=T_QTZ;r=228;g=226;b=232;}}
-    vt[i]=t;vhp[i]=MATS[t].hp*(1+(level-1)*.15);
-    vr[i]=Math.max(0,Math.min(255,r*(1+jn)));vg[i]=Math.max(0,Math.min(255,g*(1+jn)));vb[i]=Math.max(0,Math.min(255,b*(1+jn)));
-    cnt++;}
-  // ouro escondido no interior (pepitas)
-  for(let k=0;k<6+level;k++){const x=cx+((R()-.5)*GX*.5)|0,y=(GY*.25+R()*GY*.4)|0,z=cz+((R()-.5)*GZ*.5)|0;
-    for(let a=-1;a<=1;a++)for(let b2=-1;b2<=1;b2++)for(let c=-1;c<=1;c++){const i=vid(x+a,y+b2,z+c);if(vt[i]&&R()<.6){vt[i]=T_GOLD;vhp[i]=MATS[T_GOLD].hp;vr[i]=255;vg[i]=190+R()*20;vb[i]=60;}}}
-  // musgo e líquen nas faces de cima
-  for(let z=1;z<GZ-1;z++)for(let x=1;x<GX-1;x++){
-    for(let y=GY-2;y>0;y--){const i=vid(x,y,z);if(!vt[i])continue;
-      const m=fbm(x*.09,0,z*.09,seed+61,3);const up=y/GY;
-      if(m>.6&&up>.45){const depth=1+((m-.6)*6|0);for(let k=0;k<depth&&y-k>0;k++){const j=vid(x,y-k,z);if(!vt[j])break;vt[j]=T_MOSS;vhp[j]=MATS[T_MOSS].hp;const q=hash3(x,y-k,z,seed+71);
-        vr[j]=72+q*26;vg[j]=86+q*30+m*14;vb[j]=44+q*14;}}
-      else if(hash3(x>>1,0,z>>1,seed+81)>.93){vr[i]=Math.min(255,vr[i]*.6+200*.4);vg[i]=Math.min(255,vg[i]*.6+170*.4);vb[i]=Math.min(255,vb[i]*.6+60*.4);}
-      break;}}
-  rockInfo={name:kind==='arenito'?'Bloco de arenito':kind==='granito'?'Matacão de granito':'Geodo de ametista',total:cnt,left:cnt,kind};
-  if(level>3)rockInfo.name+=' · '+['antigo','profundo','raro','ancestral','colossal'][(level-4)%5];
+  vt.fill(0);const rr=mulberry(rseed);const seed=level*7919+((rr()*9999)|0);
+  let o=pickObj(level,rr);if(window.__forceObj)o=OBJ_TYPES.find(t=>t.k===window.__forceObj)||o;const sc=Math.min(1.25,1+(level-1)*.04);const hpMul=1+(level-1)*.15;
+  buildObject(o.k,0,0,o.k==='gemeas'?sc*1.05:sc,seed,hpMul);decorate(seed);
+  // extras de eventos (meteoritos, visitantes) desta rocha
+  for(const e of (S.extras||[]))buildObject(e.k,e.x,e.z,e.s,e.seed,hpMul);
+  let cnt=0;for(let i=0;i<GN;i++)if(vt[i])cnt++;
+  rockInfo={name:o.n,rar:o.r,kind:o.k,total:cnt,left:cnt};
 }
 
 // =================================================================
@@ -375,7 +406,7 @@ function buildChunk(cx,cy,cz){
   const x0=cx*CK,y0=cy*CK,z0=cz*CK;
   for(let z=z0;z<z0+CK;z++)for(let y=y0;y<Math.min(GY,y0+CK);y++)for(let x=x0;x<x0+CK;x++){
     const i=x+GX*(y+GY*z);const t=vt[i];if(!t)continue;
-    const L=t===T_GOLD?lists[1]:t===T_AME?lists[2]:t===T_QTZ?lists[3]:lists[0];
+    const L=(t===T_GOLD||t===T_MET)?lists[1]:(t===T_AME||t===T_OLIV)?lists[2]:(t===T_QTZ||t===T_JADE)?lists[3]:lists[0];
     const r=LIN[vr[i]],g=LIN[vg[i]],b=LIN[vb[i]];
     for(let f=0;f<6;f++){const F=FACES[f];const nx=F[0],ny=F[1],nz=F[2];
       if(solid(x+nx,y+ny,z+nz))continue;
@@ -811,11 +842,11 @@ function throwBalloon(){const sz=Math.max(.12,chargeSize());const src=chargeMesh
   projs.push({pos:src,vel:v,sz,mesh:m,t:0});cdLeft.balao=CD.balao;sfx.whoosh();}
 function stepProjs(dt){for(let k=projs.length-1;k>=0;k--){const p=projs[k];p.t+=dt;if(p.delay>0){p.delay-=dt;p.mesh.visible=false;continue;}p.mesh.visible=true;let hit=false;
   for(let s=0;s<4&&!hit;s++){const h=dt/4;p.vel.y-=9.8*h;p.pos.addScaledVector(p.vel,h);
-    const r=p.type==='ice'?p.sz*.5:balloonRad(p.sz)*.7;const gx=Math.floor((p.pos.x-RX0)/V),gy=Math.floor((p.pos.y-r-RY0)/V),gz=Math.floor((p.pos.z-RZ0)/V);
-    if(solid(gx,gy,gz)||solid(Math.floor((p.pos.x-RX0)/V),Math.floor((p.pos.y-RY0)/V),gz)||p.pos.y-r<terrainH(p.pos.x,p.pos.z)||p.t>3)hit=true;
+    const r=p.type==='ice'?p.sz*.5:p.type==='meteor'?.1:balloonRad(p.sz)*.7;const gx=Math.floor((p.pos.x-RX0)/V),gy=Math.floor((p.pos.y-r-RY0)/V),gz=Math.floor((p.pos.z-RZ0)/V);
+    if(solid(gx,gy,gz)||solid(Math.floor((p.pos.x-RX0)/V),Math.floor((p.pos.y-RY0)/V),gz)||p.pos.y-r<terrainH(p.pos.x,p.pos.z)||p.t>(p.type==='meteor'?5:3))hit=true;
     for(const f of frags)if(f.pos.distanceTo(p.pos)<f.rad*.8+r)hit=true;}
   p.mesh.position.copy(p.pos);p.mesh.rotation.z+=dt*3;if(p.type==='ice')p.mesh.rotation.x+=dt*4;
-  if(hit){if(p.type==='ice')shatterIce(p);else burstBalloon(p);scene.remove(p.mesh);projs.splice(k,1);}}}
+  if(hit){if(p.type==='ice')shatterIce(p);else if(p.type==='meteor')meteorLand(p);else burstBalloon(p);scene.remove(p.mesh);projs.splice(k,1);}}}
 function burstBalloon(p){
   const sz=p.sz,pos=p.pos,pw=waterPow(S.up.altura);
   // 1) explosão de água
@@ -1035,18 +1066,39 @@ $('hint').ondblclick=null;
 // =================================================================
 let shake=0,frames=0,acc=0,last=performance.now(),washT=0,earnT=0;
 function newRock(fresh){
-  if(fresh||!S.rockSeed){S.rockSeed=(Math.random()*2**31)|0;S.mile=0;try{localStorage.removeItem(KEY+'_rock');}catch(e){}}
+  if(fresh||!S.rockSeed){S.rockSeed=(Math.random()*2**31)|0;S.mile=0;S.extras=[];try{localStorage.removeItem(KEY+'_rock');}catch(e){}}
   genRock(S.level,S.rockSeed);
-  if(!fresh)loadRockMask();
+  if(!fresh&&!loadRockMask()){S.mile=0;S.extras=[];genRock(S.level,S.rockSeed);}
+  if(fresh)setTimeout(()=>{toast('Novo objeto: '+rockInfo.name,rockInfo.rar?('✦ '+rockInfo.rar+' ✦'):'Rocha comum');if(rockInfo.rar)sfx.reveal();},300);
   rebuildAll();structDirty=false;}
 function saveRockMask(){try{let out=[],cur=0,run=0;for(let i=0;i<GN;i++){const a=vt[i]?1:0;if(a===cur)run++;else{out.push(run.toString(36));cur=a;run=1;}}out.push(run.toString(36));
-  localStorage.setItem(KEY+'_rock',S.rockSeed+'|'+out.join(','));}catch(e){}}
-function loadRockMask(){try{const raw=localStorage.getItem(KEY+'_rock');if(!raw)return;const [sd,data]=raw.split('|');if(+sd!==S.rockSeed)return;
+  localStorage.setItem(KEY+'_rock','v3:'+GN+':'+S.rockSeed+'|'+out.join(','));}catch(e){}}
+function loadRockMask(){try{const raw=localStorage.getItem(KEY+'_rock');if(!raw)return false;const [hd,data]=raw.split('|');const hp=hd.split(':');if(hp[0]!=='v3'||+hp[1]!==GN||+hp[2]!==S.rockSeed)return false;
   const runs=data.split(',').map(v=>parseInt(v,36));let i=0,cur=0,left=0;for(const r of runs){if(!cur){for(let k=0;k<r&&i<GN;k++,i++)vt[i]=0;}else{for(let k=0;k<r&&i<GN;k++,i++)if(vt[i])left++;}cur^=1;}
-  rockInfo.left=left;}catch(e){}}
+  rockInfo.left=left;return true;}catch(e){return false;}}
 function finishRock(auto){if(rockInfo.done)return;rockInfo.done=true;S.rocks++;const bonus=Math.round(60*S.level*valMult()*(1+rockPct()/20));S.money+=bonus;S.total+=bonus;
   toast((auto?rockInfo.name+' desfeita!':'Rocha trocada!'),'Bônus +$'+fmt(bonus)+' · a próxima rocha vale '+Math.round((valMultAt(S.level+1)/valMultAt(S.level)-1)*100)+'% mais');sfx.reveal();
   S.level++;for(const f of [...frags])dissolveFragment(f,false);save();setTimeout(()=>{newRock(true);buildAqueduct();},2500);}
+// ---------- eventos de objetos: meteoritos e visitantes raros ----------
+let evTimer=100+Math.random()*80;
+function freeSpot(rad){for(let t=0;t<60;t++){const a=Math.random()*6.283,r=1.05+Math.random()*.5;const x=Math.cos(a)*r,z=Math.sin(a)*r;if(x>1.2&&Math.abs(z)<.5)continue;
+  const gx=Math.floor((x-RX0)/V),gz=Math.floor((z-RZ0)/V),gr=Math.ceil(rad/V);let ok=true;for(let a2=-gr;a2<=gr&&ok;a2+=3)for(let c=-gr;c<=gr&&ok;c+=3)for(let y=0;y<8;y+=2)if(solid(gx+a2,y,gz+c)){ok=false;break;}
+  if(ok&&Math.abs(x)+rad<GX*V/2&&Math.abs(z)+rad<GZ*V/2)return {x,z};}return null;}
+function markRegion(x,z,r){for(let cz=0;cz<CNZ;cz++)for(let cy=0;cy<CNY;cy++)for(let cx=0;cx<CNX;cx++){const wx=RX0+(cx+.5)*CK*V,wz=RZ0+(cz+.5)*CK*V;if(Math.abs(wx-x)<r+CK*V&&Math.abs(wz-z)<r+CK*V)chunkDirty[(cz*CNY+cy)*CNX+cx]=1;}}
+function addExtra(e){S.extras.push(e);const n=buildObject(e.k,e.x,e.z,e.s,e.seed,1+(S.level-1)*.15);rockInfo.total+=n;rockInfo.left+=n;markRegion(e.x,e.z,e.s*1.6);saveRockMask();return n;}
+const meteorMat=new THREE.MeshStandardMaterial({color:0x2a2420,emissive:0xff6a1a,emissiveIntensity:2.2,roughness:.6});
+function meteorShower(){toast('Chuva de meteoritos! ☄️','Pedras do céu caíram ao redor da rocha');sfx.thunder(.6);
+  const n=2+Math.floor(Math.random()*3);for(let k=0;k<n;k++){const sp=freeSpot(.32);if(!sp)continue;const tg=new THREE.Vector3(sp.x,terrainH(sp.x,sp.z),sp.z);
+    const from=tg.clone().add(new THREE.Vector3(-3+Math.random()*1.5,6,2.5));const m=new THREE.Mesh(new THREE.IcosahedronGeometry(.12,1),meteorMat);scene.add(m);
+    const T=.9;const vel=tg.clone().sub(from).divideScalar(T);vel.y+=.5*9.8*T;projs.push({type:'meteor',pos:from,vel,sz:.12,mesh:m,t:0,delay:k*.55,tg,sp});}}
+function meteorLand(p){const s=.26+Math.random()*.14;addExtra({k:'meteoro',x:p.sp.x,z:p.sp.z,s,seed:(Math.random()*1e6)|0});
+  sfx.thud(1);sfx.thunder(.4);shake=Math.max(shake,.05);
+  for(let q=0;q<40;q++){const a=Math.random()*6.283;spawnGrain(p.sp.x,terrainH(p.sp.x,p.sp.z)+.05,p.sp.z,T_IRON,Math.cos(a)*.02,.02+Math.random()*.02,Math.sin(a)*.02);}
+  floatText(new THREE.Vector3(p.sp.x,terrainH(p.sp.x,p.sp.z)+.6,p.sp.z),'☄️ meteorito','#ffb070',18);}
+function rareVisitor(){const k=Math.random()<.5?'idolo':'bau';const sp=freeSpot(.4);if(!sp)return;const n=addExtra({k,x:sp.x,z:sp.z,s:.34,seed:(Math.random()*1e6)|0});
+  toast(k==='idolo'?'Um ídolo de jade emergiu! 🗿':'Um baú enterrado apareceu! 💰','Erosione até o tesouro dentro dele');sfx.reveal();
+  floatText(new THREE.Vector3(sp.x,terrainH(sp.x,sp.z)+.9,sp.z),'✦','#ffe9a0',34);}
+function stepEvents(dt){if(S.level<2&&S.total<300)return;evTimer-=dt;if(evTimer<=0){evTimer=140+Math.random()*120;if(Math.random()<.6)meteorShower();else rareVisitor();}}
 const valMultAt=l=>(1+(l-1)*.35)*rankMult();
 const rockPct=()=>(1-rockInfo.left/rockInfo.total)*100;
 function simFrame(){
@@ -1055,7 +1107,7 @@ function simFrame(){
   // segurar
   if(down&&aim&&S.tool==='gota'&&S.up.chuva){holdAcc+=rainRate(S.up.chuva)/60;while(holdAcc>=1){holdAcc--;const p=aim.clone();p.x+=(R()-.5)*.12;p.z+=(R()-.5)*.12;spawnDrop(p,dropN(S.up.gota),dropH(S.up.altura));}}
   if(down&&aim&&S.tool==='jato'){holdAcc+=jetRate(S.up.forcaJato)/60;const src=fromCamera(aim,1.35,.15);const thick=1+Math.floor(S.up.gota/3);const spd=Math.min(7,jetSpeed(S.up.forcaJato)+S.up.altura*.2);while(holdAcc>=1){holdAcc--;shootJet(src,aim,spd,thick);}sfx.jet(true);}else sfx.jet(false);
-  stepTurrets(dt);stepSpring(dt);stepDam(dt);stepAqueduct(dt);stepStorm(dt);stepCharge(dt);stepProjs(dt);stepWaves(dt);
+  stepTurrets(dt);stepSpring(dt);stepDam(dt);stepAqueduct(dt);stepStorm(dt);stepCharge(dt);stepProjs(dt);stepWaves(dt);stepEvents(dt);
   // nuvem
   if(S.up.nuvem){cloud.visible=true;cloudT+=1/60;const cx=Math.sin(cloudT*.21)*.55,cz=Math.cos(cloudT*.17)*.45;cloud.position.lerp(new THREE.Vector3(cx,RY0+GY*V+.9,cz),.03);
     cloudAcc+=cloudRate(S.up.nuvem)/60;while(cloudAcc>=1){cloudAcc--;const p=new THREE.Vector3(cloud.position.x+(R()-.5)*.6,cloud.position.y-1.1,cloud.position.z+(R()-.5)*.4);
@@ -1082,7 +1134,7 @@ function render(time){
   const gm=grainMesh.instanceMatrix.array,gc=grainMesh.instanceColor.array;
   for(let i=0;i<F.np;i++){pa[i*3]=F.px[i];pa[i*3+1]=F.py[i];pa[i*3+2]=F.pz[i];ka[i]=F.kind[i];
     if(F.kind[i]){const o=g*16;const sc=F.kind[i]===2?2.2:1;gm[o]=sc;gm[o+1]=0;gm[o+2]=0;gm[o+3]=0;gm[o+4]=0;gm[o+5]=sc;gm[o+6]=0;gm[o+7]=0;gm[o+8]=0;gm[o+9]=0;gm[o+10]=sc;gm[o+11]=0;gm[o+12]=F.px[i];gm[o+13]=F.py[i];gm[o+14]=F.pz[i];gm[o+15]=1;
-      const m=F.mat[i];const c=F.kind[i]===2?[.75,.9,1]:m===T_GOLD?[1,.62,.12]:m===T_AME?[.35,.1,.55]:m===T_QTZ?[.8,.78,.74]:m===T_MOSS?[.08,.13,.04]:m===T_IRON?[.3,.08,.03]:m===T_GRAN?[.3,.25,.24]:[.55,.4,.25];
+      const m=F.mat[i];const c=F.kind[i]===2?[.75,.9,1]:(GRAIN_COL[m]||[.55,.4,.25]);
       gc[g*3]=c[0];gc[g*3+1]=c[1];gc[g*3+2]=c[2];g++;}}
   ptsGeo.attributes.position.needsUpdate=true;ptsKind.needsUpdate=true;ptsGeo.setDrawRange(0,F.np);
   grainMesh.count=Math.min(g,MAXSED+600);grainMesh.instanceMatrix.needsUpdate=true;grainMesh.instanceColor.needsUpdate=true;
@@ -1144,7 +1196,7 @@ function loop(now){
 }
 resize();
 setTimeout(()=>{newRock(false);buildShop();renderHotbar();rebuildTurrets();buildAqueduct();ui();$('loading').style.opacity=0;setTimeout(()=>$('loading').remove(),900);requestAnimationFrame(loop);},30);
-window.__dbg={hold(v){down=v;},jetAt(x,y,z){aim=new THREE.Vector3(x,y,z);S.tool='jato';down=true;},panGrains:(x,y,z)=>panGrains(new THREE.Vector3(x,y,z)),startStorm,get cap(){return F.cap},aimAt(x,y,z){aim=new THREE.Vector3(x,y,z);},carve(x0,x1,y0,y1){for(let z=0;z<GZ;z++)for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const i=vid(x,y,z);if(vt[i])removeVoxel(i,x,y,z,false);}},frags,setTool,useTool,get aim(){return aim},set aim(v){aim=v},startDam,burstDam,get dam(){return dam},DBG,setRender(v){SIMONLY=!v;},cam:camera,ctl:controls,get frames(){return frames},F,S,rockInfo:()=>rockInfo,spawnDrop:(x,y,z,n,h)=>spawnDrop(new THREE.Vector3(x,y,z),n,h)};
+window.__dbg={meteorShower,rareVisitor,newRock,get rock(){return rockInfo},hold(v){down=v;},jetAt(x,y,z){aim=new THREE.Vector3(x,y,z);S.tool='jato';down=true;},panGrains:(x,y,z)=>panGrains(new THREE.Vector3(x,y,z)),startStorm,get cap(){return F.cap},aimAt(x,y,z){aim=new THREE.Vector3(x,y,z);},carve(x0,x1,y0,y1){for(let z=0;z<GZ;z++)for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const i=vid(x,y,z);if(vt[i])removeVoxel(i,x,y,z,false);}},frags,setTool,useTool,get aim(){return aim},set aim(v){aim=v},startDam,burstDam,get dam(){return dam},DBG,setRender(v){SIMONLY=!v;},cam:camera,ctl:controls,get frames(){return frames},F,S,rockInfo:()=>rockInfo,spawnDrop:(x,y,z,n,h)=>spawnDrop(new THREE.Vector3(x,y,z),n,h)};
 addEventListener('visibilitychange',()=>{if(document.hidden){save();saveRockMask();}});addEventListener('beforeunload',()=>{save();saveRockMask();});
 </script>
 </body>
