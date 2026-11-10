@@ -62,9 +62,9 @@ function createFluid(o){
     for(let i=0;i<n;i++){dens[i]=0;densN[i]=0;}
     for(let i=0;i<n;i++){const b=i*MAXN,c=nc[i];for(let k=0;k<c;k++){const j=nb[b+k];const q=1-nd[b+k]/h;const q2=q*q,q3=q2*q;dens[i]+=q2;densN[i]+=q3;dens[j]+=q2;densN[j]+=q3;}}
     for(let i=0;i<n;i++){let P=K*(dens[i]-REST);if(P<0)P*=.6;const PN=KN*densN[i];const b=i*MAXN,c=nc[i];let dx=0,dy=0,dz=0;
-      for(let k=0;k<c;k++){const j=nb[b+k],r=nd[b+k];if(r<1e-6)continue;const q=1-r/h;
-        let Pj=K*(dens[j]-REST);if(Pj<0)Pj*=.6;const D=((P+Pj)*.5*q+(PN+KN*densN[j])*.5*q*q)*.5/r;
-        const ux=(px[j]-px[i])*D,uy=(py[j]-py[i])*D,uz=(pz[j]-pz[i])*D;
+      for(let k=0;k<c;k++){const j=nb[b+k];const ex=px[j]-px[i]-dx,ey=py[j]-py[i]-dy,ez=pz[j]-pz[i]-dz;const r=Math.sqrt(ex*ex+ey*ey+ez*ez);if(r<1e-5||r>=h)continue;const q=1-r/h;
+        let Pj=K*(dens[j]-REST);if(Pj<0)Pj*=.6;let D=((P+Pj)*.5*q+(PN+KN*densN[j])*.5*q*q)*.5;if(D>h*.3)D=h*.3;D/=r;
+        const ux=ex*D,uy=ey*D,uz=ez*D;
         px[j]+=ux;py[j]+=uy;pz[j]+=uz;dx-=ux;dy-=uy;dz-=uz;}
       px[i]+=dx;py[i]+=dy;pz[i]+=dz;}
     collide();
