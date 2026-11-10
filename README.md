@@ -10,6 +10,24 @@ Os grãos que se soltam precisam ser levados pela correnteza até a calha de gar
 - A calha enche: **lave-a** (botão ou tecla `L`) para transformar o que ela reteve em dinheiro. Com a calha cheia, os grãos se perdem.
 - Dentro da rocha há veios de quartzo com ouro, pepitas e, nos geodos, ametista.
 
+## Objetos
+A cada rocha nova, sorteia-se um objeto. Cada um tem formato e materiais próprios:
+- Bloco de arenito, matacão de granito, pilar de basalto, arco natural e pedras gêmeas.
+- Raros: geodo de ametista, rocha com fóssil e meteorito.
+- Lendários: ídolo de jade (com olhos de ouro) e baú enterrado, cheio de ouro.
+
+Eventos aleatórios:
+- **Chuva de meteoritos:** crava meteoritos ao redor da rocha.
+- **Visitante raro:** um ídolo ou baú surge ao lado.
+
+O objeto fica no nível da água, então o riacho corrói a base.
+
+## Garimpo
+- Calha principal e até 3 calhas extras em volta da rocha, que somam capacidade.
+- Área de extração: deixa as calhas e a bateia maiores.
+- Peixes garimpeiros nadam na água rasa caçando os grãos arrastados.
+- Bateia manual: clique nos grãos encalhados.
+
 ## Câmera
 - WASD ou setas: mover
 - Q/E: girar
