@@ -74,13 +74,13 @@ const R=Math.random;
 // Estado & upgrades
 // =================================================================
 const KEY='erosao3d_v2';
-const UP0={gota:0,chuva:0,altura:0,acido:0,nuvem:0,calha:0,riffle:0,auto:0,jato:0,balao:0,granizo:0,onda:0,forcaJato:0,t_gota:0,t_esg:0,t_bal:0,cadencia:0,nascente:0,represa:0};
+const UP0={aqueduto:0,tempestade:0,gota:0,chuva:0,altura:0,acido:0,nuvem:0,calha:0,riffle:0,auto:0,jato:0,balao:0,granizo:0,onda:0,forcaJato:0,t_gota:0,t_esg:0,t_bal:0,cadencia:0,nascente:0,represa:0};
 const S={money:0,level:1,total:0,sluice:0,t:Date.now(),tool:'gota',up:{...UP0},found:{}};
 try{const sv=JSON.parse(localStorage.getItem(KEY)||'null');if(sv){Object.assign(S,sv);S.up=Object.assign({...UP0},sv.up||{});S.found=sv.found||{};}}catch(e){}
 const save=()=>{S.t=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
 const dropN=l=>12+l*6, rainRate=l=>l*2.5, dropH=l=>.55+l*.22, acid=l=>Math.pow(1.3,l), cloudRate=l=>l*.6,
       cap=l=>Math.round(25*Math.pow(1.7,l)), capture=l=>Math.min(.92,.32+l*.08), autoWash=l=>l?Math.max(4,32-l*4):0,
-      jetRate=l=>40+l*12, jetSpeed=l=>4.6+l*.45, cad=l=>1+l*.22, springRate=l=>l*16;
+      jetRate=l=>40+l*12,aqRate=l=>l*14, jetSpeed=l=>4.6+l*.45, cad=l=>1+l*.22, springRate=l=>l*16;
 const turretCount=()=>S.up.t_gota+S.up.t_esg+S.up.t_bal;
 const SHOP=[
  // Ferramentas
@@ -102,6 +102,8 @@ const SHOP=[
  {k:'cadencia',tab:'Torretas',n:'Cadência',d:l=>`Torretas ${Math.round(cad(l)*100)}% mais rápidas`,base:300,mul:1.8,max:10},
  // Terreno
  {k:'nascente',tab:'Terreno',n:'🏞️ Nascente',d:l=>l?`O riacho corre: ${springRate(l)} gotas/s`:'Abre uma nascente: um riacho bate na rocha',base:350,mul:1.9,max:6},
+ {k:'aqueduto',tab:'Terreno',n:'🪵 Aqueduto',d:l=>l?`Despeja ${aqRate(l)} gotas/s no topo`:'Uma calha de madeira despeja água no topo da rocha',base:600,mul:1.85,max:6},
+ {k:'tempestade',tab:'Terreno',n:'⛈️ Tempestades',d:l=>l?`Tempestades mais frequentes e fortes · ${l}`:'Libera tempestades de verão',base:1500,mul:2,max:5},
  {k:'represa',tab:'Terreno',n:'🪵 Represas surpresa',d:l=>l?`Represas surgem no riacho · nível ${l}`:'Castores represam o riacho… e ela estoura',base:900,mul:2.1,max:5,req:'nascente'},
  // Garimpo
  {k:'calha',tab:'Garimpo',n:'Calha maior',d:l=>`Capacidade $${fmt(cap(l))}`,base:35,mul:1.75},
@@ -738,6 +740,41 @@ function stepTurrets(dt){const sp=cad(S.up.cadencia);
     if(t.typ==='gota'&&t.t<=0){t.t=1.6;const tg=t.target;if(tg){spawnDrop(tg,dropN(S.up.gota),dropH(S.up.altura)*.8);}}
     if(t.typ==='esg'){if(t.t<=0&&t.burst<=0){t.burst=.7;t.t=3.2;}if(t.burst>0){t.burst-=dt;if(t.target){const src=hw.clone().add(t.target.clone().sub(hw).normalize().multiplyScalar(.2));t.acc=(t.acc||0)+40*dt;while(t.acc>=1){t.acc--;shootJet(src,t.target,5.2,1);}}}}
     if(t.typ==='bal'&&t.t<=0){t.t=5;if(t.target){lob(hw.clone().add(new THREE.Vector3(0,.1,0)),t.target,.7,55);sfx.whoosh();}}}}
+// ----- aqueduto
+const AQ_A=new THREE.Vector3(-3.1,1.5,-1.7),AQ_B=new THREE.Vector3(-.35,0,-.35);
+const aqGroup=new THREE.Group();scene.add(aqGroup);let aqAcc=0;
+function rockTopAt(x,z){const gx=Math.floor((x-RX0)/V),gz=Math.floor((z-RZ0)/V);for(let y=GY-1;y>=0;y--)if(solid(gx,y,gz))return RY0+(y+1)*V;return terrainH(x,z);}
+function buildAqueduct(){aqGroup.clear();if(!S.up.aqueduto)return;
+  AQ_B.y=Math.max(rockTopAt(AQ_B.x,AQ_B.z)+.55,AQ_A.y-.4);
+  const d=AQ_B.clone().sub(AQ_A);const L=d.length();const mid=AQ_A.clone().add(AQ_B).multiplyScalar(.5);
+  const holder=new THREE.Group();holder.position.copy(mid);holder.lookAt(AQ_B);aqGroup.add(holder);
+  const bot=new THREE.Mesh(new THREE.BoxGeometry(.16,.02,L),woodM);holder.add(bot);
+  for(const sx of [-.08,.08]){const w=new THREE.Mesh(new THREE.BoxGeometry(.02,.08,L),woodM);w.position.set(sx,.04,0);holder.add(w);}
+  const wat=new THREE.Mesh(new THREE.BoxGeometry(.13,.012,L*.98),new THREE.MeshStandardMaterial({color:0x4f8fb0,roughness:.1,metalness:.1,transparent:true,opacity:.85}));wat.position.y=.02;holder.add(wat);aqGroup.userData.w=wat;
+  for(let k=0;k<=3;k++){const p=AQ_A.clone().lerp(AQ_B,k/3*.92);const gy=terrainH(p.x,p.z);const hh=p.y-gy;
+    if(Math.hypot(p.x,p.z)<1.5)continue;const post=new THREE.Mesh(new THREE.CylinderGeometry(.03,.04,hh,7),woodM);post.position.set(p.x,gy+hh/2,p.z);aqGroup.add(post);}
+  aqGroup.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});}
+function stepAqueduct(dt){if(!S.up.aqueduto)return;aqAcc+=aqRate(S.up.aqueduto)*dt;const d=AQ_B.clone().sub(AQ_A).normalize();
+  while(aqAcc>=1){aqAcc--;F.add(AQ_B.x+(R()-.5)*.08,AQ_B.y+.02,AQ_B.z+(R()-.5)*.08,d.x*1.4/HZ,d.y*1.4/HZ,d.z*1.4/HZ,0,4);}}
+// ----- tempestade (evento)
+let storm=0,stormTimer=150+R()*90,stormAcc=0,flash=0;
+const rainGeo=new THREE.CylinderGeometry(.004,.004,.35,3);const rainMesh=new THREE.InstancedMesh(rainGeo,new THREE.MeshBasicMaterial({color:0xbcd4e6,transparent:true,opacity:.45}),700);rainMesh.frustumCulled=false;rainMesh.count=0;scene.add(rainMesh);
+const rainP=[];for(let i=0;i<700;i++)rainP.push(new THREE.Vector3((R()-.5)*14,R()*7,(R()-.5)*14));
+function startStorm(){storm=14+S.up.tempestade*3;toast('Tempestade de verão! ⛈️','Chuva forte sobre a rocha por alguns segundos');sfx.thunder(1);}
+function stepStorm(dt){
+  if(S.up.tempestade&&storm<=0){stormTimer-=dt;if(stormTimer<=0){stormTimer=(170-S.up.tempestade*20)+R()*80;startStorm();}}
+  if(storm>0){storm-=dt;stormAcc+=(14+S.up.tempestade*5)*dt;while(stormAcc>=1){stormAcc--;const a=R()*6.283,r=Math.sqrt(R())*1.6;spawnBlob(Math.cos(a)*r,RY0+GY*V+.8+R()*.5,Math.sin(a)*r,5,0,-.03,0,0,4);}
+    if(R()<dt*.25){flash=1;setTimeout(()=>sfx.thunder(.7+R()*.3),300+R()*900);}}
+}
+const SUN_I=3.1;
+function applyWeather(dt){const k=storm>0?Math.min(1,storm/2,(14+S.up.tempestade*3-storm)/2+0):0;const tgt=storm>0?1:0;weatherK+=(tgt-weatherK)*Math.min(1,dt*.8);
+  sun.intensity=SUN_I*(1-weatherK*.75)+flash*6;scene.fog.density=.035+weatherK*.05;compMat.uniforms.uExp.value=1-weatherK*.3+flash*.6;flash*=.85;
+  rainMesh.count=weatherK>.05?Math.floor(700*weatherK):0;
+  if(rainMesh.count){const M=new THREE.Matrix4();for(let i=0;i<rainMesh.count;i++){const p=rainP[i];p.y-=dt*9;if(p.y<terrainH(p.x,p.z)){p.y=6+R();p.x=camera.position.x*.3+(R()-.5)*14;p.z=camera.position.z*.3+(R()-.5)*14;}M.makeTranslation(p.x,p.y,p.z);rainMesh.setMatrixAt(i,M);}rainMesh.instanceMatrix.needsUpdate=true;}}
+let weatherK=0;
+// ----- desempenho adaptativo: limita partículas se a física ficar cara
+let simCost=8;
+function adaptCap(ms){simCost=simCost*.95+ms*.05;if(simCost>13&&F.cap>1600)F.cap-=20;else if(simCost<9&&F.cap<F.MAXP)F.cap+=10;}
 // ----- nascente e represa
 let springAcc=0;
 function stepSpring(dt){if(!S.up.nascente)return;springAcc+=springRate(S.up.nascente)*dt;
@@ -772,6 +809,7 @@ canvas.addEventListener('contextmenu',e=>e.preventDefault());
 canvas.addEventListener('pointermove',e=>{aim=pick(e.clientX,e.clientY);lastMove=performance.now();});
 canvas.addEventListener('pointerdown',e=>{sfx.init();if(e.button!==0)return;aim=pick(e.clientX,e.clientY);down=true;
   if(dam&&dam.active&&aim&&Math.hypot(aim.x-dam.x,aim.z-dam.z)<.75){burstDam();return;}
+  if(aim&&aim.x>SL_X0-.1&&aim.x<SL_X1+.1&&Math.abs(aim.z)<CH_W+.2&&S.sluice>.01){wash();return;}
   if(aim){useTool(true);document.getElementById('hint').style.opacity=0;}});
 addEventListener('pointerup',()=>{down=false;});
 
@@ -812,6 +850,7 @@ const sfx=(()=>{let ac=null,master,nb,muted=false,budget=5,flowG,flowF,windG,jet
     creak(){if(!ac||muted)return;for(let k=0;k<3;k++)tone(140+R()*60,.35,.06,'sawtooth',.8,k*.3);},
     burst(){if(!ac||muted)return;nz(300,'lowpass',1.8,.7);nz(1500,'bandpass',1.5,.2,.6);tone(50,.9,.3,'sine',.6);for(let k=0;k<5;k++)tone(160+R()*80,.2,.08,'sawtooth',.6,.1+k*.12);},
     jet(on){if(!ac)return;jetG.gain.setTargetAtTime(on&&!muted?.12:0,ac.currentTime,.05);},
+    thunder(k){if(!ac||muted)return;nz(90,'lowpass',2.6,.7*k);nz(400,'lowpass',1.2,.3*k);tone(40,1.6,.25*k,'sine',.7);},
     reveal(){if(!ac||muted)return;[1047,1319,1568,2093].forEach((f,j)=>tone(f,.4,.06,'sine',0,j*.09));},
   };})();
 
@@ -831,6 +870,8 @@ function buy(u){sfx.init();const c=costOf(u);if(S.money<c||maxed(u)||!avail(u))r
   if(u.k==='nuvem'&&S.up.nuvem===1)toast('Uma nuvem chegou ☁️','Ela chove sozinha enquanto você joga');
   if(u.k.startsWith('t_')){rebuildTurrets();toast('Torreta instalada','Ela mira e atira sozinha');}
   if(u.k==='nascente'&&S.up.nascente===1)toast('A nascente brotou 🏞️','Um riacho agora corre até a rocha');
+  if(u.k==='aqueduto'){buildAqueduct();if(S.up.aqueduto===1)toast('Aqueduto construído','Água corre direto para o topo da rocha');}
+  if(u.k==='tempestade'&&S.up.tempestade===1){stormTimer=8;}
   if(u.k==='represa'&&S.up.represa===1){toast('Castores na área 🦫','Em breve uma represa vai surgir no riacho');damTimer=Math.min(damTimer,25);}
   save();buildShop();ui();}
 function buildShop(){$('ups').innerHTML='';btns=SHOP.filter(u=>u.tab===curTab).map(u=>{const b=document.createElement('button');b.className='up';b.onclick=()=>buy(u);b._u=u;$('ups').appendChild(b);return b;});
@@ -870,7 +911,7 @@ function simFrame(){
   // segurar
   if(down&&aim&&S.tool==='gota'&&S.up.chuva){holdAcc+=rainRate(S.up.chuva)/60;while(holdAcc>=1){holdAcc--;const p=aim.clone();p.x+=(R()-.5)*.12;p.z+=(R()-.5)*.12;spawnDrop(p,dropN(S.up.gota),dropH(S.up.altura));}}
   if(down&&aim&&S.tool==='jato'){holdAcc+=jetRate(S.up.forcaJato)/60;const src=fromCamera(aim,1.35,.15);while(holdAcc>=1){holdAcc--;shootJet(src,aim,jetSpeed(S.up.forcaJato),1);}sfx.jet(true);}else sfx.jet(false);
-  stepTurrets(dt);stepSpring(dt);stepDam(dt);
+  stepTurrets(dt);stepSpring(dt);stepDam(dt);stepAqueduct(dt);stepStorm(dt);
   // nuvem
   if(S.up.nuvem){cloud.visible=true;cloudT+=1/60;const cx=Math.sin(cloudT*.21)*.55,cz=Math.cos(cloudT*.17)*.45;cloud.position.lerp(new THREE.Vector3(cx,RY0+GY*V+.9,cz),.03);
     cloudAcc+=cloudRate(S.up.nuvem)/60;while(cloudAcc>=1){cloudAcc--;const p=new THREE.Vector3(cloud.position.x+(R()-.5)*.6,cloud.position.y-1.1,cloud.position.z+(R()-.5)*.4);
@@ -925,7 +966,8 @@ function render(time){
 }
 function loop(now){
   const dt=Math.min(100,now-last);last=now;acc+=dt;let n=0;
-  while(acc>=1000/60&&n<2){simFrame();acc-=1000/60;n++;frames++;}if(n===2)acc=0;
+  while(acc>=1000/60&&n<2){const t0=performance.now();simFrame();adaptCap(performance.now()-t0);acc-=1000/60;n++;frames++;}if(n===2)acc=0;
+  applyWeather(dt/1000);
   rebuildDirty(6);
   let motion=0;for(let i=0;i<F.np;i+=3)motion+=Math.abs(F.vx[i])+Math.abs(F.vy[i])+Math.abs(F.vz[i]);sfx.frame(motion*HZ*.3);
   if(!SIMONLY){render(now/1000);updTexts();}
@@ -933,8 +975,8 @@ function loop(now){
   requestAnimationFrame(loop);
 }
 resize();
-setTimeout(()=>{newRock();buildShop();renderHotbar();rebuildTurrets();ui();$('loading').style.opacity=0;setTimeout(()=>$('loading').remove(),900);requestAnimationFrame(loop);},30);
-window.__dbg={aimAt(x,y,z){aim=new THREE.Vector3(x,y,z);},carve(x0,x1,y0,y1){for(let z=0;z<GZ;z++)for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const i=vid(x,y,z);if(vt[i])removeVoxel(i,x,y,z,false);}},frags,setTool,useTool,get aim(){return aim},set aim(v){aim=v},startDam,burstDam,get dam(){return dam},DBG,setRender(v){SIMONLY=!v;},cam:camera,ctl:controls,get frames(){return frames},F,S,rockInfo:()=>rockInfo,spawnDrop:(x,y,z,n,h)=>spawnDrop(new THREE.Vector3(x,y,z),n,h)};
+setTimeout(()=>{newRock();buildShop();renderHotbar();rebuildTurrets();buildAqueduct();ui();$('loading').style.opacity=0;setTimeout(()=>$('loading').remove(),900);requestAnimationFrame(loop);},30);
+window.__dbg={startStorm,get cap(){return F.cap},aimAt(x,y,z){aim=new THREE.Vector3(x,y,z);},carve(x0,x1,y0,y1){for(let z=0;z<GZ;z++)for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const i=vid(x,y,z);if(vt[i])removeVoxel(i,x,y,z,false);}},frags,setTool,useTool,get aim(){return aim},set aim(v){aim=v},startDam,burstDam,get dam(){return dam},DBG,setRender(v){SIMONLY=!v;},cam:camera,ctl:controls,get frames(){return frames},F,S,rockInfo:()=>rockInfo,spawnDrop:(x,y,z,n,h)=>spawnDrop(new THREE.Vector3(x,y,z),n,h)};
 addEventListener('visibilitychange',()=>{if(document.hidden)save();});
 </script>
 </body>

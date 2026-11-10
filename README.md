@@ -10,6 +10,17 @@ Os grãos que se soltam precisam ser levados pela correnteza até a calha de gar
 - A calha enche: **lave-a** (botão ou tecla `L`) para transformar o que ela reteve em dinheiro. Com a calha cheia, os grãos se perdem.
 - Dentro da rocha há veios de quartzo com ouro, pepitas e, nos geodos, ametista.
 
+## Desbloqueios
+- **Ferramentas (teclas 1 a 5):** gota, jato contínuo, balão d'água (erosão em área), granizo (lasca e quica) e onda (parede de água).
+- **Torretas:** gotejadora, esguicho e lança-balões. Elas miram sozinhas e o upgrade de cadência acelera todas.
+- **Terreno:**
+  - Nascente: abre um riacho que bate na rocha.
+  - Aqueduto: despeja água no topo da rocha.
+  - Tempestades: evento de chuva forte, com raios.
+  - Represas surpresa: castores represam o riacho; clique na represa para estourar e causar uma enchente com erosão ×2.
+- **Física da rocha:** os pedaços que se soltam viram fragmentos rígidos que caem, rolam, lascam no impacto e são erodidos pela água.
+- **Garimpo:** calha maior, riffles e lavagem automática. Clicar na calha também a lava.
+
 ## Tecnologia
 - **Fluido:** SPH viscoelástico 3D (Clavet et al. 2005), com relaxação de dupla densidade, viscosidade e coesão, a 120 Hz. Os grãos de sedimento são partículas mais pesadas, arrastadas pela água.
 - **Rocha:** grade voxel de 128×104×128 (2,2 cm) gerada com ruído: estratos, fissuras, veios, musgo e líquen. A malha é feita por chunks com oclusão ambiente por vértice.

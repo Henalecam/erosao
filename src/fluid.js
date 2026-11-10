@@ -15,7 +15,7 @@ function createFluid(o){
   let REST=0;{const m=Math.ceil(h/sp)+1;for(let i=-m;i<=m;i++)for(let j=-m;j<=m;j++)for(let k=-m;k<=m;k++){if(!i&&!j&&!k)continue;const r=sp*Math.sqrt(i*i+j*j+k*k);if(r<h){const q=1-r/h;REST+=q*q;}}}
   const F={MAXP,h,REST,px,py,pz,vx,vy,vz,ox,oy,oz,kind,mat,ground,np:0,
     K:o.K,KN:o.KN,G:o.G,BETA:o.BETA,SIGMA:o.SIGMA||0,MAXV:o.maxV,
-    used:new Int32Array(MAXP),nUsed:0};
+    used:new Int32Array(MAXP),nUsed:0,cap:MAXP};
   function cellOf(x,y,z){let cx=((x-X0)/h)|0,cy=((y-Y0)/h)|0,cz=((z-Z0)/h)|0;
     if(cx<0)cx=0;else if(cx>=NX)cx=NX-1;if(cy<0)cy=0;else if(cy>=NY)cy=NY-1;if(cz<0)cz=0;else if(cz>=NZ)cz=NZ-1;return (cz*NY+cy)*NX+cx;}
   let touched=new Int32Array(MAXP);let nt=0;
@@ -30,7 +30,7 @@ function createFluid(o){
           for(let j=head[base+gx];j!==-1;j=next[j]){if(j<=i)continue;const dx=px[j]-x,dy=py[j]-y,dz=pz[j]-z;const r2=dx*dx+dy*dy+dz*dz;
             if(r2<h2&&cnt<MAXN){nb[b+cnt]=j;nd[b+cnt]=Math.sqrt(r2);cnt++;}}}}}
       nc[i]=cnt;}}
-  F.add=function(x,y,z,u,v,w,k,m){if(F.np>=MAXP)return -1;const i=F.np++;nc[i]=0;dead[i]=0;px[i]=ox[i]=x;py[i]=oy[i]=y;pz[i]=oz[i]=z;vx[i]=u;vy[i]=v;vz[i]=w;kind[i]=k||0;mat[i]=m||0;ground[i]=0;return i;};
+  F.add=function(x,y,z,u,v,w,k,m){if(F.np>=F.cap)return -1;const i=F.np++;nc[i]=0;dead[i]=0;px[i]=ox[i]=x;py[i]=oy[i]=y;pz[i]=oz[i]=z;vx[i]=u;vy[i]=v;vz[i]=w;kind[i]=k||0;mat[i]=m||0;ground[i]=0;return i;};
   F.kill=function(i){if(dead[i])return false;dead[i]=1;F.nDead++;return true;};
   F.nDead=0;F.dead=dead;
   // compactação estável: mantém a ordem e remapeia as listas de vizinhos
