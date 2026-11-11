@@ -19,6 +19,13 @@ precisam ser levados pela correnteza até as calhas de garimpo, onde viram dinhe
 | Mostrar/ocultar a loja | B |
 | Bateia | Clique nos grãos encalhados |
 
+## Celular
+Toque na rocha para usar a ferramenta, segure para chover, encher o balão ou disparar o jato. Dois dedos giram a câmera e dão zoom.
+A interface se reorganiza na tela pequena, com a loja recolhida, as ferramentas logo acima dela e botões só com ícones.
+
+## Som
+Água, vento e pássaros sintetizados, mais **música ambiente generativa** (acordes suaves em pentatônica e notas de sino com eco). O botão 🔊 liga e desliga.
+
 ## Ferramentas (cada uma com seu papel)
 | Ferramenta | Papel | Limite |
 |---|---|---|

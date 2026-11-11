@@ -68,6 +68,19 @@ html,body{margin:0;height:100%;overflow:hidden;background:#1b1a17;font-family:"I
 .ft{position:fixed;pointer-events:none;font-weight:800;text-shadow:0 2px 8px #000c;transform:translate(-50%,-50%);white-space:nowrap}
 #loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#1b1a17;font-size:15px;opacity:.9;transition:opacity .8s;z-index:9}
 @media (max-width:900px){#ups{grid-template-columns:repeat(3,1fr)}#sluice{top:auto;bottom:210px}#hotbar{top:auto;bottom:220px;transform:none}}
+@media (max-width:700px),(pointer:coarse){
+ #hotbar{flex-direction:row;left:50%;top:auto;bottom:178px;transform:translateX(-50%);padding:5px}
+ .tool{width:54px;height:54px}
+ #top{padding:7px 11px;min-width:0}#money{font-size:22px}#rank,#rankNext{display:none}
+ #rock{padding:7px 10px;min-width:150px;font-size:12px}#mileTxt{display:none}
+ #sluice{top:auto!important;right:8px;min-width:130px;padding:6px 9px;font-size:12px}#wash{padding:6px;margin-top:5px}
+ #expBtn,#gfxBtn{font-size:0!important}#expBtn::before{content:'🧭';font-size:15px}#gfxBtn::before{content:'🖥️';font-size:15px}
+ #camHelp,#perkList{display:none!important}#settings{left:8px;right:auto;flex-direction:row}#settings button{padding:6px 8px}
+ #quest{top:96px;font-size:12px;min-width:0;max-width:92vw;padding:6px 10px}
+ .up{padding:7px}.up b{font-size:12px}.up span{font-size:10.5px}
+ #shop{bottom:6px;padding:6px}#tabs{overflow-x:auto}.tab{padding:6px 9px}
+ .pcard{width:150px}
+}
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}</script>
 </head>
@@ -84,6 +97,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#1b1a17;font-family:"I
 <div id="camHelp" class="panel">WASD mover · Q/E girar · R/F zoom · botão do meio arrasta · <b>C</b> centraliza · <b>B</b> loja · <b>L</b> lava</div>
 <div id="sluice" class="panel"><div><b>Calha de garimpo</b></div><div id="sluiceTxt" style="opacity:.75">$0 / $0</div><div class="bar"><div id="sluiceBar"></div></div><button id="wash">Lavar a calha</button></div>
 <div id="quest" class="panel"></div>
+<div id="touchHint" class="panel" style="display:none;position:fixed;left:50%;top:60px;transform:translateX(-50%);padding:7px 12px;font-size:12.5px;z-index:5">Toque na rocha para usar a ferramenta · dois dedos giram e dão zoom</div>
 <div id="hint" class="panel" style="display:none">Clique na rocha para pingar uma gota · botão direito gira · 1–5 trocam a ferramenta</div>
 <div id="toast"></div>
 <div id="shop" class="panel"><div id="tabs"></div><div id="ups"></div></div>
@@ -335,7 +349,7 @@ const controls=new OrbitControls(camera,canvas);
 controls.target.set(-1,.3,.9);controls.enableDamping=true;controls.dampingFactor=.08;controls.enablePan=false;
 controls.minDistance=1.2;controls.maxDistance=14;controls.minPolarAngle=.25;controls.maxPolarAngle=1.32;
 controls.mouseButtons={LEFT:null,MIDDLE:THREE.MOUSE.PAN,RIGHT:THREE.MOUSE.ROTATE};controls.screenSpacePanning=false;controls.zoomToCursor=true;controls.zoomSpeed=1.2;controls.panSpeed=1.1;
-controls.touches={ONE:null,TWO:THREE.TOUCH.DOLLY_PAN};controls.update();
+controls.touches={ONE:null,TWO:THREE.TOUCH.DOLLY_ROTATE};controls.update();
 
 // céu (mesma função usada na reflexão da água)
 const SUN_DIR=new THREE.Vector3(-.5,.42,.55).normalize();
@@ -1156,6 +1170,7 @@ function stepDam(dt){
 const marker=new THREE.Mesh(new THREE.RingGeometry(.035,.05,32),new THREE.MeshBasicMaterial({color:0xbfe6ff,transparent:true,opacity:.7,depthTest:false}));
 marker.renderOrder=10;marker.visible=false;scene.add(marker);
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
+if(matchMedia('(pointer:coarse)').matches){const th=document.getElementById('touchHint');th.style.display='block';setTimeout(()=>th.style.display='none',9000);}
 canvas.addEventListener('pointermove',e=>{aim=pick(e.clientX,e.clientY);lastMove=performance.now();});
 canvas.addEventListener('pointerdown',e=>{sfx.init();if(e.button!==0)return;if(tryCatchFly(e.clientX,e.clientY))return;aim=pick(e.clientX,e.clientY);down=true;
   if(dam&&dam.active&&aim&&Math.hypot(aim.x-dam.x,aim.z-dam.z)<.75){burstDam();return;}
@@ -1180,14 +1195,25 @@ cloud.visible=false;scene.add(cloud);let cloudAcc=0,cloudT=0;
 // =================================================================
 // Som
 // =================================================================
-const sfx=(()=>{let ac=null,master,nb,muted=false,budget=5,flowG,flowF,windG,jetG;
+let musicOff=false;
+const sfx=(()=>{let ac=null,master,nb,muted=false,budget=5,flowG,flowF,windG,jetG,musG;
   function init(){if(ac){if(ac.state==='suspended')ac.resume();return;}try{ac=new (window.AudioContext||window.webkitAudioContext)();}catch(e){return;}
     master=ac.createGain();master.gain.value=.6;const comp=ac.createDynamicsCompressor();master.connect(comp).connect(ac.destination);
     nb=ac.createBuffer(1,ac.sampleRate*3,ac.sampleRate);const d=nb.getChannelData(0);let b=0;for(let i=0;i<d.length;i++){b=b*.985+(R()*2-1)*.015;d[i]=b*5+(R()*2-1)*.12;}
     const s1=ac.createBufferSource();s1.buffer=nb;s1.loop=true;flowF=ac.createBiquadFilter();flowF.type='bandpass';flowF.frequency.value=900;flowF.Q.value=.4;flowG=ac.createGain();flowG.gain.value=0;s1.connect(flowF).connect(flowG).connect(master);s1.start();
     const s2=ac.createBufferSource();s2.buffer=nb;s2.loop=true;s2.playbackRate.value=.5;const wf=ac.createBiquadFilter();wf.type='lowpass';wf.frequency.value=380;windG=ac.createGain();windG.gain.value=.05;s2.connect(wf).connect(windG).connect(master);s2.start(0,1);
     const s3=ac.createBufferSource();s3.buffer=nb;s3.loop=true;const jf=ac.createBiquadFilter();jf.type='highpass';jf.frequency.value=1800;jetG=ac.createGain();jetG.gain.value=0;s3.connect(jf).connect(jetG).connect(master);s3.start(0,2);
-    setInterval(()=>{if(!muted&&R()<.35)bird();},2200);}
+    setInterval(()=>{if(!muted&&R()<.35)bird();},2200);
+    // música ambiente generativa: acordes suaves em pentatônica + notas de "sino" esparsas
+    const mus=ac.createGain();mus.gain.value=.05;const mf=ac.createBiquadFilter();mf.type='lowpass';mf.frequency.value=1400;const dl=ac.createDelay(1);dl.delayTime.value=.42;const fb=ac.createGain();fb.gain.value=.35;
+    mus.connect(mf).connect(master);mf.connect(dl);dl.connect(fb).connect(dl);dl.connect(master);musG=mus;
+    const scale=[0,2,4,7,9,12,14,16,19];const roots=[48,45,41,43];let bar=0;
+    const midi=n=>440*Math.pow(2,(n-69)/12);
+    function pad(n,t,d){const o=ac.createOscillator(),o2=ac.createOscillator(),g=ac.createGain();o.type='sine';o2.type='triangle';o.frequency.value=midi(n);o2.frequency.value=midi(n)*1.003;
+      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.18,t+2.2);g.gain.linearRampToValueAtTime(0,t+d);o.connect(g);o2.connect(g);g.connect(mus);o.start(t);o2.start(t);o.stop(t+d+.1);o2.stop(t+d+.1);}
+    function bell(n,t){const o=ac.createOscillator(),g=ac.createGain();o.type='sine';o.frequency.value=midi(n);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.12,t+.01);g.gain.exponentialRampToValueAtTime(.0005,t+2.6);o.connect(g).connect(mus);o.start(t);o.stop(t+2.7);}
+    setInterval(()=>{if(muted||musicOff)return;const t=ac.currentTime+.05;const r=roots[bar%roots.length];bar++;
+      for(const k of [0,7,16])pad(r+k,t,7.5);for(let k=0;k<3;k++)if(R()<.6)bell(r+24+scale[(R()*scale.length)|0],t+1+k*(1.2+R()*1.5));},7000);}
   const ok=c=>{if(!ac||muted||budget<c)return false;budget-=c;return true;};
   function tone(f,d,v,w,sl,dl){const o=ac.createOscillator();o.type=w||'sine';const t=ac.currentTime+(dl||0);o.frequency.setValueAtTime(f,t);if(sl)o.frequency.exponentialRampToValueAtTime(f*sl,t+d);const g=ac.createGain();g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(v,t+.006);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(master);o.start(t);o.stop(t+d+.02);}
   function nz(f,ft,d,v,q){const s=ac.createBufferSource();s.buffer=nb;const fl=ac.createBiquadFilter();fl.type=ft;fl.frequency.value=f;if(q)fl.Q.value=q;const g=ac.createGain();const t=ac.currentTime;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);s.connect(fl).connect(g).connect(master);s.start(t,R()*2);s.stop(t+d+.02);}
@@ -1220,9 +1246,13 @@ const $=id=>document.getElementById(id);
 function fmt(n){if(n<100)return n.toFixed(n<10?2:1).replace('.',',');n=Math.floor(n);if(n<1e5)return n.toLocaleString('pt-BR');const u=['','K','M','B','T'];let k=0,v=n;while(v>=1000&&k<4){v/=1000;k++;}return v.toFixed(v<10?2:1).replace('.',',')+u[k];}
 // abas da loja
 const tabBtns={};
-function toggleShop(){const sh=$('shop');sh.classList.toggle('min');S.shopMin=sh.classList.contains('min');$('shopToggle').textContent=S.shopMin?'Loja ▴':'Ocultar ▾';}
+function toggleShop(){const sh=$('shop');sh.classList.toggle('min');S.shopMin=sh.classList.contains('min');$('shopToggle').textContent=S.shopMin?'Loja ▴':'Ocultar ▾';layoutMobile();}
+const isMobile=()=>matchMedia('(max-width:700px),(pointer:coarse)').matches;
+function layoutMobile(){const els=['hotbar','sluice','settings'].map(id=>document.getElementById(id));if(!isMobile()){for(const e of els)if(e)e.style.bottom='';return;}
+  const h=$('shop').offsetHeight;$('hotbar').style.bottom=(h+12)+'px';$('sluice').style.bottom=(h+84)+'px';$('settings').style.bottom=(h+84)+'px';}
+addEventListener('resize',()=>setTimeout(layoutMobile,50));
 for(const t of TABS){const b=document.createElement('button');b.className='tab';b.innerHTML=t+'<span class="dot"></span>';b.onclick=()=>{curTab=t;buildShop();ui();};$('tabs').appendChild(b);tabBtns[t]=b;}
-{const tg=document.createElement('button');tg.id='shopToggle';tg.title='Mostrar/ocultar a loja (tecla B)';tg.textContent='Ocultar ▾';tg.onclick=toggleShop;$('tabs').appendChild(tg);if(S.shopMin){S.shopMin=false;setTimeout(toggleShop,0);}}
+{const tg=document.createElement('button');tg.id='shopToggle';tg.title='Mostrar/ocultar a loja (tecla B)';tg.textContent='Ocultar ▾';tg.onclick=toggleShop;$('tabs').appendChild(tg);if(S.shopMin===undefined&&isMobile())S.shopMin=true;if(S.shopMin){S.shopMin=false;setTimeout(toggleShop,0);}else setTimeout(layoutMobile,0);}
 addEventListener('keydown',e=>{if(e.key==='b'||e.key==='B')toggleShop();});
 let btns=[];
 const avail=u=>(!u.req||S.up[u.req]>0);
@@ -1240,11 +1270,11 @@ function buy(u){sfx.init();const c=costOf(u);if(S.money<c||maxed(u)||!avail(u))r
   if(u.k==='tempestade'&&S.up.tempestade===1){stormTimer=8;}
   if(u.k==='represa'&&S.up.represa===1){toast('Castores na área 🦫','Em breve uma represa vai surgir no riacho');damTimer=Math.min(damTimer,25);}
   save();buildShop();ui();}
-function buildShop(){$('ups').innerHTML='';btns=SHOP.filter(u=>u.tab===curTab).map(u=>{const b=document.createElement('button');b.className='up';b.onclick=()=>buy(u);b.setAttribute('aria-label',u.n);b._u=u;$('ups').appendChild(b);return b;});
+function buildShop(){setTimeout(layoutMobile,0);$('ups').innerHTML='';btns=SHOP.filter(u=>u.tab===curTab).map(u=>{const b=document.createElement('button');b.className='up';b.onclick=()=>buy(u);b.setAttribute('aria-label',u.n);b._u=u;$('ups').appendChild(b);return b;});
   for(const t of TABS)tabBtns[t].classList.toggle('on',t===curTab);}
 function renderHotbar(){const hb=$('hotbar');hb.innerHTML='';TOOLS.forEach((t,i)=>{const b=document.createElement('button');const on=toolOn(t.k);b.className='tool'+(S.tool===t.k?' on':'')+(on?'':' lock');
   b.title=`${t.n} (tecla ${i+1}): ${on?t.tip:'bloqueado. Desbloqueie na aba Ferramentas.'}`;b.setAttribute('aria-label',b.title);b.innerHTML=`<span class="k">${i+1}</span><span class="ic">${on?t.ic:'🔒'}</span><span class="nm">${t.n}</span><span class="cd" id="cd_${t.k}"></span>`;b.onclick=()=>{sfx.init();if(on)setTool(t.k);else{curTab='Ferramentas';buildShop();ui();}};hb.appendChild(b);});}
-function wash(){if(S.sluice<.01)return;qBump('wash');stats('washes');const v=S.sluice;S.money+=v;S.total+=v;earnBatch+=v;S.sluice=0;sfx.wash();
+function wash(){if(S.sluice<.01)return;qBump('wash');stats('washes');washFx(S.sluice);const v=S.sluice;S.money+=v;S.total+=v;earnBatch+=v;S.sluice=0;sfx.wash();
   const p=new THREE.Vector3((SL_X0+SL_X1)/2,chanBed((SL_X0+SL_X1)/2)+.25,0);floatText(p,'+$'+fmt(v),'#ffe08a',26);save();ui();}
 $('wash').onclick=()=>{sfx.init();wash();};
 $('nextRock').onclick=()=>{sfx.init();finishRock(false);};
@@ -1284,6 +1314,10 @@ function floatText(p,t,c,sz){const el=document.createElement('div');el.className
 function updTexts(){for(let k=fts.length-1;k>=0;k--){const f=fts[k];f.life--;f.p.y+=.004;if(f.life<=0){f.el.remove();fts.splice(k,1);continue;}
   v3.copy(f.p).project(camera);f.el.style.left=((v3.x+1)/2*innerWidth)+'px';f.el.style.top=((1-v3.y)/2*innerHeight)+'px';f.el.style.opacity=Math.min(1,f.life/25);}}
 let tt=0;function toast(a,b){$('toast').innerHTML=a+(b?`<small>${b}</small>`:'');$('toast').style.opacity=1;clearTimeout(tt);tt=setTimeout(()=>$('toast').style.opacity=0,2600);}
+function washFx(v){const mid=(SL_X0+SL_X1)/2;const y=chanBed(mid)+.06;
+  for(let q=0;q<70;q++){const x=SL_X0+.1+Math.random()*(SL_X1-SL_X0-.2),z=(Math.random()-.5)*CH_W*1.6;addSpray(x,chanBed(x)+.04,z,(Math.random()-.5)*.8,1.2+Math.random()*1.8,(Math.random()-.5)*.8,.014);}
+  const n=Math.min(12,3+Math.floor(Math.log2(1+v)));for(let k=0;k<n;k++)setTimeout(()=>floatText(new THREE.Vector3(SL_X0+Math.random()*(SL_X1-SL_X0),y+.15+Math.random()*.25,(Math.random()-.5)*.3),Math.random()<.3?'✨':'🪙','#ffd970',16+Math.random()*12),k*60);
+  const pile=sluiceGroup.userData.pile;if(pile){pile.material.emissive=new THREE.Color(0xffb020);pile.material.emissiveIntensity=2;setTimeout(()=>{pile.material.emissiveIntensity=0;},400);}}
 function coinFountain(x,y,z){for(let k=0;k<14;k++)setTimeout(()=>floatText(new THREE.Vector3(x+(Math.random()-.5)*.4,y+.1+Math.random()*.3,z+(Math.random()-.5)*.4),'🪙','#ffd970',18+Math.random()*10),k*70);}
 function discover(a,b,x,y,z){toast(a,b);sfx.reveal();floatText(new THREE.Vector3(x,y+.1,z),'✦','#ffe9a0',30);}
 $('hint').ondblclick=null;
