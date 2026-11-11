@@ -55,12 +55,12 @@ html,body{margin:0;height:100%;overflow:hidden;background:#1b1a17;font-family:"I
 .tool.lock{opacity:.35;cursor:default}.tool .cd{position:absolute;left:0;bottom:0;height:3px;background:#9fd3ff;border-radius:2px}
 #event{position:fixed;left:50%;top:64px;transform:translateX(-50%);padding:8px 16px;font-size:13.5px;display:none;text-align:center}
 #event .bar{width:220px;margin:6px auto 0}#eventBar{background:linear-gradient(90deg,#5fb2ff,#bfe6ff)}
-.up{background:rgba(255,245,225,.05);border:1px solid rgba(255,240,210,.12);border-radius:10px;padding:7px 9px;color:inherit;font:inherit;text-align:left;cursor:pointer;transition:background .15s,transform .08s}
+.up{position:relative;background:rgba(255,245,225,.05);border:1px solid rgba(255,240,210,.12);border-radius:10px;padding:7px 9px;color:inherit;font:inherit;text-align:left;cursor:pointer;transition:background .15s,transform .08s}
 .up:hover:not(:disabled){background:rgba(255,245,225,.12)}.up:active:not(:disabled){transform:scale(.97)}
 .up b{display:block;font-size:12.5px}.up span{display:block;font-size:11px;opacity:.72;line-height:1.25}
 .up .c{margin-top:4px;font-weight:700;color:#b9f58f;opacity:1;font-variant-numeric:tabular-nums}
 .up:disabled{opacity:.45;cursor:default}.up:disabled .c{color:#ffb39a}
-.up.ok{box-shadow:0 0 0 1.5px #b9f58f66}
+.up.ok{box-shadow:0 0 0 1.5px #b9f58f66}.up.goal{box-shadow:0 0 0 1.5px #ffd36a88}.up.goal::after{content:'próxima meta';position:absolute;top:4px;right:8px;font-size:9.5px;color:#ffd36a;opacity:.85}.eta{font-style:normal;font-weight:400;opacity:.65;font-size:.85em;margin-left:4px}
 .cat{font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;opacity:.5;margin-bottom:2px}
 #hint{position:fixed;left:50%;top:16px;transform:translateX(-50%);padding:8px 16px;font-size:13px;pointer-events:none;transition:opacity 1s;white-space:nowrap}
 #toast{position:fixed;left:50%;top:26%;transform:translate(-50%,-50%);font-size:26px;font-weight:800;text-align:center;pointer-events:none;opacity:0;transition:opacity .5s;text-shadow:0 3px 18px #000c}
@@ -707,7 +707,7 @@ function postStep(){
   for(let i=n-1;i>=0;i--){if(F.dead[i])continue;const x=F.px[i],y=F.py[i],z=F.pz[i];
     if(F.kind[i]===1&&inSluice(x,y,z)){
       const sp=Math.hypot(F.vx[i],F.vy[i],F.vz[i])*HZ;
-      if(R()<capP*(sp<1.2?1.6:.5)){let v=MATS[F.mat[i]].val*valMult()*matBonus(F.mat[i])*grainMul();if(pk('pepita')&&R()<.04*pk('pepita')){v*=12;floatText(new THREE.Vector3(x,y+.15,z),'🪙 pepita!','#ffd34a');}if(S.sluice<capacity){S.sluice=Math.min(capacity,S.sluice+v);sluiceAdd+=v;}else lostBatch+=v;F.kill(i);sedCount--;continue;}}
+      if(R()<capP*(sp<1.2?1.6:.5)){let v=MATS[F.mat[i]].val*valMult()*matBonus(F.mat[i])*grainMul();if(pk('pepita')&&R()<.03*pk('pepita')){v*=10;floatText(new THREE.Vector3(x,y+.15,z),'🪙 pepita!','#ffd34a');}if(S.sluice<capacity){S.sluice=Math.min(capacity,S.sluice+v);sluiceAdd+=v;}else lostBatch+=v;F.kill(i);sedCount--;continue;}}
     const spd=Math.abs(F.vx[i])+Math.abs(F.vy[i])+Math.abs(F.vz[i]);
     if(spd<.0015)F.still[i]+=1/HZ;else F.still[i]=Math.max(0,F.still[i]-2/HZ);
     if(F.kind[i]===0&&F.still[i]>2.5&&R()<.004*(F.still[i]-2)){F.kill(i);continue;}
@@ -1137,7 +1137,7 @@ const PERKS=[
  {k:'sorte',ic:'🍀',n:'Trevo',d:'A libélula dourada aparece com mais frequência',max:2},
  {k:'marco',ic:'🗺️',n:'Cartógrafo',d:'Recompensas de marcos +30%',max:3},
  {k:'offline',ic:'🌙',n:'Vigia noturno',d:'Ganhos offline +50%',max:2},
- {k:'pepita',ic:'🪙',n:'Faro de pepita',d:'Grãos capturados nas calhas têm 4% de chance de virar pepita (×12)',max:2},
+ {k:'pepita',ic:'🪙',n:'Faro de pepita',d:'Grãos capturados nas calhas têm 3% de chance de virar pepita (×10)',max:2},
  {k:'raio',ic:'⚡',n:'Para-raios',d:'Raios atingem a rocha nas tempestades',max:2},
 ];
 function perkPool(){return PERKS.filter(p=>pk(p.k)<p.max&&(p.k!=='tanque'&&p.k!=='ricochete'||S.up.jato)&&(p.k!=='balaoGrande'||S.up.balao)&&(p.k!=='granizoDuro'||S.up.granizo)&&(p.k!=='mare'||S.up.onda)&&(p.k!=='torretas'||turretCount())&&(p.k!=='nuvem'||S.up.nuvem)&&(p.k!=='represa'||S.up.represa)&&(p.k!=='raio'||S.up.tempestade));}
@@ -1417,7 +1417,7 @@ function ui(){
   $('rockName').textContent=rockInfo.name;const pct=rockPct();$('rockSub').textContent=pct.toFixed(pct<1?3:pct<10?2:1).replace('.',',')+'% erodido · rocha '+S.level;
   const prev=S.mile?MILES[S.mile-1]:0,nxt=MILES[S.mile];$('rockBar').style.width=(nxt?Math.min(100,(pct-prev)/(nxt-prev)*100):100)+'%';
   $('mileTxt').textContent=nxt?`Próximo marco: ${String(nxt).replace('.',',')}% → +$${fmt(mileReward(S.mile))}`:'Todos os marcos atingidos!';
-  $('nextRock').style.display=pct>=10&&!rockInfo.done?'block':'none';
+  $('nextRock').style.display=pct>=nextPct()&&!rockInfo.done?'block':'none';
   if(S.lastRank===undefined)S.lastRank=rankIdx();if(rankIdx()>S.lastRank){S.lastRank=rankIdx();grantPerkChoice('Novo rank: '+RANKS[S.lastRank][1]);}
   {const pl=$('perkList');const ks=Object.keys(S.perks||{}).filter(k=>S.perks[k]);if(ks.length){pl.style.display='flex';const h=ks.map(k=>{const p=PERKS.find(x=>x.k===k);return p?`<span title="${p.n} ${S.perks[k]}: ${p.d}">${p.ic}${S.perks[k]>1?'<sub>'+S.perks[k]+'</sub>':''}</span>`:'';}).join('');if(pl._h!==h){pl.innerHTML=h;pl._h=h;}}else pl.style.display='none';}
   $('perkBtn').style.display=S.perkPend?'block':'none';$('perkBtn').textContent='✦ Escolher perk'+(S.perkPend>1?' ('+S.perkPend+')':'');
@@ -1425,7 +1425,8 @@ function ui(){
   $('rankMul').textContent='· renda ×'+(rankMult()*colMult()).toFixed(2).replace('.',',')+' · coleção '+colCount()+'/'+OBJ_TYPES.length+(blessT>0?' · ✨×2 '+Math.ceil(blessT)+'s':'');$('rankBar').style.width=(r1?Math.min(100,(S.total-r0)/(r1-r0)*100):100)+'%';$('rankNext').textContent=r1?`Próximo: ${RANKS[ri+1][1]} ($${fmt(r1)} ganhos no total)`:'Rank máximo';
   const c=totalCap();$('sluiceTxt').textContent='$'+fmt(S.sluice)+' / $'+fmt(c)+(lostBatchShown>0?' · perdeu $'+fmt(lostBatchShown):'');$('sluiceBar').style.width=Math.min(100,S.sluice/c*100)+'%';
   $('wash').disabled=S.sluice<.01;$('wash').classList.toggle('full',S.sluice>=c*.98);
-  for(const b of btns){const u=b._u,l=S.up[u.k],mx=maxed(u),c2=costOf(u),av=avail(u);const h=`<b>${u.n}${l&&u.max!==1?` · ${l}`:''}</b><span>${av?u.d(l):'Requer: '+SHOP.find(x=>x.k===u.req).n}</span><span class="c">${mx?(u.max===1?'✓ desbloqueado':'✓ máximo'):'$'+fmt(c2)}</span>`;if(b._h!==h){b.innerHTML=h;b._h=h;}b.disabled=mx||!av||S.money<c2;b.classList.toggle('ok',!mx&&av&&S.money>=c2);}
+  let goal=null,gc=1e300;for(const b of btns){const u=b._u;if(maxed(u)||!avail(u))continue;const c=costOf(u);if(c>S.money&&c<gc){gc=c;goal=u;}}
+  for(const b of btns){const u=b._u,l=S.up[u.k],mx=maxed(u),c2=costOf(u),av=avail(u);const eta=(!mx&&av&&S.money<c2&&r>0)?(c2-S.money)/r:0;const h=`<b>${u.n}${l&&u.max!==1?` · ${l}`:''}</b><span>${av?u.d(l):'Requer: '+SHOP.find(x=>x.k===u.req).n}</span><span class="c">${mx?(u.max===1?'✓ desbloqueado':'✓ máximo'):'$'+fmt(c2)+(eta>0&&eta<900?` <i class="eta">⏳${eta<60?Math.ceil(eta)+'s':Math.ceil(eta/60)+'min'}</i>`:'')}</span>`;if(b._h!==h){b.innerHTML=h;b._h=h;}b.disabled=mx||!av||S.money<c2;b.classList.toggle('ok',!mx&&av&&S.money>=c2);b.classList.toggle('goal',u===goal);}
   for(const t of TABS){const has=SHOP.some(u=>u.tab===t&&!maxed(u)&&avail(u)&&S.money>=costOf(u));tabBtns[t].classList.toggle('has',has&&t!==curTab);}
   jetTank=Math.min(jetTank,tankCap());for(const t of TOOLS){const e=document.getElementById('cd_'+t.k);if(!e)continue;if(t.k==='jato'){e.style.width=(jetTank/tankCap()*100)+'%';e.style.background=jetLock?'#ff8a6a':'#9fd3ff';}else e.style.width=(CD[t.k]?Math.max(0,cdLeft[t.k]/CD[t.k])*100:0)+'%';}
 }
@@ -1486,6 +1487,7 @@ function rareVisitor(){const k=Math.random()<.5?'idolo':'bau';const sp=freeSpot(
 function stepEvents(dt){if(S.level<2&&S.total<300)return;evTimer-=dt;if(evTimer<=0){evTimer=140+Math.random()*120;if(Math.random()<.6)meteorShower();else rareVisitor();}}
 const matBonus=t=>(t===T_GOLD||t===T_AME||t===T_OLIV||t===T_HEART||t===T_OPAL)?1+pk('geologo')*.35:1;
 const valMultAt=l=>(1+(l-1)*.35)*rankMult()*colMult();
+const nextPct=()=>Math.min(10,4+S.level*1.5);
 const rockPct=()=>(1-rockInfo.left/rockInfo.total)*100;
 function simFrame(){
   const dt=1/60;erosionMul=acid(S.up.acido)*(floodT>0?2:1)*(1+(S.amber||0)*.03);if(frenzyT>0)frenzyT-=dt;if(infTankT>0){infTankT-=dt;jetTank=tankCap();jetLock=false;}splashBudget=3;
