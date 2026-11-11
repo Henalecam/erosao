@@ -22,6 +22,14 @@ html,body{margin:0;height:100%;overflow:hidden;background:#1b1a17;font-family:"I
 #quest{position:fixed;left:50%;top:14px;transform:translateX(-50%);padding:8px 16px;font-size:13.5px;text-align:center;min-width:280px}
 #drainBtn.closed{background:#1d4c66;border-color:#4fb6e8;color:#e8f6ff}
 #buffs{position:fixed;left:50%;top:70px;transform:translateX(-50%);display:flex;gap:6px;pointer-events:none;z-index:3;flex-wrap:wrap;justify-content:center;max-width:92vw}#buffs span{background:#0c1014cc;border:1px solid #ffffff2a;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600;white-space:nowrap}
+/* ===== HUD enxuto ===== */
+#rankNext,#mileTxt,#camHelp{display:none!important}
+#rank{margin-top:4px;font-size:11px;font-weight:600;opacity:.8}#rank .bar{height:3px;margin-top:3px}#rankMul{display:none}
+#top:hover #rankMul{display:inline}
+#toast{top:118px!important;transform:translateX(-50%)!important;font-size:17px!important;font-weight:700!important;background:#0b0e12d9;border:1px solid #ffffff22;border-radius:12px;padding:8px 16px;max-width:min(92vw,520px);text-shadow:none}
+#toast small{font-size:12px;font-weight:500;opacity:.75;display:block;margin-top:2px}
+#sluice{min-width:170px;padding:8px 12px}#sluice>div:first-child{font-size:11.5px;opacity:.7;font-weight:400}#sluice>div:first-child b{font-weight:600}
+#drainBtn{width:100%;padding:6px 8px;border-radius:9px;border:1px solid #6fd3ff55;background:#6fd3ff18;color:#cfefff;font:inherit;font-size:12px;font-weight:600;cursor:pointer}
 #quest small{display:block;opacity:.65;font-size:11.5px;margin-top:2px}#quest .rr{cursor:pointer;color:#ffd36a;font-weight:600;pointer-events:auto}#quest .qbar{height:3px;background:#ffffff1a;border-radius:2px;margin-top:5px;overflow:hidden}#quest .qbar i{display:block;height:100%;background:linear-gradient(90deg,#ffd36a,#ff9a5a);transition:width .3s}
 #quest.done{animation:qd .8s}@keyframes qd{50%{background:rgba(120,200,120,.45)}}
 #dealBtn{position:fixed;left:190px;top:150px;padding:9px 14px;font:inherit;font-weight:800;color:#9fe8ff;cursor:pointer;display:none;animation:pulse 1.2s infinite;border:1px solid #6fd3ff66}
@@ -71,7 +79,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#1b1a17;font-family:"I
 .ft{position:fixed;pointer-events:none;font-weight:800;text-shadow:0 2px 8px #000c;transform:translate(-50%,-50%);white-space:nowrap}
 #loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#1b1a17;font-size:15px;opacity:.9;transition:opacity .8s;z-index:9}
 @media (max-width:900px){#ups{grid-template-columns:repeat(3,1fr)}#sluice{top:auto;bottom:210px}#hotbar{top:auto;bottom:220px;transform:none}}
-@media (max-width:700px),(pointer:coarse){#buffs{top:178px}#buffs span{font-size:11px;padding:2px 8px}#combo{top:150px;bottom:auto;font-size:16px}
+@media (max-width:700px),(pointer:coarse){#toast{top:206px!important;font-size:14px!important;padding:6px 12px}#rock{max-width:56vw}#rockName{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#top{max-width:40vw}#rank{display:none}#buffs{top:178px}#buffs span{font-size:11px;padding:2px 8px}#combo{top:150px;bottom:auto;font-size:16px}
  #hotbar{flex-direction:row;left:50%;top:auto;bottom:178px;transform:translateX(-50%);padding:5px}
  .tool{width:54px;height:54px}
  #top{padding:7px 11px;min-width:0}#money{font-size:22px}#rank,#rankNext{display:none}
@@ -95,13 +103,13 @@ html,body{margin:0;height:100%;overflow:hidden;background:#1b1a17;font-family:"I
 <div id="combo"></div>
 <button id="perkBtn" class="panel">✦ Escolher perk</button><button id="dealBtn" class="panel">🧾 Proposta</button>
 <div id="perkModal"></div>
-<div id="settings" class="panel"><button id="gfxBtn" title="Qualidade gráfica">🖥️ Alto</button><button id="sndBtn" title="Som">🔊</button><button id="achBtn" title="Conquistas">🏆</button><button id="expBtn" title="Nova expedição (prestígio)">🧭 Expedição</button></div>
+<div id="settings" class="panel"><button id="gfxBtn" title="Qualidade gráfica">🖥️</button><button id="sndBtn" title="Som">🔊</button><button id="achBtn" title="Conquistas">🏆</button><button id="expBtn" title="Nova expedição (prestígio)">🧭</button></div>
 <div id="perkList" class="panel"></div>
 <div id="camHelp" class="panel">WASD mover · Q/E girar · R/F zoom · botão do meio arrasta · <b>C</b> centraliza · <b>B</b> loja · <b>L</b> lava</div>
-<div id="sluice" class="panel"><div><b>Calha de garimpo</b></div><div id="sluiceTxt" style="opacity:.75">$0 / $0</div><div class="bar"><div id="sluiceBar"></div></div><button id="wash">Lavar a calha</button><button id="drainBtn" style="display:none;margin-top:6px">🚰 Ralo aberto</button><div id="floodTxt" style="display:none;font-size:11.5px;opacity:.75;margin-top:4px"></div></div>
+<div id="sluice" class="panel"><div><b>Calha</b></div><div id="sluiceTxt" style="opacity:.75">$0 / $0</div><div class="bar"><div id="sluiceBar"></div></div><button id="wash">Lavar a calha</button><button id="drainBtn" style="display:none;margin-top:6px">🚰 Ralo aberto</button><div id="floodTxt" style="display:none;font-size:11.5px;opacity:.75;margin-top:4px"></div></div>
 <div id="buffs"></div><div id="quest" class="panel" onclick="if(event.target.dataset.rr)window.__rr()"></div>
-<div id="touchHint" class="panel" style="display:none;position:fixed;left:50%;top:60px;transform:translateX(-50%);padding:7px 12px;font-size:12.5px;z-index:5">Toque na rocha para usar a ferramenta · dois dedos giram e dão zoom</div>
-<div id="hint" class="panel" style="display:none">Clique na rocha para pingar uma gota · botão direito gira · 1–5 trocam a ferramenta</div>
+<div id="touchHint" class="panel" style="display:none;position:fixed;left:50%;top:60px;transform:translateX(-50%);padding:7px 12px;font-size:12.5px;z-index:5">Toque no objeto para usar a ferramenta · dois dedos giram e dão zoom</div>
+<div id="hint" class="panel" style="display:none">Clique no objeto para pingar uma gota · botão direito gira · 1–5 trocam a ferramenta</div>
 <div id="toast"></div>
 <div id="shop" class="panel"><div id="tabs"></div><div id="ups"></div></div>
 <div id="hotbar" class="panel"></div>
@@ -165,7 +173,7 @@ const SHOP=[
  {k:'auto',tab:'Garimpo',n:'Lavagem automática',d:l=>l?`Lava a cada ${autoWash(l)} s`:'Lava a calha sozinha',base:250,mul:2.05,max:7},
 ];
 const QUESTS=[
- {t:'Clique na rocha 10 vezes para pingar gotas',c:'drops',n:10,rw:10},
+ {t:'Clique no objeto 10 vezes para pingar gotas',c:'drops',n:10,rw:10},
  {t:'Lave a calha quando ela tiver ouro',c:'wash',n:1,rw:15},
  {t:'Compre sua primeira melhoria',c:'buy',n:1,rw:15},
  {t:'Recolha grãos encalhados com a bateia (clique neles)',c:'pan',n:1,rw:25},
@@ -1020,7 +1028,7 @@ let gfxCap=4600;
 function applyGfx(){const q=S.gfx??2;const PRs=[.75,1,Math.min(1.5,devicePixelRatio||1)];PR=PRs[q];renderer.setPixelRatio(PR);FS=[.6,.8,1][q];
   const sm=[1024,2048,3072][q];if(sun.shadow.mapSize.x!==sm){sun.shadow.mapSize.set(sm,sm);if(sun.shadow.map){sun.shadow.map.dispose();sun.shadow.map=null;}}
   gfxCap=[2400,3400,4600][q];if(F.cap>gfxCap)F.cap=gfxCap;if(window.__grass&&window.__grassMesh)window.__grassMesh.visible=q>0;
-  $('gfxBtn').textContent='🖥️ '+['Baixo','Médio','Alto'][q];resize();}
+  $('gfxBtn').textContent='🖥️';$('gfxBtn').title='Qualidade gráfica: '+['Baixa','Média','Alta'][q]+' (clique para trocar)';resize();}
 function resize(){W_=innerWidth;H_=innerHeight;renderer.setSize(W_,H_);camera.aspect=W_/H_;camera.updateProjectionMatrix();
   const w=Math.floor(W_*PR),h=Math.floor(H_*PR);sceneRT.setSize(w,h);
   const fw=Math.floor(w*FS),fh=Math.floor(h*FS);depthRT.setSize(fw,fh);blurA.setSize(fw,fh);blurB.setSize(fw,fh);thickRT.setSize(Math.floor(fw/2),Math.floor(fh/2));
@@ -1469,7 +1477,7 @@ function buy(u){sfx.init();const c=costOf(u);if(S.money<c||maxed(u)||!avail(u))r
   save();buildShop();ui();}
 function buildShop(){setTimeout(layoutMobile,0);$('ups').innerHTML='';btns=SHOP.filter(u=>u.tab===curTab).map(u=>{const b=document.createElement('button');b.className='up';b.onclick=()=>buy(u);b.setAttribute('aria-label',u.n);b._u=u;$('ups').appendChild(b);return b;});
   for(const t of TABS)tabBtns[t].classList.toggle('on',t===curTab);}
-function renderHotbar(){const hb=$('hotbar');hb.innerHTML='';TOOLS.forEach((t,i)=>{const b=document.createElement('button');const on=toolOn(t.k);b.className='tool'+(S.tool===t.k?' on':'')+(on?'':' lock');
+function renderHotbar(){const hb=$('hotbar');hb.innerHTML='';let lockShown=0;TOOLS.forEach((t,i)=>{const on=toolOn(t.k);if(!on&&lockShown++)return;const b=document.createElement('button');b.className='tool'+(S.tool===t.k?' on':'')+(on?'':' lock');
   b.title=`${t.n} (tecla ${i+1}): ${on?t.tip:'bloqueado. Desbloqueie na aba Ferramentas.'}`;b.setAttribute('aria-label',b.title);b.innerHTML=`<span class="k">${i+1}</span><span class="ic">${on?t.ic:'🔒'}</span><span class="nm">${t.n}</span><span class="cd" id="cd_${t.k}"></span>`;b.onclick=()=>{sfx.init();if(on)setTool(t.k);else{curTab='Ferramentas';buildShop();ui();}};hb.appendChild(b);});}
 let wasFull=false;
 function wash(){if(S.sluice<.01)return;qBump('wash');stats('washes');washFx(S.sluice);const v=S.sluice;S.money+=v;S.total+=v;earnBatch+=v;S.sluice=0;sfx.wash();
@@ -1484,7 +1492,7 @@ $('nextRock').onclick=()=>{sfx.init();finishRock(false);};
 $('perkBtn').onclick=()=>{sfx.init();openPerks();};$('dealBtn').onclick=()=>{sfx.init();openDeal();};
 $('achBtn').onclick=()=>{const m=$('perkModal');const got=Object.keys(S.ach||{}).length;m.innerHTML=`<div class="pm-in panel" style="max-width:640px"><h3>🏆 Conquistas ${got}/${ACH.length} · renda +${got*2}%</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;text-align:left">${ACH.map(a=>{const ok=S.ach&&S.ach[a.k];const v=Math.min(a.v,(S.st||{})[a.s]||0);return `<div style="padding:7px 10px;border-radius:9px;background:rgba(255,245,225,${ok?.14:.04});opacity:${ok?1:.75}"><b>${ok?'🏆':'🔒'} ${a.n}</b><br><small style="margin:0;opacity:.75">${a.d} · ${fmt(v)}/${fmt(a.v)}</small></div>`;}).join('')}</div><div class="pm-cards" style="margin-top:12px"><button class="pcard" id="achClose" style="width:auto;padding:8px 18px"><b>Fechar</b></button></div></div>`;m.style.display='flex';$('achClose').onclick=()=>m.style.display='none';};
 $('sndBtn').onclick=()=>{sfx.init();$('sndBtn').textContent=sfx.toggle()?'🔇':'🔊';};
-$('gfxBtn').onclick=()=>{S.gfx=((S.gfx??2)+2)%3;applyGfx();save();};
+$('gfxBtn').onclick=()=>{S.gfx=((S.gfx??2)+2)%3;applyGfx();toast('Qualidade gráfica: '+['Baixa','Média','Alta'][S.gfx]);save();};
 const amberGain=()=>Math.max(0,Math.floor(Math.sqrt(((S.lifeBase||0)+S.total)/4000))-(S.amber||0));
 $('expBtn').onclick=()=>{sfx.init();const g=amberGain();const m=$('perkModal');const ok=S.rocks>=3&&g>0;
   m.innerHTML=`<div class="pm-in panel"><h3>🧭 Nova expedição</h3><p style="max-width:440px;margin:0 auto 12px;opacity:.85;line-height:1.45">Recomece numa clareira nova: dinheiro, melhorias, perks e rochas voltam ao início.<br>Você ganha <b>${g} âmbar</b> 🟠. Cada âmbar dá <b>+8% de renda e +3% de erosão</b> para sempre.<br>Coleção, objetivos e âmbar ficam.</p>
@@ -1508,7 +1516,7 @@ function ui(){
   const ri=rankIdx(),r0=RANKS[ri][0],r1=RANKS[ri+1]?RANKS[ri+1][0]:null;$('rankName').textContent='🏅 '+RANKS[ri][1];$('rankMul').textContent='· renda ×'+rankMult().toFixed(2).replace('.',',');
   $('rankMul').textContent='· renda ×'+(rankMult()*colMult()).toFixed(2).replace('.',',')+' · coleção '+colCount()+'/'+OBJ_TYPES.length+(blessT>0?' · ✨×2 '+Math.ceil(blessT)+'s':'');$('rankBar').style.width=(r1?Math.min(100,(S.total-r0)/(r1-r0)*100):100)+'%';$('rankNext').textContent=r1?`Próximo: ${RANKS[ri+1][1]} ($${fmt(r1)} ganhos no total)`:'Rank máximo';
   const c=totalCap();$('sluiceTxt').textContent='$'+fmt(S.sluice)+' / $'+fmt(c)+(lostBatchShown>0?' · perdeu $'+fmt(lostBatchShown):'');$('sluiceBar').style.width=Math.min(100,S.sluice/c*100)+'%';
-  {const db=$('drainBtn'),ft=$('floodTxt');if(!S.up.comporta&&!(boss&&boss.lock))S.drainOpen=true;db.style.display=S.up.comporta?'block':'none';const t=S.drainOpen?'🚰 Ralo aberto · fechar (G)':'🌊 Ralo fechado · abrir (G)';if(db.textContent!==t)db.textContent=t;db.classList.toggle('closed',!S.drainOpen);
+  {const db=$('drainBtn'),ft=$('floodTxt');if(!S.up.comporta&&!(boss&&boss.lock))S.drainOpen=true;db.style.display=S.up.comporta?'block':'none';const t=S.drainOpen?'🚰 Fechar ralo (inundar)':'🌊 Abrir ralo (escoar)';if(db.textContent!==t)db.textContent=t;db.classList.toggle('closed',!S.drainOpen);
    const cm=Math.max(0,(floodLevel()-terrainH(0,0))*100);const on=(S.flood||0)>40;ft.style.display=on?'block':'none';if(on)ft.textContent='Nível da água: '+(cm<1?'na canaleta':cm.toFixed(0)+' cm')+(S.drainOpen?' · escoando…':'');}
   {const B=[];const a=(t,ic,l)=>{if(t>0)B.push(`<span>${ic} ${l} ${Math.ceil(t)}s</span>`);};if(pact)B.push(`<span>${pact.n}${pact.need?' '+Math.min(pact.need,((S.st&&S.st.cracks)||0)-pact.base)+'/'+pact.need:''} ${Math.ceil(pact.t)}s</span>`);if(rockBonus()>1)B.push('<span>🛡️ rocha ×2</span>');a(frenzyT,'✨','renda ×3');a(blessT,'🗿','renda ×2');a(darkT,'🔦','luz negra ×2');a(overT,'⚡','erosão ×2,5');a(alarmT,'🚨','sprinklers');a(rainbowT,'🌈','grãos ×2');a(gfloodT,'🌊','enxurrada');a(floodT,'💥','enchente ×2');
    const h=B.join('');const el=$('buffs');if(el._h!==h){el.innerHTML=h;el._h=h;}}
@@ -1550,7 +1558,7 @@ function loadRockMask(){try{const raw=localStorage.getItem(KEY+'_rock');if(!raw)
   rockInfo.left=left;return true;}catch(e){return false;}}
 function addCol(k,name){if(!S.col)S.col={};if(S.col[k])return;S.col[k]=1;toast('Nova peça na coleção: '+name,'Renda permanente +6% · coleção '+colCount()+'/'+OBJ_TYPES.length);sfx.reveal();}
 const DONE_PCT=88;
-function fitCamera(){const h=Math.max(.3,rockInfo.h||1),sc=rockInfo.sc||1;controls.target.set(0,RY0+h*.45,0);const d=1.6+h*2.1+sc*1.2;camera.position.set(-.22*d,RY0+h*.5+d*.5,d*.84);controls.update();}
+function fitCamera(){const h=Math.max(.3,rockInfo.h||1),sc=rockInfo.sc||1;controls.target.set(0,RY0+h*.45,0);const d=(1.6+h*2.1+sc*1.2)*(camera.aspect<1?1.6:1);camera.position.set(-.22*d,RY0+h*.5+d*.5,d*.84);controls.update();}
 function finishRock(auto){if(rockInfo.done)return;rockInfo.done=true;S.rocks++;stats('rocks2');if(boss)loseBoss();
   const pct=rockPct();const bonus=Math.round((rockInfo.valSum||rockInfo.total)*valMult()*.03*.5*(auto?1:Math.min(1,pct/DONE_PCT)*.6));S.money+=bonus;S.total+=bonus;
   // o que sobrou desmorona
@@ -1660,7 +1668,7 @@ function spawnWeak(){const tg=controls.target,cp=camera.position;
   return false;}
 function weakHit(x,y,z){if(!weak||weak.pop)return;const dx=x-weak.x,dy=y-weak.y,dz=z-weak.z;if(dx*dx+dy*dy+dz*dz<56){weak.hp--;if(weak.hp<=0)weak.pop=true;}}
 function breakWeak(){const w=weak;weak=null;weakSpr.visible=false;stats('cracks');
-  const r=Math.round(7+Math.min(6,S.level*.5)+(boss?3:0)),list=[];let val=0;
+  const r=Math.max(4,Math.round((7+Math.min(6,S.level*.5)+(boss?3:0))*Math.min(1,(rockInfo.sc||1)*1.1))),list=[];let val=0;
   for(let z=w.z-r;z<=w.z+r;z++)for(let y=w.y-r;y<=w.y+r;y++)for(let x=w.x-r;x<=w.x+r;x++){if(x<0||y<1||z<0||x>=GX||y>=GY||z>=GZ)continue;const dd=(x-w.x)**2+(y-w.y)**2+(z-w.z)**2;if(dd>r*r*(.75+R()*.35))continue;const i=vid(x,y,z);if(!vt[i])continue;val+=MATS[vt[i]].val*matBonus(vt[i]);list.push({i,x,y,z});}
   const pay=Math.min(val*valMult()*.1*comboMul(),Math.max(20,incEMA*(boss?12:20)));S.money+=pay;S.total+=pay;comboN+=25;comboT=2.5;
   ejectVoxels(list,w.p.x,w.p.y,w.p.z,1.1,5);flash=Math.max(flash,.4);shake=Math.min(.08,shake+.05);sfx.rumble(.6);sfx.coins(6);
