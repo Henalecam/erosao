@@ -39,14 +39,14 @@ A interface se reorganiza na tela pequena, com a loja recolhida, as ferramentas 
 Balanceamento medido (20 s, mesmas melhorias, arenito): todas as ferramentas ficam entre $310 e $525. Antes, a diferença chegava a 15×.
 
 ## Perks
-A cada rank novo e a cada rocha nova, escolha 1 de 3 perks. São 20 no total: gotas gêmeas, pulmão de aço, jato afiado,
+A cada rank novo e a cada rocha nova, escolha 1 de 3 perks. São 21 no total: gotas gêmeas, pulmão de aço, jato afiado,
 mãos rápidas, balão gordo, granizo de diamante, maré alta, erosão em cadeia, olho de geólogo, bateia de ouro, cardume,
-calha magnética, embalo, engrenagens, chuva farta, castores amigos, trevo, cartógrafo, vigia noturno e para-raios.
+calha magnética, embalo, engrenagens, chuva farta, castores amigos, trevo, cartógrafo, vigia noturno, para-raios e **faro de pepita** (3% dos grãos na calha viram pepita ×10).
 
 ## Britador, rachaduras e conquistas
 - **Britador:** puxa os fragmentos soltos e os mói em grãos, que a água leva às calhas. Faz os blocos do balão e do granizo virarem dinheiro.
 - **Rachaduras:** voxels danificados escurecem e trincam antes de quebrar.
-- **15 conquistas** (🏆): cada uma dá +2% de renda permanente e sobrevive às expedições.
+- **20 conquistas** (🏆), incluindo opalas, geodos abertos, pepitas, arco-íris e enxurradas,: cada uma dá +2% de renda permanente e sobrevive às expedições.
 
 ## Libélula dourada e expedição
 - **Libélula dourada:** de tempos em tempos ela cruza a clareira; clique nela para ganhar um bônus aleatório:
@@ -65,7 +65,7 @@ As melhorias de água valem para todas as ferramentas:
 ## Objetos e eventos
 - Objetos sorteados a cada rocha:
   - Comuns: arenito, granito, pilar de basalto, arco natural e pedras gêmeas.
-  - Raros: geodo de ametista, rocha com fóssil e meteorito.
+  - Raros: geodo de ametista (ao abrir, solta uma explosão de cristais), **nódulo de opala** (opala de fogo iridescente, $120 o grão), rocha com fóssil e meteorito.
   - Lendários: ídolo de jade e baú enterrado.
   - Chefe: **Coração da Montanha**, com camadas cada vez mais duras (arenito, granito, basalto e quartzo) e um núcleo de cristal que, ao ser exposto, dá uma bênção de 45 s e um tesouro.
 - Lendários com eventos próprios:
@@ -74,7 +74,8 @@ As melhorias de água valem para todas as ferramentas:
 - **Eventos aleatórios:**
   - Chuva de meteoritos: crava meteoritos ao redor.
   - Visitante raro: um ídolo ou baú surge ao lado.
-  - Tempestades.
+  - Tempestades, seguidas de um **arco-íris**: por 30 s todos os grãos valem ×2.
+  - **Enxurrada dourada:** por 18 s o canal traz água e ouro direto para as calhas; lave a calha durante o evento para não perder nada.
   - Represas surpresa: os castores represam o riacho; clique na represa para estourar e ganhar erosão ×2.
 - **Física da rocha:** os pedaços sem apoio viram fragmentos rígidos que caem, rolam, quicam, são empurrados pela água e se desgastam.
 
@@ -90,10 +91,12 @@ As melhorias de água valem para todas as ferramentas:
 ## Progressão
 - **12 objetivos guiados**, com recompensa, ensinam o jogo.
 - **Marcos de erosão** por rocha: 0,01%, 0,025%… até 65%.
-- **Próxima rocha:** disponível com 10% erodido; cada rocha nova vale +35%.
+- **Próxima rocha:** disponível com 5,5% erodido na primeira rocha, subindo até 10% a partir da quarta; cada rocha nova vale +35%. Cada rocha tem a sua luz: manhã, meio-dia, fim de tarde ou nublado.
 - **Ranks de garimpeiro:** +12% de renda por rank.
 - **Coleção:** +6% de renda por tipo de objeto.
-- **Combo:** cresce com o tempo de erosão contínua, até ×3.
+- **Combo:** cresce com o tempo de erosão contínua, até ×3, com faixas Embalo → Fervendo → EM CHAMAS.
+- **Loja:** destaca a próxima meta e mostra o tempo estimado (⏳) para cada compra.
+- **Sensação:** desabamentos grandes tremem a tela, um contador "+N" mostra os blocos erodidos, e a lavagem da calha conta o valor subindo, com uma cascata de moedas.
 - **Ganhos offline:** até 8 h, proporcionais às máquinas passivas.
 - O progresso e a rocha erodida ficam salvos no navegador (localStorage).
 
