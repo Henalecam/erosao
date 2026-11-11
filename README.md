@@ -34,6 +34,7 @@ A interface se reorganiza na tela pequena, com a loja recolhida, as ferramentas 
 | 🎈 Balão | Explosão em área; **lança blocos** (que só pagam quando são recolhidos) | Recarga de 6 s |
 | 🧊 Granizo | Lascador preciso, **×2 contra rocha dura** (granito, quartzo, ouro, meteorito) | Recarga de 3 s |
 | 🌊 Onda | Utilidade: empurra os detritos e ativa a **Maré** (+60% de captura nas calhas) | Recarga de 7 s |
+| ⛲ Gêiser | Brota do chão junto à base e **erode de baixo para cima**, solapando a rocha | Recarga de 8 s |
 
 Balanceamento medido (20 s, mesmas melhorias, arenito): todas as ferramentas ficam entre $310 e $525. Antes, a diferença chegava a 15×.
 
@@ -66,6 +67,7 @@ As melhorias de água valem para todas as ferramentas:
   - Comuns: arenito, granito, pilar de basalto, arco natural e pedras gêmeas.
   - Raros: geodo de ametista, rocha com fóssil e meteorito.
   - Lendários: ídolo de jade e baú enterrado.
+  - Chefe: **Coração da Montanha**, com camadas cada vez mais duras (arenito, granito, basalto e quartzo) e um núcleo de cristal que, ao ser exposto, dá uma bênção de 45 s e um tesouro.
 - Lendários com eventos próprios:
   - Ídolo: expor o ouro dá a **Bênção** (renda ×2 por 30 s).
   - Baú: expor o ouro **abre o baú** com um tesouro.
