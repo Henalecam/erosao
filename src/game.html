@@ -1605,13 +1605,13 @@ function loadRockMask(){try{const raw=localStorage.getItem(KEY+'_rock');if(!raw)
   const runs=data.split(',').map(v=>parseInt(v,36));let i=0,cur=0,left=0;for(const r of runs){if(!cur){for(let k=0;k<r&&i<GN;k++,i++)vt[i]=0;}else{for(let k=0;k<r&&i<GN;k++,i++)if(vt[i])left++;}cur^=1;}
   rockInfo.left=left;return true;}catch(e){return false;}}
 function addCol(k,name){if(!S.col)S.col={};if(S.col[k])return;S.col[k]=1;toast('Nova peça na coleção: '+name,'Renda permanente +6% · coleção '+colCount()+'/'+OBJ_TYPES.length);sfx.reveal();}
-const DONE_PCT=88;
+const DONE_PCT=80;
 // ===== Estrelas e trilha de desbloqueios =====
 const TRACK=[{s:4,t:'card',ic:'🃏',d:'4ª carta na escolha do próximo espécime'},{s:9,t:'mult',ic:'💰',d:'Renda permanente +15%'},{s:15,t:'giant',ic:'🦣',d:'Tamanho Gigante nas cartas (mais blocos, mais bônus)'},{s:22,t:'perk',ic:'✦',d:'Um perk grátis'},
  {s:30,t:'mult',ic:'💰',d:'Renda permanente +15%'},{s:39,t:'card',ic:'🃏',d:'5ª carta na escolha'},{s:50,t:'perk',ic:'✦',d:'Um perk grátis'},{s:62,t:'mult',ic:'💰',d:'Renda permanente +15%'},{s:76,t:'perk',ic:'✦',d:'Um perk grátis'},{s:92,t:'mult',ic:'💰',d:'Renda permanente +20%'},{s:110,t:'perk',ic:'✦',d:'Um perk grátis'},{s:130,t:'mult',ic:'💰',d:'Renda permanente +25%'}];
 const trkN=t=>TRACK.filter(x=>x.t===t&&(S.stars||0)>=x.s).length;const starMult=()=>1+.15*trkN('mult');
 const parTime=()=>38+22*Math.sqrt((rockInfo.total||10000)/10000);
-const fatigue=()=>{const p=parTime();return 1+Math.min(3,Math.max(0,((S.rt||0)-2*p)/p)*.6);};
+const fatigue=()=>{const p=parTime();return 1+Math.min(4,Math.max(0,((S.rt||0)-1.3*p)/p)*1);};
 const fmtT=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
 function awardStars(){const t=S.rt||0,par=parTime();const st=t<=par?3:t<=par*2?2:1;const before=S.stars||0;S.stars=before+st;if(!S.best)S.best={};const k=rockInfo.kind;const rec=!S.best[k]||t<S.best[k];if(rec)S.best[k]=Math.round(t);
   for(const x of TRACK)if(before<x.s&&S.stars>=x.s){setTimeout(()=>{toast('⭐ Trilha: '+x.ic+' desbloqueado',x.d);sfx.reveal();if(x.t==='perk')grantPerkChoice('Recompensa da trilha');},3200);}
@@ -1711,7 +1711,7 @@ function stepDeals(dt){
     if(pact.t<=0){if(pact.need)toast('🎯 Meta perdida','−$'+fmt(pact.stake));pact=pact.next||null;}}
   if(S.level<2&&S.total<800)return;if(dealT>0){dealT-=dt;if(dealT<=0)dealCD=120+Math.random()*60;}else if(!pact&&!boss){dealCD-=dt;if(dealCD<=0){dealT=45;toast('🧾 Proposta do laboratório','Abra o botão à esquerda em até 45 s');sfx.ping();}}}
 function stepEvents(dt){stepGoldFlood(dt);stepLabEvents(dt);stepDeals(dt);stepCrate(dt);if(S.level<2&&S.total<300)return;evTimer-=dt;if(evTimer<=0){evTimer=75+Math.random()*75;const q=Math.random();
-  if(q<.16)meteorShower();else if(q<.3)rareVisitor();else if(q<.44)goldFlood();else if(q<.58)blackout();else if(q<.72)overload();else if(q<.84)fireAlarm();else if(q<.93)quake();else weakRush();}}
+  if(q<.2)goldFlood();else if(q<.4)blackout();else if(q<.6)overload();else if(q<.76)fireAlarm();else if(q<.9)quake();else weakRush();}}
 const matBonus=t=>(t===T_GOLD||t===T_AME||t===T_OLIV||t===T_HEART||t===T_OPAL)?1+pk('geologo')*.35:1;
 const valMultAt=l=>lvVal(l)*rankMult()*colMult();
 const nextPct=()=>25;
@@ -1812,7 +1812,7 @@ function render(time){
   const pa=ptsGeo.attributes.position.array,ka=ptsKind.array;let g=0;
   const gm=grainMesh.instanceMatrix.array,gc=grainMesh.instanceColor.array;
   for(let i=0;i<F.np;i++){pa[i*3]=F.px[i];pa[i*3+1]=F.py[i];pa[i*3+2]=F.pz[i];ka[i]=F.kind[i]+Math.min(.99,Math.max(0,(F.density[i]-DENS0)*DENSK));
-    if(F.kind[i]){const o=g*16;const sc=F.kind[i]===2?2.2:1;gm[o]=sc;gm[o+1]=0;gm[o+2]=0;gm[o+3]=0;gm[o+4]=0;gm[o+5]=sc;gm[o+6]=0;gm[o+7]=0;gm[o+8]=0;gm[o+9]=0;gm[o+10]=sc;gm[o+11]=0;gm[o+12]=F.px[i];gm[o+13]=F.py[i];gm[o+14]=F.pz[i];gm[o+15]=1;
+    if(F.kind[i]){const o=g*16;const sc=F.kind[i]===2?2.2:(S.flood>40&&F.py[i]<floodLevel()?.55:1);gm[o]=sc;gm[o+1]=0;gm[o+2]=0;gm[o+3]=0;gm[o+4]=0;gm[o+5]=sc;gm[o+6]=0;gm[o+7]=0;gm[o+8]=0;gm[o+9]=0;gm[o+10]=sc;gm[o+11]=0;gm[o+12]=F.px[i];gm[o+13]=F.py[i];gm[o+14]=F.pz[i];gm[o+15]=1;
       const m=F.mat[i];const c=F.kind[i]===2?[.75,.9,1]:(GRAIN_COL[m]||[.55,.4,.25]);
       gc[g*3]=c[0];gc[g*3+1]=c[1];gc[g*3+2]=c[2];g++;}}
   ptsGeo.attributes.position.needsUpdate=true;ptsKind.needsUpdate=true;ptsGeo.setDrawRange(0,F.np);

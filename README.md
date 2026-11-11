@@ -1,131 +1,67 @@
 # Erosão
 
-Idle de física: um objeto de voxels realista fica no centro de uma clareira e você o desgasta com água de verdade.
-A erosão de cada gota é mínima: o progresso vem de melhorias, ferramentas, máquinas e eventos. Os grãos que se soltam
-precisam ser levados pela correnteza até as calhas de garimpo, onde viram dinheiro.
+Jogo idle de física: numa câmara de experimentos escura, você destrói objetos de voxels minúsculos com água simulada (SPH 3D). Cada objeto destruído rende dinheiro, estrelas e a escolha do próximo.
 
-**Jogar:** abra o `index.html` num navegador moderno com WebGL2. É um arquivo único; o Three.js vem do CDN.
+Jogar: abra `index.html` (gerado por `python3 build.py` a partir de `src/game.html` + `src/fluid.js`). O progresso fica no navegador (chave `erosao3d_v2`).
 
-## Controles
-| Ação | Comando |
+## Ciclo de jogo
+
+1. **Um espécime por nível.** Um objeto aparece no centro da câmara. Use as ferramentas de água para destruí-lo.
+2. **80% conclui.** O resto desmorona em câmera lenta e você recebe um bônus de conclusão.
+3. **Estrelas.** De 1 a 3 conforme o tempo (a meta de 3★ depende do tamanho; até o dobro vale 2★).
+4. **Escolha o próximo** entre 3 a 5 cartas (tipo, tamanho, material e dica). Sem escolha em 25 s, vai a primeira.
+5. A cada nível os objetos ficam maiores e mais resistentes, e valem mais.
+
+Se um espécime demora muito, a **fadiga do material** o enfraquece aos poucos, para ninguém travar.
+
+## Objetos e materiais
+
+Castelo de areia, melancia, queijo suíço, bolo, boneco de neve, bloco de gelo, vaso de argila, caixote, muro de tijolos, aquário, dado gigante, pato de borracha, pirâmide, TV antiga, cofre de aço e as rochas (arenito, granito, geodo, pilar de basalto, arco, pedras gêmeas, fóssil, meteorito, opala, ídolo, baú, Coração da Montanha). Novos tipos se desbloqueiam com o nível.
+
+Cada material reage de um jeito:
+
+| Material | Comportamento |
 |---|---|
-| Usar a ferramenta | Clique esquerdo (segurar: chuva, jato, encher o balão) |
-| Trocar de ferramenta | 1 a 5 |
-| Girar a câmera | Botão direito ou Q/E |
-| Mover a câmera | WASD ou setas, ou arrastar com o botão do meio |
-| Zoom | Roda do mouse (em direção ao cursor) ou R/F |
-| Centralizar | C |
-| Lavar a calha | L, botão, ou clique na calha |
-| Mostrar/ocultar a loja | B |
-| Bateia | Clique nos grãos encalhados |
+| Gelo, neve | Derretem com qualquer água; 10× mais rápido com a sala inundada |
+| Areia | Desmorona em coluna quando perde a base |
+| Vidro | Estilhaça em cadeia |
+| Aço, ferro | Quase ignoram gotas; pedem o jato |
+| Fruta, cobertura | Muito moles; espirram suco |
+| Madeira, plástico | Os pedaços boiam na inundação |
+| Ouro, ametista, opala | Valem muito; leve os grãos até as calhas |
 
-## Celular
-Toque na rocha para usar a ferramenta, segure para chover, encher o balão ou disparar o jato. Dois dedos giram a câmera e dão zoom.
-A interface se reorganiza na tela pequena, com a loja recolhida, as ferramentas logo acima dela e botões só com ícones.
+Cerca de 60% dos espécimes (do nível 3 em diante) vêm com uma **mutação**: Quebradiça, Veios ricos, Blindada, Porosa, Cristalina, Gravidade baixa, Instável ou Banho ácido.
 
-## Som
-Água, vento e pássaros sintetizados, mais **música ambiente generativa** (acordes suaves em pentatônica e notas de sino com eco). O botão 🔊 liga e desliga.
+## Ferramentas e loja
 
-## Ferramentas (cada uma com seu papel)
-| Ferramenta | Papel | Limite |
-|---|---|---|
-| 💧 Gota / Chuva | Constante e barata; constrói o combo | — |
-| 🚿 Jato | Maior dano contínuo; **perfura** | **Tanque de pressão**: esvazia e recarrega |
-| 🎈 Balão | Explosão em área; **lança blocos** (que só pagam quando são recolhidos) | Recarga de 6 s |
-| 🧊 Granizo | Lascador preciso, **×2 contra rocha dura** (granito, quartzo, ouro, meteorito) | Recarga de 3 s |
-| 🌊 Onda | Utilidade: empurra os detritos e ativa a **Maré** (+60% de captura nas calhas) | Recarga de 7 s |
-| ⛲ Gêiser | Brota do chão junto à base e **erode de baixo para cima**, solapando a rocha | Recarga de 8 s |
+Gota (clique), Jato (segure; penetra conforme os upgrades), Balão (segure para encher e arremesse), Granizo, Onda e Gêiser. A loja tem cinco abas: Ferramentas, Água (melhorias que valem para todas as armas), Torretas, Terreno (nascente, aqueduto, tempestade, represa, comporta do ralo, correnteza) e Garimpo (calhas, riffles, lavadora automática, peixes, britador). A loja destaca a próxima meta e o tempo estimado.
 
-Balanceamento medido (20 s, mesmas melhorias, arenito): todas as ferramentas ficam entre $310 e $525. Antes, a diferença chegava a 15×.
+## Garimpo e inundação
 
-## Perks
-A cada rank novo e a cada rocha nova, escolha 1 de 3 perks. São 21 no total: gotas gêmeas, pulmão de aço, jato afiado,
-mãos rápidas, balão gordo, granizo de diamante, maré alta, erosão em cadeia, olho de geólogo, bateia de ouro, cardume,
-calha magnética, embalo, engrenagens, chuva farta, castores amigos, trevo, cartógrafo, vigia noturno, para-raios e **faro de pepita** (3% dos grãos na calha viram pepita ×10).
-
-## Britador, rachaduras e conquistas
-- **Britador:** puxa os fragmentos soltos e os mói em grãos, que a água leva às calhas. Faz os blocos do balão e do granizo virarem dinheiro.
-- **Rachaduras:** voxels danificados escurecem e trincam antes de quebrar.
-- **20 conquistas** (🏆), incluindo opalas, geodos abertos, pepitas, arco-íris e enxurradas,: cada uma dá +2% de renda permanente e sobrevive às expedições.
-
-## Libélula dourada e expedição
-- **Libélula dourada:** de tempos em tempos ela cruza a clareira; clique nela para ganhar um bônus aleatório:
-  - Frenesi: renda ×3.
-  - Fôlego infinito.
-  - Saco de ouro.
-  - Chuva dourada.
-- **Expedição (prestígio):** depois de trocar 3 rochas, você pode recomeçar e ganhar **âmbar** 🟠. Cada âmbar dá +8% de renda e +3% de erosão para sempre. A coleção e os objetivos ficam.
-- **Gráficos:** Alto, Médio ou Baixo (resolução, sombras, partículas e grama).
-
-As melhorias de água valem para todas as ferramentas:
-- **Gota maior:** mais volume em tudo.
-- **Força da água:** mais impacto e mais penetração do jato.
-- **Acidez:** multiplica toda a erosão.
-
-## Objetos e eventos
-- Objetos sorteados a cada rocha:
-  - Comuns: arenito, granito, pilar de basalto, arco natural e pedras gêmeas.
-  - Raros: geodo de ametista (ao abrir, solta uma explosão de cristais), **nódulo de opala** (opala de fogo iridescente, $120 o grão), rocha com fóssil e meteorito.
-  - Lendários: ídolo de jade e baú enterrado.
-  - Chefe: **Coração da Montanha**, com camadas cada vez mais duras (arenito, granito, basalto e quartzo) e um núcleo de cristal que, ao ser exposto, dá uma bênção de 45 s e um tesouro.
-- Lendários com eventos próprios:
-  - Ídolo: expor o ouro dá a **Bênção** (renda ×2 por 30 s).
-  - Baú: expor o ouro **abre o baú** com um tesouro.
-- **Eventos aleatórios:**
-  - Chuva de meteoritos: crava meteoritos ao redor.
-  - Visitante raro: um ídolo ou baú surge ao lado.
-  - Tempestades, seguidas de um **arco-íris**: por 30 s todos os grãos valem ×2.
-  - **Enxurrada dourada:** por 18 s o canal traz água e ouro direto para as calhas; lave a calha durante o evento para não perder nada.
-  - Represas surpresa: os castores represam o riacho; clique na represa para estourar e ganhar erosão ×2.
-- **Física da rocha:** os pedaços sem apoio viram fragmentos rígidos que caem, rolam, quicam, são empurrados pela água e se desgastam.
-
-## Garimpo e máquinas
-- A calha principal e até 3 calhas extras somam capacidade. A **área de extração** amplia a zona de captura e a bateia.
-- **Peixes garimpeiros** nadam na água rasa comendo os grãos arrastados.
-- **Torretas:** gotejadora, esguicho e lança-balões, mais o upgrade de cadência.
-- **Terreno:**
-  - Nascente: cria um riacho que bate na rocha.
-  - Aqueduto: despeja água no topo da rocha.
-  - Tempestades e represas.
+Os grãos soltos são levados pela água até as **calhas** na canaleta; lave a calha para receber. Com a **Comporta do ralo**, feche o ralo (botão ou tecla **G**) para inundar a câmara: o que fica submerso erode sozinho. Ao abrir, a água escoa em redemoinho e arrasta os grãos para as calhas.
 
 ## Progressão
-- **12 objetivos guiados**, com recompensa, ensinam o jogo.
-- **Marcos de erosão** por rocha: 0,01%, 0,025%… até 65%.
-- **Próxima rocha:** disponível com 5,5% erodido na primeira rocha, subindo até 10% a partir da quarta; cada rocha nova vale +35%. Cada rocha tem a sua luz: manhã, meio-dia, fim de tarde ou nublado.
-- **Ranks de garimpeiro:** +12% de renda por rank.
-- **Coleção:** +6% de renda por tipo de objeto.
-- **Combo:** cresce com o tempo de erosão contínua, até ×3, com faixas Embalo → Fervendo → EM CHAMAS.
-- **Lavadora automática** (Garimpo, $6.000): lava a calha sozinha quando enche, por 85% do valor. Sem ela, um aviso sonoro avisa que a calha encheu.
-- **Espécimes (novo ciclo de jogo):** em vez de uma rocha eterna, cada nível traz um objeto menor que dá para **destruir por completo** (88% conclui; o resto desmorona e paga um bônus). Depois você **escolhe o próximo entre 3 cartas** (tipo, tamanho e material). Os objetos crescem e endurecem a cada nível. Catálogo novo além das rochas: castelo de areia, melancia, queijo suíço, bolo, boneco de neve, bloco de gelo, vaso de argila, caixote, muro de tijolos e cofre de aço, cada um com materiais de resistência e valor próprios.
-- **Materiais com comportamento próprio:** gelo e neve derretem com qualquer água (e 10× mais rápido na inundação); areia desmorona em coluna; vidro estilhaça em cadeia; aço e ferro quase ignoram gotas e pedem o jato; fruta e cobertura espirram suco colorido; pedaços de madeira e plástico boiam na sala inundada. Mais objetos: aquário, dado gigante, pato de borracha, pirâmide e TV antiga. As cartas de escolha mostram uma dica do material.
-- **Estrelas e trilha:** cada espécime destruído dá de 1 a 3 estrelas conforme o tempo (a meta de 3★ depende do tamanho). O total de estrelas avança uma trilha de desbloqueios permanentes (4ª e 5ª carta de escolha, tamanho Gigante, renda +15%, perks grátis). A próxima recompensa aparece sob o dinheiro; clique para ver a trilha inteira. A tela de conclusão mostra tempo, estrelas, bônus e recorde por tipo de objeto.
-- **Câmara de experimentos:** o jogo acontece numa sala escura e fechada, com piso plano de ladrilhos, luminária circular sobre a rocha, canos nas paredes e uma canaleta com as calhas de garimpo até o ralo.
-- **Inundação:** compre a *Comporta do ralo* (aba Terreno) e feche o ralo (botão na calha ou tecla **G**). A água se acumula e a sala inunda até ~75 cm; tudo que fica submerso erode sozinho (melhoria *Correnteza submersa*). Ao abrir o ralo, a água escoa em redemoinho e arrasta os grãos do fundo para as calhas.
-- **Mutações de rocha:** a partir da rocha 3, cerca de 60% das rochas vêm com uma mutação aleatória (Quebradiça, Veios ricos, Blindada, Porosa, Cristalina, Gravidade baixa, Instável, Banho ácido) que muda como vale a pena jogar aquela rocha.
-- **Eventos da câmara:** blecaute com luz negra (renda ×2), sobrecarga de pressão (erosão ×2,5), alarme com sprinklers, abalo sísmico (fraturas espontâneas) e tensão interna (4 pontos fracos em sequência), além de meteoritos, visitantes raros e enxurrada dourada. Os efeitos ativos aparecem como etiquetas no topo da tela.
-- **Caixa de suprimentos:** desce do teto de tempos em tempos; clique para abrir e ganhar um prêmio aleatório (verba, sobrecarga, ouro, frenesi, blecaute ou, raramente, um perk).
-- **Propostas do laboratório:** de tempos em tempos surge uma proposta de risco × recompensa com duas cartas (ácido instável, horas extras, meta de fraturas, reforço experimental, dobro ou nada, racionamento). Dá para recusar.
-- **Pontos fracos:** rachaduras brilhantes surgem na rocha; acerte-as com qualquer arma para causar uma fratura grande, com bônus e combo.
-- **Encomendas:** depois do tutorial, pedidos infinitos (erodir blocos, liberar ouro, quebrar pontos fracos, lavar a calha…) com tempo limite; a cada 4 entregues, um perk novo. Dá para trocar a encomenda (⟳).
-- **Três chefes que se alternam** a cada 5 rochas: Monólito (6 fraturas em 90 s), **Núcleo blindado** (o ralo trava, a sala inunda e a blindagem só racha debaixo d'água: 6 fraturas em 100 s) e **Colosso de cristal** (regenera a cada 6 s: arranque milhares de blocos em 85 s concentrando o dano).
-- **Desafio do Monólito:** a cada 5 rochas, um monólito com faixas de ouro: quebre 6 pontos fracos em 90 s para derrubá-lo e ganhar uma grande recompensa e um perk.
-- **Loja:** destaca a próxima meta e mostra o tempo estimado (⏳) para cada compra.
-- **Sensação:** desabamentos grandes tremem a tela, um contador "+N" mostra os blocos erodidos, e a lavagem da calha conta o valor subindo, com uma cascata de moedas.
-- **Ganhos offline:** até 8 h, proporcionais às máquinas passivas.
-- O progresso e a rocha erodida ficam salvos no navegador (localStorage).
 
-## Tecnologia
-- **Fluido:** SPH viscoelástico 3D (Clavet et al. 2005), com relaxação de dupla densidade, viscosidade e coesão, a 120 Hz. A busca de vizinhos usa partículas ordenadas por célula e meia-casca. O limite de partículas se adapta ao custo medido.
-- **Rocha:** grade voxel de 160×104×160 com voxels de 2,2 cm. A malha é feita por chunks, com oclusão ambiente por vértice. Os materiais são procedurais: estratos, fissuras, veios de quartzo e ouro, musgo e líquen.
-- **Colisão água-rocha:** usa a normal suavizada da vizinhança, então a água escorre em vez de parar nos degraus. A erosão depende do impacto e do cisalhamento.
-- **Água na tela:** renderização em espaço de tela (profundidade das esferas, blur bilateral, normais, refração, absorção de Beer-Lambert, reflexo de Fresnel e brilho do sol).
-- **Rocha molhada:** uma textura 3D de umidade escurece a rocha e a deixa brilhante onde a água passa.
-- **Cena:** clareira ao entardecer com sombras suaves, grama animada, árvores, seixos, neblina e tempestade. Os sons são sintetizados com WebAudio.
+- **Trilha de estrelas:** o total de estrelas libera, de forma permanente, a 4ª e a 5ª carta, o tamanho Gigante, aumentos de renda e perks grátis. Clique na linha de estrelas sob o dinheiro para ver a trilha.
+- **Perks:** a cada 3 espécimes, a cada 4 encomendas e ao vencer chefes.
+- **Encomendas:** pedidos com prazo depois do tutorial; dá para trocar (⟳).
+- **Pontos fracos:** rachaduras brilhantes; acertar causa uma fratura grande.
+- **Chefes** a cada 5 níveis, alternando: Monólito (6 fraturas em 90 s), Núcleo blindado (o ralo trava e a sala inunda; 6 fraturas em 100 s) e Colosso de cristal (regenera a cada 6 s; arranque milhares de blocos em 85 s).
+- **Coleção, patentes e conquistas** dão bônus permanentes de renda.
+- **Expedição** (prestígio): disponível após 10 espécimes; troca o progresso por âmbar.
 
-## Desenvolvimento
-```
-src/fluid.js   simulação do fluido
-src/game.html  jogo
-build.py       gera o index.html com o fluido embutido
-```
-`python3 build.py` gera o `index.html`. Use `#sim` no fim da URL para rodar só a física, sem renderizar (para testes e benchmark).
+## Eventos
+
+Blecaute com luz negra (renda ×2), sobrecarga de pressão (erosão ×2,5), alarme com sprinklers, abalo sísmico, tensão interna (4 pontos fracos seguidos), enxurrada dourada, tempestade seguida de arco-íris (grãos ×2), libélula dourada e **caixas de suprimento** que descem do teto. As **propostas do laboratório** oferecem duas cartas de risco × recompensa. Os efeitos ativos aparecem como etiquetas no topo.
+
+## Controles
+
+Botão esquerdo usa a ferramenta · botão direito gira · roda dá zoom · botão do meio arrasta · WASD move · **C** centraliza · **G** ralo · **L** lava a calha · **B** loja · 1–6 trocam de ferramenta. No celular: toque usa a ferramenta, dois dedos giram e dão zoom.
+
+## Técnica
+
+- Fluido SPH viscoelástico 3D (relaxação de dupla densidade, Clavet 2005) a 120 Hz, com limite de partículas adaptativo.
+- Grade de voxels 160×104×160 (2,2 cm), malha por blocos com oclusão por vértice, fragmentos rígidos e checagem estrutural.
+- Água em espaço de tela (splat de profundidade com raio por densidade, blur bilateral, refração, Fresnel, espuma).
+- three.js 0.169 via CDN; áudio gerado com WebAudio.
+- Testes com Playwright e Chrome headless (`#sim` desliga o render).
