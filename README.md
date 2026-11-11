@@ -104,6 +104,7 @@ As melhorias de água valem para todas as ferramentas:
 - **Propostas do laboratório:** de tempos em tempos surge uma proposta de risco × recompensa com duas cartas (ácido instável, horas extras, meta de fraturas, reforço experimental, dobro ou nada, racionamento). Dá para recusar.
 - **Pontos fracos:** rachaduras brilhantes surgem na rocha; acerte-as com qualquer arma para causar uma fratura grande, com bônus e combo.
 - **Encomendas:** depois do tutorial, pedidos infinitos (erodir blocos, liberar ouro, quebrar pontos fracos, lavar a calha…) com tempo limite; a cada 4 entregues, um perk novo. Dá para trocar a encomenda (⟳).
+- **Três chefes que se alternam** a cada 5 rochas: Monólito (6 fraturas em 90 s), **Núcleo blindado** (o ralo trava, a sala inunda e a blindagem só racha debaixo d'água: 5 fraturas em 120 s) e **Colosso de cristal** (regenera a cada 6 s: arranque milhares de blocos em 85 s concentrando o dano).
 - **Desafio do Monólito:** a cada 5 rochas, um monólito com faixas de ouro: quebre 6 pontos fracos em 90 s para derrubá-lo e ganhar uma grande recompensa e um perk.
 - **Loja:** destaca a próxima meta e mostra o tempo estimado (⏳) para cada compra.
 - **Sensação:** desabamentos grandes tremem a tela, um contador "+N" mostra os blocos erodidos, e a lavagem da calha conta o valor subindo, com uma cascata de moedas.
