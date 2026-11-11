@@ -68,7 +68,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#1b1a17;font-family:"I
 .ft{position:fixed;pointer-events:none;font-weight:800;text-shadow:0 2px 8px #000c;transform:translate(-50%,-50%);white-space:nowrap}
 #loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#1b1a17;font-size:15px;opacity:.9;transition:opacity .8s;z-index:9}
 @media (max-width:900px){#ups{grid-template-columns:repeat(3,1fr)}#sluice{top:auto;bottom:210px}#hotbar{top:auto;bottom:220px;transform:none}}
-@media (max-width:700px),(pointer:coarse){
+@media (max-width:700px),(pointer:coarse){#combo{top:84px;bottom:auto;font-size:16px}
  #hotbar{flex-direction:row;left:50%;top:auto;bottom:178px;transform:translateX(-50%);padding:5px}
  .tool{width:54px;height:54px}
  #top{padding:7px 11px;min-width:0}#money{font-size:22px}#rank,#rankNext{display:none}
@@ -235,6 +235,7 @@ const SHOP=[
  {k:'calha',tab:'Garimpo',n:'Calha maior',d:l=>`Capacidade $${fmt(cap(l))}`,base:35,mul:1.9},
  {k:'riffle',tab:'Garimpo',n:'Riffles',d:l=>`Retém ${Math.round(capture(l)*100)}% dos grãos`,base:45,mul:2.0,max:8},
  {k:'calhas',tab:'Garimpo',n:'🪵 Calha extra',d:l=>`${l}/3 calhas extras · +60% de capacidade cada`,base:400,mul:2.6,max:3},
+ {k:'lavadora',tab:'Garimpo',n:'🫧 Lavadora automática',d:l=>l?'Lava a calha sozinha quando enche (85% do valor)':'Lava a calha sozinha quando enche · 85% do valor',base:6000,mul:1,max:1,req:'calhas'},
  {k:'extracao',tab:'Garimpo',n:'Área de extração',d:l=>`Calhas e bateia ${Math.round(extScale(l)*100)}% maiores`,base:150,mul:1.95,max:8},
  {k:'peixes',tab:'Garimpo',n:'🐟 Peixes garimpeiros',d:l=>l?`${l} peixe${l>1?'s':''} caçando grãos na água`:'Peixes que comem os restos na água',base:300,mul:2.1,max:8},
  {k:'britador',tab:'Garimpo',n:'⚙️ Britador',d:l=>l?`Puxa e mói fragmentos · raio ${(1+l*.3).toFixed(1)} m · ${l} nível`:'Máquina que puxa os blocos soltos e mói em grãos',base:700,mul:2.1,max:6},
@@ -1250,7 +1251,7 @@ let rainbowT=0;const rbMat=new THREE.ShaderMaterial({transparent:true,depthWrite
   fragmentShader:`uniform float uA;varying vec3 vP;vec3 hue(float h){return clamp(abs(mod(h*6.+vec3(0.,4.,2.),6.)-3.)-1.,0.,1.);}
   void main(){float r=length(vP.xy);float t=clamp((r-10.2)/1.6,0.,1.);float edge=smoothstep(0.,.15,t)*smoothstep(1.,.85,t);gl_FragColor=vec4(hue(.8-t*.8)*edge*uA*.42,1.);}`});
 const rainbow=new THREE.Mesh(new THREE.RingGeometry(10.2,11.8,96,1,0,Math.PI),rbMat);rainbow.position.set(-1,-.6,-9);rainbow.visible=false;rainbow.frustumCulled=false;scene.add(rainbow);
-const rbDiv=document.createElement('div');rbDiv.style.cssText='position:fixed;left:50%;top:-6vh;width:150vw;height:150vw;max-height:none;transform:translateX(-50%);border-radius:50%;pointer-events:none;z-index:1;opacity:0;mix-blend-mode:screen;transition:opacity .3s;background:radial-gradient(circle at 50% 50%,transparent 61%,rgba(148,0,211,.18) 62%,rgba(60,80,255,.22) 63.5%,rgba(0,200,255,.22) 65%,rgba(0,255,90,.22) 66.5%,rgba(255,240,0,.25) 68%,rgba(255,140,0,.24) 69.5%,rgba(255,30,30,.2) 71%,transparent 72.5%)';document.body.appendChild(rbDiv);
+const rbDiv=document.createElement('div');rbDiv.style.cssText='position:fixed;left:50%;top:-6vh;width:150vmax;height:150vmax;max-height:none;transform:translateX(-50%);border-radius:50%;pointer-events:none;z-index:1;clip-path:inset(0 0 50% 0);opacity:0;mix-blend-mode:screen;transition:opacity .3s;background:radial-gradient(circle at 50% 50%,transparent 61%,rgba(148,0,211,.18) 62%,rgba(60,80,255,.22) 63.5%,rgba(0,200,255,.22) 65%,rgba(0,255,90,.22) 66.5%,rgba(255,240,0,.25) 68%,rgba(255,140,0,.24) 69.5%,rgba(255,30,30,.2) 71%,transparent 72.5%)';document.body.appendChild(rbDiv);
 const grainMul=()=>rainbowT>0?2:1;
 function stepStorm(dt){
   if(rainbowT>0){rainbowT-=dt;rbDiv.style.opacity=Math.max(0,Math.min(1,rainbowT/3,(30-rainbowT)/2)).toFixed(3);if(rainbowT<=0)rbDiv.style.opacity=0;}
@@ -1353,6 +1354,7 @@ const sfx=(()=>{let ac=null,master,nb,muted=false,budget=5,flowG,flowF,windG,jet
     crumble(t){if(R()>.35||!ok(1))return;if(t===T_QTZ||t===T_AME)tone(3200+R()*2600,.12,.025,'triangle');else if(t===T_GOLD)tone(2100+R()*400,.15,.04,'triangle');else nz(1200+R()*1800,'bandpass',.05,.07,1.5);},
     rumble(k){if(!ac||muted)return;nz(160,'lowpass',.8+k*.6,.5*k+.15);nz(70,'lowpass',1.2+k,.6*k+.1);tone(55,.6+k*.5,.25*k+.08,'sine',.6);tone(38,.9+k*.6,.22*k+.05,'sine',.7);nz(2400,'bandpass',.25,.08*k,1.2);},
     coin(v){if(!ok(1))return;const p=Math.min(16,Math.log2(1+v)*1.5);const f=620*Math.pow(2,p/12);tone(f,.14,.06);tone(f*1.5,.18,.045,'sine',0,.06);},
+    full(){if(!ac||muted)return;tone(660,.12,.07,'triangle',0,0);tone(880,.16,.07,'triangle',0,.12);},
     coins(n){if(!ac||muted)return;for(let j=0;j<n;j++){const f=2200+Math.random()*1800;tone(f,.06,.035,'sine',0,.12+j*.055+Math.random()*.03);tone(f*1.5,.05,.02,'sine',0,.13+j*.055);}},
     wash(){if(!ac||muted)return;nz(1400,'bandpass',.6,.25,.6);[784,988,1175,1568].forEach((f,j)=>tone(f,.25,.06,'triangle',0,.1+j*.07));},
     ice(k){if(!ok(1))return;tone(2400+R()*1800,.06,.05*k+.02,'square',.6);},
@@ -1403,6 +1405,7 @@ function buildShop(){setTimeout(layoutMobile,0);$('ups').innerHTML='';btns=SHOP.
   for(const t of TABS)tabBtns[t].classList.toggle('on',t===curTab);}
 function renderHotbar(){const hb=$('hotbar');hb.innerHTML='';TOOLS.forEach((t,i)=>{const b=document.createElement('button');const on=toolOn(t.k);b.className='tool'+(S.tool===t.k?' on':'')+(on?'':' lock');
   b.title=`${t.n} (tecla ${i+1}): ${on?t.tip:'bloqueado. Desbloqueie na aba Ferramentas.'}`;b.setAttribute('aria-label',b.title);b.innerHTML=`<span class="k">${i+1}</span><span class="ic">${on?t.ic:'🔒'}</span><span class="nm">${t.n}</span><span class="cd" id="cd_${t.k}"></span>`;b.onclick=()=>{sfx.init();if(on)setTool(t.k);else{curTab='Ferramentas';buildShop();ui();}};hb.appendChild(b);});}
+let wasFull=false;
 function wash(){if(S.sluice<.01)return;qBump('wash');stats('washes');washFx(S.sluice);const v=S.sluice;S.money+=v;S.total+=v;earnBatch+=v;S.sluice=0;sfx.wash();
   const p=new THREE.Vector3((SL_X0+SL_X1)/2,chanBed((SL_X0+SL_X1)/2)+.25,0);floatText(p,'+$0','#ffe08a',30);const ft=fts[fts.length-1];ft.life=130;const t0=performance.now(),D=Math.min(1100,350+Math.log2(1+v)*70);
   (function cnt(){const k=Math.min(1,(performance.now()-t0)/D),e=1-Math.pow(1-k,3);ft.el.textContent='+$'+fmt(v*e);if(k<1)requestAnimationFrame(cnt);else{ft.el.style.transform='translate(-50%,-50%) scale(1.25)';setTimeout(()=>ft.el.style.transform='',160);}})();
@@ -1434,7 +1437,8 @@ function ui(){
   const ri=rankIdx(),r0=RANKS[ri][0],r1=RANKS[ri+1]?RANKS[ri+1][0]:null;$('rankName').textContent='🏅 '+RANKS[ri][1];$('rankMul').textContent='· renda ×'+rankMult().toFixed(2).replace('.',',');
   $('rankMul').textContent='· renda ×'+(rankMult()*colMult()).toFixed(2).replace('.',',')+' · coleção '+colCount()+'/'+OBJ_TYPES.length+(blessT>0?' · ✨×2 '+Math.ceil(blessT)+'s':'');$('rankBar').style.width=(r1?Math.min(100,(S.total-r0)/(r1-r0)*100):100)+'%';$('rankNext').textContent=r1?`Próximo: ${RANKS[ri+1][1]} ($${fmt(r1)} ganhos no total)`:'Rank máximo';
   const c=totalCap();$('sluiceTxt').textContent='$'+fmt(S.sluice)+' / $'+fmt(c)+(lostBatchShown>0?' · perdeu $'+fmt(lostBatchShown):'');$('sluiceBar').style.width=Math.min(100,S.sluice/c*100)+'%';
-  $('wash').disabled=S.sluice<.01;$('wash').classList.toggle('full',S.sluice>=c*.98);
+  $('wash').disabled=S.sluice<.01;const full=S.sluice>=c*.98;$('wash').classList.toggle('full',full);
+  if(full&&!wasFull){if(S.up.lavadora){const v=S.sluice*.85;S.sluice=0;S.money+=v;S.total+=v;earnBatch+=v;stats('washes');washFx(v);sfx.coins(5);floatText(new THREE.Vector3((SL_X0+SL_X1)/2,chanBed((SL_X0+SL_X1)/2)+.25,0),'🫧 +$'+fmt(v),'#bfe8ff',22);}else{sfx.full&&sfx.full();toast('Calha cheia!','Lave a calha para não perder os grãos');}}wasFull=full&&!S.up.lavadora;
   let goal=null,gc=1e300;for(const b of btns){const u=b._u;if(maxed(u)||!avail(u))continue;const c=costOf(u);if(c>S.money&&c<gc){gc=c;goal=u;}}
   for(const b of btns){const u=b._u,l=S.up[u.k],mx=maxed(u),c2=costOf(u),av=avail(u);const eta=(!mx&&av&&S.money<c2&&r>0)?(c2-S.money)/r:0;const h=`<b>${u.n}${l&&u.max!==1?` · ${l}`:''}</b><span>${av?u.d(l):'Requer: '+SHOP.find(x=>x.k===u.req).n}</span><span class="c">${mx?(u.max===1?'✓ desbloqueado':'✓ máximo'):'$'+fmt(c2)+(eta>0&&eta<900?` <i class="eta">⏳${eta<60?Math.ceil(eta)+'s':Math.ceil(eta/60)+'min'}</i>`:'')}</span>`;if(b._h!==h){b.innerHTML=h;b._h=h;}b.disabled=mx||!av||S.money<c2;b.classList.toggle('ok',!mx&&av&&S.money>=c2);b.classList.toggle('goal',u===goal);}
   for(const t of TABS){const has=SHOP.some(u=>u.tab===t&&!maxed(u)&&avail(u)&&S.money>=costOf(u));tabBtns[t].classList.toggle('has',has&&t!==curTab);}

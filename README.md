@@ -95,6 +95,7 @@ As melhorias de água valem para todas as ferramentas:
 - **Ranks de garimpeiro:** +12% de renda por rank.
 - **Coleção:** +6% de renda por tipo de objeto.
 - **Combo:** cresce com o tempo de erosão contínua, até ×3, com faixas Embalo → Fervendo → EM CHAMAS.
+- **Lavadora automática** (Garimpo, $6.000): lava a calha sozinha quando enche, por 85% do valor. Sem ela, um aviso sonoro avisa que a calha encheu.
 - **Loja:** destaca a próxima meta e mostra o tempo estimado (⏳) para cada compra.
 - **Sensação:** desabamentos grandes tremem a tela, um contador "+N" mostra os blocos erodidos, e a lavagem da calha conta o valor subindo, com uma cascata de moedas.
 - **Ganhos offline:** até 8 h, proporcionais às máquinas passivas.
