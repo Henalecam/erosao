@@ -9,7 +9,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#1b1a17;font-family:"I
 #gl{position:fixed;inset:0;width:100%;height:100%;display:block;outline:none;cursor:crosshair}
 .panel{background:rgba(22,20,17,.55);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,240,210,.12);border-radius:14px;box-shadow:0 8px 30px #0004}
 #top{position:fixed;left:14px;top:14px;padding:10px 16px;min-width:160px}
-#money{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.5px}
+@keyframes mpop{0%{transform:scale(1);color:inherit}30%{transform:scale(1.12);color:#ffd970}100%{transform:scale(1)}}#money.pop{animation:mpop .7s ease-out}#money{transform-origin:left center;font-size:30px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.5px}
 #rate{font-size:12px;opacity:.7;font-variant-numeric:tabular-nums}
 #rock{position:fixed;right:14px;top:14px;padding:10px 14px;text-align:right;font-size:13px;min-width:190px}
 #rockName{font-weight:700;font-size:15px}
@@ -467,7 +467,12 @@ scene.fog=new THREE.FogExp2(0xa88f78,.035);
 const sun=new THREE.DirectionalLight(0xffc89a,3.1);sun.position.copy(SUN_DIR).multiplyScalar(12);
 sun.castShadow=true;sun.shadow.mapSize.set(3072,3072);Object.assign(sun.shadow.camera,{left:-7,right:7,top:7,bottom:-7,near:1,far:34});
 sun.shadow.bias=-.0002;sun.shadow.normalBias=.012;scene.add(sun);
-scene.add(new THREE.HemisphereLight(0x8fa7d6,0x4a3c2c,.75));
+const hemi=new THREE.HemisphereLight(0x8fa7d6,0x4a3c2c,.75);scene.add(hemi);
+const MOODS=[{n:'meio-dia',sun:0xffc89a,i:1,sky:0x8fa7d6,gr:0x4a3c2c,fog:0xa88f78,e:1},{n:'manhã',sun:0xffe6c8,i:.92,sky:0xa4c0ec,gr:0x4e4636,fog:0xb7ad9c,e:1.04},
+ {n:'fim de tarde',sun:0xff7a38,i:.88,sky:0x8a80c8,gr:0x643a22,fog:0xc4845a,e:.97},{n:'nublado',sun:0xdfe3ea,i:.5,sky:0xb0b8c4,gr:0x4a4640,fog:0xa6a8aa,e:1.1}];
+let moodI=1,moodE=1;const moodTo={sun:new THREE.Color(0xffc89a),sky:new THREE.Color(0x8fa7d6),gr:new THREE.Color(0x4a3c2c),fog:new THREE.Color(0xa88f78),i:1,e:1};
+function setMood(seed){const m=MOODS[Math.abs(seed|0)%MOODS.length];moodTo.sun.setHex(m.sun);moodTo.sky.setHex(m.sky);moodTo.gr.setHex(m.gr);moodTo.fog.setHex(m.fog);moodTo.i=m.i;moodTo.e=m.e;}
+function stepMood(dt){const k=Math.min(1,dt*.6);sun.color.lerp(moodTo.sun,k);hemi.color.lerp(moodTo.sky,k);hemi.groundColor.lerp(moodTo.gr,k);scene.fog.color.lerp(moodTo.fog,k);moodI+=(moodTo.i-moodI)*k;moodE+=(moodTo.e-moodE)*k;}
 
 // --- terreno
 const toLin=c=>c<=.04045?c/12.92:Math.pow((c+.055)/1.055,2.4);
@@ -1253,7 +1258,7 @@ function stepStorm(dt){
 }
 const SUN_I=3.1;
 function applyWeather(dt){const k=storm>0?Math.min(1,storm/2,(14+S.up.tempestade*3-storm)/2+0):0;const tgt=storm>0?1:0;weatherK+=(tgt-weatherK)*Math.min(1,dt*.8);
-  sun.intensity=SUN_I*(1-weatherK*.75)+flash*6;scene.fog.density=.035+weatherK*.05;compMat.uniforms.uExp.value=1-weatherK*.3+flash*.6;flash*=.85;
+  stepMood(1/60);sun.intensity=SUN_I*moodI*(1-weatherK*.75)+flash*6;scene.fog.density=.035+weatherK*.05;compMat.uniforms.uExp.value=moodE*(1-weatherK*.3)+flash*.6;flash*=.85;
   rainMesh.count=weatherK>.05?Math.floor(700*weatherK):0;
   if(rainMesh.count){const M=new THREE.Matrix4();for(let i=0;i<rainMesh.count;i++){const p=rainP[i];p.y-=dt*9;if(p.y<terrainH(p.x,p.z)){p.y=6+R();p.x=camera.position.x*.3+(R()-.5)*14;p.z=camera.position.z*.3+(R()-.5)*14;}M.makeTranslation(p.x,p.y,p.z);rainMesh.setMatrixAt(i,M);}rainMesh.instanceMatrix.needsUpdate=true;}}
 let weatherK=0;
@@ -1346,6 +1351,7 @@ const sfx=(()=>{let ac=null,master,nb,muted=false,budget=5,flowG,flowF,windG,jet
     crumble(t){if(R()>.35||!ok(1))return;if(t===T_QTZ||t===T_AME)tone(3200+R()*2600,.12,.025,'triangle');else if(t===T_GOLD)tone(2100+R()*400,.15,.04,'triangle');else nz(1200+R()*1800,'bandpass',.05,.07,1.5);},
     rumble(k){if(!ac||muted)return;nz(160,'lowpass',.8+k*.6,.5*k+.15);nz(70,'lowpass',1.2+k,.6*k+.1);tone(55,.6+k*.5,.25*k+.08,'sine',.6);tone(38,.9+k*.6,.22*k+.05,'sine',.7);nz(2400,'bandpass',.25,.08*k,1.2);},
     coin(v){if(!ok(1))return;const p=Math.min(16,Math.log2(1+v)*1.5);const f=620*Math.pow(2,p/12);tone(f,.14,.06);tone(f*1.5,.18,.045,'sine',0,.06);},
+    coins(n){if(!ac||muted)return;for(let j=0;j<n;j++){const f=2200+Math.random()*1800;tone(f,.06,.035,'sine',0,.12+j*.055+Math.random()*.03);tone(f*1.5,.05,.02,'sine',0,.13+j*.055);}},
     wash(){if(!ac||muted)return;nz(1400,'bandpass',.6,.25,.6);[784,988,1175,1568].forEach((f,j)=>tone(f,.25,.06,'triangle',0,.1+j*.07));},
     ice(k){if(!ok(1))return;tone(2400+R()*1800,.06,.05*k+.02,'square',.6);},
     thud(k){if(!ok(1))return;nz(220+R()*120,'lowpass',.25+k*.3,.25*k+.05);tone(70+R()*30,.25,.15*k,'sine',.7);},
@@ -1396,7 +1402,9 @@ function buildShop(){setTimeout(layoutMobile,0);$('ups').innerHTML='';btns=SHOP.
 function renderHotbar(){const hb=$('hotbar');hb.innerHTML='';TOOLS.forEach((t,i)=>{const b=document.createElement('button');const on=toolOn(t.k);b.className='tool'+(S.tool===t.k?' on':'')+(on?'':' lock');
   b.title=`${t.n} (tecla ${i+1}): ${on?t.tip:'bloqueado. Desbloqueie na aba Ferramentas.'}`;b.setAttribute('aria-label',b.title);b.innerHTML=`<span class="k">${i+1}</span><span class="ic">${on?t.ic:'🔒'}</span><span class="nm">${t.n}</span><span class="cd" id="cd_${t.k}"></span>`;b.onclick=()=>{sfx.init();if(on)setTool(t.k);else{curTab='Ferramentas';buildShop();ui();}};hb.appendChild(b);});}
 function wash(){if(S.sluice<.01)return;qBump('wash');stats('washes');washFx(S.sluice);const v=S.sluice;S.money+=v;S.total+=v;earnBatch+=v;S.sluice=0;sfx.wash();
-  const p=new THREE.Vector3((SL_X0+SL_X1)/2,chanBed((SL_X0+SL_X1)/2)+.25,0);floatText(p,'+$'+fmt(v),'#ffe08a',26);save();ui();}
+  const p=new THREE.Vector3((SL_X0+SL_X1)/2,chanBed((SL_X0+SL_X1)/2)+.25,0);floatText(p,'+$0','#ffe08a',30);const ft=fts[fts.length-1];ft.life=130;const t0=performance.now(),D=Math.min(1100,350+Math.log2(1+v)*70);
+  (function cnt(){const k=Math.min(1,(performance.now()-t0)/D),e=1-Math.pow(1-k,3);ft.el.textContent='+$'+fmt(v*e);if(k<1)requestAnimationFrame(cnt);else{ft.el.style.transform='translate(-50%,-50%) scale(1.25)';setTimeout(()=>ft.el.style.transform='',160);}})();
+  sfx.coins(Math.min(14,3+Math.floor(Math.log2(1+v))));const mEl=$('money');mEl.classList.remove('pop');void mEl.offsetWidth;mEl.classList.add('pop');save();ui();}
 $('wash').onclick=()=>{sfx.init();wash();};
 $('nextRock').onclick=()=>{sfx.init();finishRock(false);};
 $('perkBtn').onclick=()=>{sfx.init();openPerks();};
@@ -1450,7 +1458,7 @@ $('hint').ondblclick=null;
 let shake=0,frames=0,acc=0,last=performance.now(),washT=0,earnT=0;
 function newRock(fresh){
   if(fresh||!S.rockSeed){S.rockSeed=(Math.random()*2**31)|0;S.mile=0;S.extras=[];try{localStorage.removeItem(KEY+'_rock');}catch(e){}}
-  genRock(S.level,S.rockSeed);
+  genRock(S.level,S.rockSeed);setMood(S.rockSeed>>3);
   if(!fresh&&!loadRockMask()){S.mile=0;S.extras=[];genRock(S.level,S.rockSeed);}
   if(fresh)setTimeout(()=>{toast('Novo objeto: '+rockInfo.name,rockInfo.rar?('✦ '+rockInfo.rar+' ✦'):'Rocha comum');if(rockInfo.rar)sfx.reveal();},300);
   rebuildAll();structDirty=false;}
