@@ -24,6 +24,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#1b1a17;font-family:"I
 #buffs{position:fixed;left:50%;top:70px;transform:translateX(-50%);display:flex;gap:6px;pointer-events:none;z-index:3;flex-wrap:wrap;justify-content:center;max-width:92vw}#buffs span{background:#0c1014cc;border:1px solid #ffffff2a;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600;white-space:nowrap}
 #quest small{display:block;opacity:.65;font-size:11.5px;margin-top:2px}#quest .rr{cursor:pointer;color:#ffd36a;font-weight:600;pointer-events:auto}#quest .qbar{height:3px;background:#ffffff1a;border-radius:2px;margin-top:5px;overflow:hidden}#quest .qbar i{display:block;height:100%;background:linear-gradient(90deg,#ffd36a,#ff9a5a);transition:width .3s}
 #quest.done{animation:qd .8s}@keyframes qd{50%{background:rgba(120,200,120,.45)}}
+#dealBtn{position:fixed;left:190px;top:150px;padding:9px 14px;font:inherit;font-weight:800;color:#9fe8ff;cursor:pointer;display:none;animation:pulse 1.2s infinite;border:1px solid #6fd3ff66}
 #perkBtn{position:fixed;left:14px;top:150px;padding:9px 14px;font:inherit;font-weight:800;color:#ffe9a0;cursor:pointer;display:none;animation:pulse 1.2s infinite;border:1px solid #ffe08a66}
 #perkModal{position:fixed;inset:0;background:#0009;display:none;align-items:center;justify-content:center;z-index:20}
 .pm-in{padding:20px 22px;text-align:center;max-width:760px}.pm-in h3{margin:0 0 14px;font-size:20px}.pm-in small{opacity:.6;display:block;margin-top:12px}
@@ -92,7 +93,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#1b1a17;font-family:"I
 <div id="top" class="panel"><div id="money">$0</div><div id="rate">$0/s</div><div id="rank"><span id="rankName">Aprendiz</span> <span id="rankMul" style="opacity:.6"></span><div class="bar"><div id="rankBar"></div></div><div id="rankNext" style="font-size:11px;opacity:.55;margin-top:3px"></div></div></div>
 <div id="rock" class="panel"><div id="rockName">—</div><div id="rockSub" style="opacity:.7">0% erodido</div><div class="bar"><div id="rockBar"></div></div><div id="mileTxt" style="font-size:11.5px;opacity:.75;margin-top:4px"></div><button id="nextRock">Próxima rocha →</button></div>
 <div id="combo"></div>
-<button id="perkBtn" class="panel">✦ Escolher perk</button>
+<button id="perkBtn" class="panel">✦ Escolher perk</button><button id="dealBtn" class="panel">🧾 Proposta</button>
 <div id="perkModal"></div>
 <div id="settings" class="panel"><button id="gfxBtn" title="Qualidade gráfica">🖥️ Alto</button><button id="sndBtn" title="Som">🔊</button><button id="achBtn" title="Conquistas">🏆</button><button id="expBtn" title="Nova expedição (prestígio)">🧭 Expedição</button></div>
 <div id="perkList" class="panel"></div>
@@ -799,7 +800,7 @@ function buildExtraSluices(){extraSlGroup.clear();const wood=new THREE.MeshStand
     for(let r=-L/2+.08;r<L/2;r+=.12){const rf=new THREE.Mesh(new THREE.BoxGeometry(W,.018,.012),dark);rf.position.set(0,.01,r);g.add(rf);}
     g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});extraSlGroup.add(g);}}
 function postStep(){
-  const n=F.np;const capP=Math.min(.97,capture(S.up.riffle)+pk('calha')*.08)*.035*(mareT>0?1.6+pk('mare')*.2:1);const capacity=totalCap();
+  const n=F.np;const capP=Math.min(.97,capture(S.up.riffle)+pk('calha')*.08)*.035*(mareT>0?1.6+pk('mare')*.2:1)*pactM('cap');const capacity=totalCap();
   for(let i=n-1;i>=0;i--){if(F.dead[i])continue;const x=F.px[i],y=F.py[i],z=F.pz[i];
     if(F.kind[i]===1&&inSluice(x,y,z)){
       const sp=Math.hypot(F.vx[i],F.vy[i],F.vz[i])*HZ;
@@ -828,6 +829,7 @@ const ACH=[
  {k:'fly',n:'Caçador de libélulas',d:'Pegar 5 libélulas douradas',s:'flies',v:5},{k:'storm',n:'Olho da tempestade',d:'Passar por 3 tempestades',s:'storms',v:3},
  {k:'balloon',n:'Arremessador',d:'Arremessar 50 balões cheios',s:'balloons',v:50},{k:'crush',n:'Moedor',d:'O britador mói 200 vezes',s:'crush',v:200},
  {k:'wash',n:'Lavadeiro',d:'Lavar a calha 100 vezes',s:'washes',v:100},{k:'rocks',n:'Colecionador de pedras',d:'Trocar 10 rochas',s:'rocks2',v:10},
+ {k:'deal',n:'Negociador',d:'Aceitar 8 propostas do laboratório',s:'deals',v:8},
  {k:'crate',n:'Almoxarife',d:'Abrir 10 caixas de suprimentos',s:'crates',v:10},{k:'events',n:'Cobaia veterana',d:'Passar por 15 eventos da câmara',s:'events',v:15},
  {k:'crack',n:'Ponto fraco',d:'Quebrar 25 pontos fracos',s:'cracks',v:25},{k:'contract',n:'Fornecedor',d:'Cumprir 10 encomendas',s:'contracts',v:10},{k:'boss',n:'Derrubador de monólitos',d:'Vencer um desafio do Monólito',s:'bosses',v:1},
  {k:'opal',n:'Fogo na pedra',d:'Encontrar 3 opalas de fogo',s:'opals',v:3},{k:'geode',n:'Quebra-geodo',d:'Abrir 3 geodos',s:'geodes',v:3},
@@ -838,8 +840,9 @@ function stats(k,n=1){if(!S.st)S.st={};S.st[k]=(S.st[k]||0)+n;}
 function checkAch(){if(!S.ach)S.ach={};for(const a of ACH){if(S.ach[a.k])continue;if(((S.st||{})[a.s]||0)>=a.v){S.ach[a.k]=1;toast('🏆 Conquista: '+a.n,a.d+' · renda +2% permanente');sfx.reveal();}}}
 const achMult=()=>1+Object.keys(S.ach||{}).length*.02;
 const colCount=()=>Object.keys(S.col||{}).length;const colMult=()=>(1+colCount()*.06)*achMult();let blessT=0;
+let pact=null,dealT=0,dealCD=150;const pactM=k=>(pact&&pact.m&&pact.m[k])||1;const rockBonus=()=>(S.rb&&S.rb.seed===S.rockSeed)?S.rb.v:1;
 let frenzyT=0,infTankT=0,darkT=0,overT=0,alarmT=0,darkK=0,weakChain=0,G0=0;
-const valMult=()=>(1+(S.level-1)*.35)*rankMult()*colMult()*(1+(S.amber||0)*.08)*(blessT>0?2:1)*(frenzyT>0?3:1)*(darkT>0?2:1)*mut('val');
+const valMult=()=>(1+(S.level-1)*.35)*rankMult()*colMult()*(1+(S.amber||0)*.08)*(blessT>0?2:1)*(frenzyT>0?3:1)*(darkT>0?2:1)*mut('val')*pactM('val')*rockBonus();
 const MILES=[.01,.025,.05,.1,.2,.35,.6,1,1.5,2.2,3,4,5.5,7.5,10,14,20,28,38,50,65];
 const mileReward=k=>Math.round(6*Math.pow(k+1,1.55)*(1+(S.level-1)*.6)*rankMult());
 function spawnGrain(x,y,z,t,vx=0,vy=0,vz=0){if(sedCount>=MAXSED)return;const k=F.add(x,y,z,vx+(R()-.5)*.002,vy+.001,vz+(R()-.5)*.002,1,t);if(k>=0)sedCount++;}
@@ -1204,7 +1207,7 @@ const _tp=new THREE.Vector3();
 function rockSurfacePoint(from){ // marcha do lado de 'from' até a rocha
   const c=new THREE.Vector3((R()-.5)*1.4,RY0+.35+R()*1.2,(R()-.5)*1.4);const d=c.clone().sub(from).normalize();
   for(let t=0;t<8;t+=.02){_tp.copy(from).addScaledVector(d,t);const gx=Math.floor((_tp.x-RX0)/V),gy=Math.floor((_tp.y-RY0)/V),gz=Math.floor((_tp.z-RZ0)/V);if(solid(gx,gy,gz))return _tp.clone();}return null;}
-function stepTurrets(dt){const sp=cad(S.up.cadencia)*(1+pk('torretas')*.2);
+function stepTurrets(dt){if(pact&&pact.noTur)return;const sp=cad(S.up.cadencia)*(1+pk('torretas')*.2);
   for(const t of turrets){t.t-=dt*sp;const hw=new THREE.Vector3();t.head.getWorldPosition(hw);
     if(!t.target||t.t<=0&&t.burst<=0)t.target=rockSurfacePoint(t.typ==='gota'?hw.clone().setY(hw.y+.5):hw);
     if(t.target){const q=t.head.parent.worldToLocal(t.target.clone());t.head.lookAt(t.target);}
@@ -1513,7 +1516,7 @@ function toggleDrain(){if(!S.up.comporta)return;S.drainOpen=!S.drainOpen;sfx.ini
   toast(S.drainOpen?'🚰 Ralo aberto':'🌊 Ralo fechado',S.drainOpen?'A água escoa em redemoinho e arrasta os grãos para as calhas':'A câmara vai inundar: a água parada erode a base da rocha');save();ui();}
 $('drainBtn').onclick=toggleDrain;addEventListener('keydown',e=>{if(e.key==='g'||e.key==='G')toggleDrain();});
 $('nextRock').onclick=()=>{sfx.init();finishRock(false);};
-$('perkBtn').onclick=()=>{sfx.init();openPerks();};
+$('perkBtn').onclick=()=>{sfx.init();openPerks();};$('dealBtn').onclick=()=>{sfx.init();openDeal();};
 $('achBtn').onclick=()=>{const m=$('perkModal');const got=Object.keys(S.ach||{}).length;m.innerHTML=`<div class="pm-in panel" style="max-width:640px"><h3>🏆 Conquistas ${got}/${ACH.length} · renda +${got*2}%</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;text-align:left">${ACH.map(a=>{const ok=S.ach&&S.ach[a.k];const v=Math.min(a.v,(S.st||{})[a.s]||0);return `<div style="padding:7px 10px;border-radius:9px;background:rgba(255,245,225,${ok?.14:.04});opacity:${ok?1:.75}"><b>${ok?'🏆':'🔒'} ${a.n}</b><br><small style="margin:0;opacity:.75">${a.d} · ${fmt(v)}/${fmt(a.v)}</small></div>`;}).join('')}</div><div class="pm-cards" style="margin-top:12px"><button class="pcard" id="achClose" style="width:auto;padding:8px 18px"><b>Fechar</b></button></div></div>`;m.style.display='flex';$('achClose').onclick=()=>m.style.display='none';};
 $('sndBtn').onclick=()=>{sfx.init();$('sndBtn').textContent=sfx.toggle()?'🔇':'🔊';};
 $('gfxBtn').onclick=()=>{S.gfx=((S.gfx??2)+2)%3;applyGfx();save();};
@@ -1534,13 +1537,14 @@ function ui(){
   $('nextRock').style.display=pct>=nextPct()&&!rockInfo.done?'block':'none';
   if(S.lastRank===undefined)S.lastRank=rankIdx();if(rankIdx()>S.lastRank){S.lastRank=rankIdx();grantPerkChoice('Novo rank: '+RANKS[S.lastRank][1]);}
   {const pl=$('perkList');const ks=Object.keys(S.perks||{}).filter(k=>S.perks[k]);if(ks.length){pl.style.display='flex';const h=ks.map(k=>{const p=PERKS.find(x=>x.k===k);return p?`<span title="${p.n} ${S.perks[k]}: ${p.d}">${p.ic}${S.perks[k]>1?'<sub>'+S.perks[k]+'</sub>':''}</span>`:'';}).join('');if(pl._h!==h){pl.innerHTML=h;pl._h=h;}}else pl.style.display='none';}
+  $('dealBtn').style.display=dealT>0?'block':'none';if(dealT>0)$('dealBtn').textContent='🧾 Proposta ('+Math.ceil(dealT)+'s)';
   $('perkBtn').style.display=S.perkPend?'block':'none';$('perkBtn').textContent='✦ Escolher perk'+(S.perkPend>1?' ('+S.perkPend+')':'');
   const ri=rankIdx(),r0=RANKS[ri][0],r1=RANKS[ri+1]?RANKS[ri+1][0]:null;$('rankName').textContent='🏅 '+RANKS[ri][1];$('rankMul').textContent='· renda ×'+rankMult().toFixed(2).replace('.',',');
   $('rankMul').textContent='· renda ×'+(rankMult()*colMult()).toFixed(2).replace('.',',')+' · coleção '+colCount()+'/'+OBJ_TYPES.length+(blessT>0?' · ✨×2 '+Math.ceil(blessT)+'s':'');$('rankBar').style.width=(r1?Math.min(100,(S.total-r0)/(r1-r0)*100):100)+'%';$('rankNext').textContent=r1?`Próximo: ${RANKS[ri+1][1]} ($${fmt(r1)} ganhos no total)`:'Rank máximo';
   const c=totalCap();$('sluiceTxt').textContent='$'+fmt(S.sluice)+' / $'+fmt(c)+(lostBatchShown>0?' · perdeu $'+fmt(lostBatchShown):'');$('sluiceBar').style.width=Math.min(100,S.sluice/c*100)+'%';
   {const db=$('drainBtn'),ft=$('floodTxt');if(!S.up.comporta)S.drainOpen=true;db.style.display=S.up.comporta?'block':'none';const t=S.drainOpen?'🚰 Ralo aberto · fechar (G)':'🌊 Ralo fechado · abrir (G)';if(db.textContent!==t)db.textContent=t;db.classList.toggle('closed',!S.drainOpen);
    const cm=Math.max(0,(floodLevel()-terrainH(0,0))*100);const on=(S.flood||0)>40;ft.style.display=on?'block':'none';if(on)ft.textContent='Nível da água: '+(cm<1?'na canaleta':cm.toFixed(0)+' cm')+(S.drainOpen?' · escoando…':'');}
-  {const B=[];const a=(t,ic,l)=>{if(t>0)B.push(`<span>${ic} ${l} ${Math.ceil(t)}s</span>`);};a(frenzyT,'✨','renda ×3');a(blessT,'🗿','renda ×2');a(darkT,'🔦','luz negra ×2');a(overT,'⚡','erosão ×2,5');a(alarmT,'🚨','sprinklers');a(rainbowT,'🌈','grãos ×2');a(gfloodT,'🌊','enxurrada');a(floodT,'💥','enchente ×2');
+  {const B=[];const a=(t,ic,l)=>{if(t>0)B.push(`<span>${ic} ${l} ${Math.ceil(t)}s</span>`);};if(pact)B.push(`<span>${pact.n}${pact.need?' '+Math.min(pact.need,((S.st&&S.st.cracks)||0)-pact.base)+'/'+pact.need:''} ${Math.ceil(pact.t)}s</span>`);if(rockBonus()>1)B.push('<span>🛡️ rocha ×2</span>');a(frenzyT,'✨','renda ×3');a(blessT,'🗿','renda ×2');a(darkT,'🔦','luz negra ×2');a(overT,'⚡','erosão ×2,5');a(alarmT,'🚨','sprinklers');a(rainbowT,'🌈','grãos ×2');a(gfloodT,'🌊','enxurrada');a(floodT,'💥','enchente ×2');
    const h=B.join('');const el=$('buffs');if(el._h!==h){el.innerHTML=h;el._h=h;}}
   $('wash').disabled=S.sluice<.01;const full=S.sluice>=c*.98;$('wash').classList.toggle('full',full);
   if(full&&!wasFull){if(S.up.lavadora){const v=S.sluice*.85;S.sluice=0;S.money+=v;S.total+=v;earnBatch+=v;stats('washes');washFx(v);sfx.coins(5);floatText(new THREE.Vector3((SL_X0+SL_X1)/2,chanBed((SL_X0+SL_X1)/2)+.25,0),'🫧 +$'+fmt(v),'#bfe8ff',22);}else{sfx.full&&sfx.full();toast('Calha cheia!','Lave a calha para não perder os grãos');}}wasFull=full&&!S.up.lavadora;
@@ -1635,7 +1639,25 @@ function tryCrate(cx,cy){if(!crate.visible)return false;const v=crate.position.c
   else if(r<.92){frenzyT=15;toast('📦 Frenesi! ✨','Renda ×3 por 15 segundos');}
   else grantPerkChoice('Caixa rara: perk novo');
   return true;}
-function stepEvents(dt){stepGoldFlood(dt);stepLabEvents(dt);stepCrate(dt);if(S.level<2&&S.total<300)return;evTimer-=dt;if(evTimer<=0){evTimer=75+Math.random()*75;const q=Math.random();
+// ===== Propostas do laboratório (risco × recompensa) =====
+const DEALS=[
+ {k:'acido',ic:'🧪',n:'Ácido instável',d:'Erosão ×3 por 60 s, mas as calhas capturam só metade dos grãos',go(){pact={n:'🧪 ácido ×3',t:60,m:{ero:3,cap:.5}};}},
+ {k:'extra',ic:'⏱️',n:'Horas extras',d:'Renda ×2 por 90 s. Depois, ressaca: renda ×0,5 por 40 s',go(){pact={n:'⏱️ renda ×2',t:90,m:{val:2},next:{n:'😵 ressaca ×0,5',t:40,m:{val:.5}}};}},
+ {k:'aposta',ic:'🎯',n:'Meta de fraturas',d:'Aposte 30% do seu dinheiro: quebre 3 pontos fracos em 75 s e receba o triplo',ok:()=>S.money>=60,go(){const st=S.money*.3;S.money-=st;weakChain=3;weakCD=.5;pact={n:'🎯 fraturas',t:75,m:{},stake:st,base:(S.st&&S.st.cracks)||0,need:3};}},
+ {k:'blind',ic:'🛡️',n:'Reforço experimental',d:'Esta rocha fica 50% mais resistente, mas tudo dela vale ×2 até a troca',ok:()=>rockBonus()===1,go(){for(let i=0;i<GN;i++)if(vt[i])vhp[i]*=1.5;S.rb={seed:S.rockSeed,v:2};}},
+ {k:'moeda',ic:'🪙',n:'Dobro ou nada',d:'Aposte 25% do seu dinheiro numa moeda: 50% de chance de receber 2,2× de volta',ok:()=>S.money>=60,go(){const st=S.money*.25;S.money-=st;if(Math.random()<.5){const g=st*2.2;S.money+=g;S.total+=g-st;toast('🪙 Cara! Dobrou','+$'+fmt(g-st));sfx.coins(10);coinFountain(controls.target.x,controls.target.y+.5,controls.target.z);}else{toast('🪙 Coroa…','−$'+fmt(st));sfx.rumble(.3);}}},
+ {k:'seca',ic:'🏜️',n:'Racionamento',d:'Sem torretas por 60 s; em troca, erosão manual ×2 e renda ×1,5',go(){pact={n:'🏜️ racionamento',t:60,m:{ero:2,val:1.5},noTur:true};}},
+];
+function openDeal(){if(dealT<=0)return;const pool=DEALS.filter(d=>!d.ok||d.ok());const pick=[];while(pick.length<2&&pool.length)pick.push(pool.splice((Math.random()*pool.length)|0,1)[0]);
+  const m=$('perkModal');m.innerHTML='<div class="pm-in panel"><h3>🧾 Proposta do laboratório</h3><div class="pm-cards"></div><small>Risco e recompensa. Você pode recusar.</small></div>';
+  const cards=m.querySelector('.pm-cards');const done=()=>{dealT=0;dealCD=170+Math.random()*90;m.style.display='none';save();ui();};
+  for(const d of pick){const b=document.createElement('button');b.className='pcard';b.innerHTML=`<span class="pic">${d.ic}</span><b>${d.n}</b><span>${d.d}</span>`;b.onclick=()=>{stats('deals');d.go();if(d.k!=='moeda')toast(d.ic+' '+d.n,d.d);sfx.ping();done();};cards.appendChild(b);}
+  const no=document.createElement('button');no.className='pcard';no.innerHTML='<span class="pic">🚫</span><b>Recusar</b><span>Nada muda. Outra proposta chega depois.</span>';no.onclick=done;cards.appendChild(no);m.style.display='flex';}
+function stepDeals(dt){
+  if(pact){pact.t-=dt;if(pact.need){const c=((S.st&&S.st.cracks)||0)-pact.base;if(c>=pact.need){const g=pact.stake*3;S.money+=g;S.total+=g-pact.stake;toast('🎯 Meta batida!','+$'+fmt(g));sfx.coins(12);pact=null;return;}}
+    if(pact.t<=0){if(pact.need)toast('🎯 Meta perdida','−$'+fmt(pact.stake));pact=pact.next||null;}}
+  if(S.level<2&&S.total<800)return;if(dealT>0){dealT-=dt;if(dealT<=0)dealCD=120+Math.random()*60;}else if(!pact&&!boss){dealCD-=dt;if(dealCD<=0){dealT=45;toast('🧾 Proposta do laboratório','Abra o botão à esquerda em até 45 s');sfx.ping();}}}
+function stepEvents(dt){stepGoldFlood(dt);stepLabEvents(dt);stepDeals(dt);stepCrate(dt);if(S.level<2&&S.total<300)return;evTimer-=dt;if(evTimer<=0){evTimer=75+Math.random()*75;const q=Math.random();
   if(q<.16)meteorShower();else if(q<.3)rareVisitor();else if(q<.44)goldFlood();else if(q<.58)blackout();else if(q<.72)overload();else if(q<.84)fireAlarm();else if(q<.93)quake();else weakRush();}}
 const matBonus=t=>(t===T_GOLD||t===T_AME||t===T_OLIV||t===T_HEART||t===T_OPAL)?1+pk('geologo')*.35:1;
 const valMultAt=l=>(1+(l-1)*.35)*rankMult()*colMult();
@@ -1698,7 +1720,7 @@ function stepContract(dt){if(S.q<QUESTS.length)return;ctrTick+=dt;if(ctrTick>=10
   else if(c.t<=0){S.ctr=null;ctrCD=12;toast('Encomenda expirou','Outra chega em instantes');}}
 function rerollContract(){if(S.ctr&&S.ctr.t>0){S.ctr=null;ctrCD=.1;newContract();}}
 function simFrame(){
-  const dt=1/60;erosionMul=acid(S.up.acido)*(floodT>0?2:1)*(1+(S.amber||0)*.03)*(overT>0?2.5:1)*mut('ero');if(!G0)G0=F.G;F.G=G0*mut('g');if(frenzyT>0)frenzyT-=dt;if(infTankT>0){infTankT-=dt;jetTank=tankCap();jetLock=false;}splashBudget=3;
+  const dt=1/60;erosionMul=acid(S.up.acido)*(floodT>0?2:1)*(1+(S.amber||0)*.03)*(overT>0?2.5:1)*mut('ero')*pactM('ero');if(!G0)G0=F.G;F.G=G0*mut('g');if(frenzyT>0)frenzyT-=dt;if(infTankT>0){infTankT-=dt;jetTank=tankCap();jetLock=false;}splashBudget=3;
   for(const k in cdLeft)if(cdLeft[k]>0)cdLeft[k]-=dt;
   // segurar
   if(down&&aim&&S.tool==='gota'&&S.up.chuva){holdAcc+=rainRate(S.up.chuva)/60;while(holdAcc>=1){holdAcc--;const p=aim.clone();p.x+=(R()-.5)*.12;p.z+=(R()-.5)*.12;spawnDrop(p,dropN(S.up.gota),dropH(S.up.altura));}}
@@ -1801,7 +1823,7 @@ function offlineGains(){const away=(Date.now()-(S.t||Date.now()))/1000;const pas
   const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60);setTimeout(()=>toast('Enquanto você estava fora ('+(h?h+'h ':'')+m+'min)','Suas máquinas renderam +$'+fmt(g)),900);}
 setTimeout(()=>{offlineGains();applyGfx();newRock(false);buildShop();renderHotbar();rebuildTurrets();buildAqueduct();buildExtraSluices();syncFish();buildCrusher();ui();hideLoading();requestAnimationFrame(loop);},30);
 window.__rr=()=>{rerollContract();sfx.ping();};
-window.__dbg={blackout,overload,fireAlarm,quake,weakRush,dropCrate,tryCrate,crate,MUTS,get flood(){return S.flood},floodLevel,toggleDrain,get weak(){return weak},get boss(){return boss},spawnWeak,get ctr(){return S.ctr},newContract,ctrRate,set weakCD(v){weakCD=v},scene,set rainbowT(v){rainbowT=v},valMult:()=>valMult(),get erosionMul(){return erosionMul},get st(){return S.st},get ach(){return S.ach},openPerks,tryCatchFly,fly,get flyTimer(){return flyTimer},set flyTimer(v){flyTimer=v},beam,wetData,wetTex,SHOP,buy,wash,costOf,maxed,avail,get simCost(){return simCost},meteorShower,rareVisitor,goldFlood,newRock,get rock(){return rockInfo},hold(v){down=v;},jetAt(x,y,z){aim=new THREE.Vector3(x,y,z);S.tool='jato';down=true;},panGrains:(x,y,z)=>panGrains(new THREE.Vector3(x,y,z)),startStorm,get cap(){return F.cap},aimAt(x,y,z){aim=new THREE.Vector3(x,y,z);},carve(x0,x1,y0,y1){for(let z=0;z<GZ;z++)for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const i=vid(x,y,z);if(vt[i])removeVoxel(i,x,y,z,false);}},frags,setTool,useTool,get aim(){return aim},set aim(v){aim=v},startDam,burstDam,get dam(){return dam},DBG,setRender(v){SIMONLY=!v;},cam:camera,ctl:controls,get frames(){return frames},F,S,rockInfo:()=>rockInfo,spawnDrop:(x,y,z,n,h)=>spawnDrop(new THREE.Vector3(x,y,z),n,h)};
+window.__dbg={DEALS,openDeal,get pact(){return pact},set dealT(v){dealT=v},blackout,overload,fireAlarm,quake,weakRush,dropCrate,tryCrate,crate,MUTS,get flood(){return S.flood},floodLevel,toggleDrain,get weak(){return weak},get boss(){return boss},spawnWeak,get ctr(){return S.ctr},newContract,ctrRate,set weakCD(v){weakCD=v},scene,set rainbowT(v){rainbowT=v},valMult:()=>valMult(),get erosionMul(){return erosionMul},get st(){return S.st},get ach(){return S.ach},openPerks,tryCatchFly,fly,get flyTimer(){return flyTimer},set flyTimer(v){flyTimer=v},beam,wetData,wetTex,SHOP,buy,wash,costOf,maxed,avail,get simCost(){return simCost},meteorShower,rareVisitor,goldFlood,newRock,get rock(){return rockInfo},hold(v){down=v;},jetAt(x,y,z){aim=new THREE.Vector3(x,y,z);S.tool='jato';down=true;},panGrains:(x,y,z)=>panGrains(new THREE.Vector3(x,y,z)),startStorm,get cap(){return F.cap},aimAt(x,y,z){aim=new THREE.Vector3(x,y,z);},carve(x0,x1,y0,y1){for(let z=0;z<GZ;z++)for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const i=vid(x,y,z);if(vt[i])removeVoxel(i,x,y,z,false);}},frags,setTool,useTool,get aim(){return aim},set aim(v){aim=v},startDam,burstDam,get dam(){return dam},DBG,setRender(v){SIMONLY=!v;},cam:camera,ctl:controls,get frames(){return frames},F,S,rockInfo:()=>rockInfo,spawnDrop:(x,y,z,n,h)=>spawnDrop(new THREE.Vector3(x,y,z),n,h)};
 addEventListener('visibilitychange',()=>{if(document.hidden){save();saveRockMask();}});addEventListener('beforeunload',()=>{save();saveRockMask();});
 </script>
 </body>

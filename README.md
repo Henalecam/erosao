@@ -101,6 +101,7 @@ As melhorias de água valem para todas as ferramentas:
 - **Mutações de rocha:** a partir da rocha 3, cerca de 60% das rochas vêm com uma mutação aleatória (Quebradiça, Veios ricos, Blindada, Porosa, Cristalina, Gravidade baixa, Instável, Banho ácido) que muda como vale a pena jogar aquela rocha.
 - **Eventos da câmara:** blecaute com luz negra (renda ×2), sobrecarga de pressão (erosão ×2,5), alarme com sprinklers, abalo sísmico (fraturas espontâneas) e tensão interna (4 pontos fracos em sequência), além de meteoritos, visitantes raros e enxurrada dourada. Os efeitos ativos aparecem como etiquetas no topo da tela.
 - **Caixa de suprimentos:** desce do teto de tempos em tempos; clique para abrir e ganhar um prêmio aleatório (verba, sobrecarga, ouro, frenesi, blecaute ou, raramente, um perk).
+- **Propostas do laboratório:** de tempos em tempos surge uma proposta de risco × recompensa com duas cartas (ácido instável, horas extras, meta de fraturas, reforço experimental, dobro ou nada, racionamento). Dá para recusar.
 - **Pontos fracos:** rachaduras brilhantes surgem na rocha; acerte-as com qualquer arma para causar uma fratura grande, com bônus e combo.
 - **Encomendas:** depois do tutorial, pedidos infinitos (erodir blocos, liberar ouro, quebrar pontos fracos, lavar a calha…) com tempo limite; a cada 4 entregues, um perk novo. Dá para trocar a encomenda (⟳).
 - **Desafio do Monólito:** a cada 5 rochas, um monólito com faixas de ouro: quebre 6 pontos fracos em 90 s para derrubá-lo e ganhar uma grande recompensa e um perk.
