@@ -19,12 +19,30 @@ precisam ser levados pela correnteza até as calhas de garimpo, onde viram dinhe
 | Mostrar/ocultar a loja | B |
 | Bateia | Clique nos grãos encalhados |
 
-## Ferramentas
-- 💧 **Gota:** com a melhoria Chuva, segure para chover.
-- 🚿 **Jato:** feixe de alta pressão que **perfura**; as partículas atravessam os voxels que quebram.
-- 🎈 **Balão d'água:** segure para encher e solte para arremessar no alvo marcado. Ele estoura numa cratera e **lança os blocos** como fragmentos físicos.
-- 🧊 **Granizo:** blocos de gelo rígidos que caem, lascam a rocha, estilhaçam e derretem.
-- 🌊 **Onda:** parede de água com espuma que varre a base e empurra os detritos.
+## Ferramentas (cada uma com seu papel)
+| Ferramenta | Papel | Limite |
+|---|---|---|
+| 💧 Gota / Chuva | Constante e barata; constrói o combo | — |
+| 🚿 Jato | Maior dano contínuo; **perfura** | **Tanque de pressão**: esvazia e recarrega |
+| 🎈 Balão | Explosão em área; **lança blocos** (que só pagam quando são recolhidos) | Recarga de 6 s |
+| 🧊 Granizo | Lascador preciso, **×2 contra rocha dura** (granito, quartzo, ouro, meteorito) | Recarga de 3 s |
+| 🌊 Onda | Utilidade: empurra os detritos e ativa a **Maré** (+60% de captura nas calhas) | Recarga de 7 s |
+
+Balanceamento medido (20 s, mesmas melhorias, arenito): todas as ferramentas ficam entre $310 e $525. Antes, a diferença chegava a 15×.
+
+## Perks
+A cada rank novo e a cada rocha nova, escolha 1 de 3 perks. São 20 no total: gotas gêmeas, pulmão de aço, jato afiado,
+mãos rápidas, balão gordo, granizo de diamante, maré alta, erosão em cadeia, olho de geólogo, bateia de ouro, cardume,
+calha magnética, embalo, engrenagens, chuva farta, castores amigos, trevo, cartógrafo, vigia noturno e para-raios.
+
+## Libélula dourada e expedição
+- **Libélula dourada:** de tempos em tempos ela cruza a clareira; clique nela para ganhar um bônus aleatório:
+  - Frenesi: renda ×3.
+  - Fôlego infinito.
+  - Saco de ouro.
+  - Chuva dourada.
+- **Expedição (prestígio):** depois de trocar 3 rochas, você pode recomeçar e ganhar **âmbar** 🟠. Cada âmbar dá +8% de renda e +3% de erosão para sempre. A coleção e os objetivos ficam.
+- **Gráficos:** Alto, Médio ou Baixo (resolução, sombras, partículas e grama).
 
 As melhorias de água valem para todas as ferramentas:
 - **Gota maior:** mais volume em tudo.

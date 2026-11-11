@@ -22,6 +22,14 @@ html,body{margin:0;height:100%;overflow:hidden;background:#1b1a17;font-family:"I
 #quest{position:fixed;left:50%;top:14px;transform:translateX(-50%);padding:8px 16px;font-size:13.5px;text-align:center;min-width:280px}
 #quest small{display:block;opacity:.65;font-size:11.5px;margin-top:2px}
 #quest.done{animation:qd .8s}@keyframes qd{50%{background:rgba(120,200,120,.45)}}
+#perkBtn{position:fixed;left:14px;top:150px;padding:9px 14px;font:inherit;font-weight:800;color:#ffe9a0;cursor:pointer;display:none;animation:pulse 1.2s infinite;border:1px solid #ffe08a66}
+#perkModal{position:fixed;inset:0;background:#0009;display:none;align-items:center;justify-content:center;z-index:20}
+.pm-in{padding:20px 22px;text-align:center;max-width:760px}.pm-in h3{margin:0 0 14px;font-size:20px}.pm-in small{opacity:.6;display:block;margin-top:12px}
+.pm-cards{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.pcard{width:200px;padding:16px 14px;border-radius:14px;border:1px solid rgba(255,240,210,.2);background:rgba(255,245,225,.06);color:inherit;font:inherit;cursor:pointer;display:flex;flex-direction:column;gap:6px;align-items:center;transition:transform .12s,background .12s}
+.pcard:hover{transform:translateY(-4px);background:rgba(255,230,160,.14)}.pcard .pic{font-size:34px}.pcard b{font-size:15px}.pcard span{font-size:12.5px;opacity:.8}
+#perkList{position:fixed;left:14px;bottom:140px;padding:6px 9px;font-size:16px;display:none;max-width:260px;flex-wrap:wrap;gap:3px}
+#settings{position:fixed;right:14px;bottom:172px;padding:5px;display:flex;gap:5px}#settings button{background:rgba(255,245,225,.06);border:1px solid rgba(255,240,210,.15);color:inherit;font:inherit;font-size:12px;padding:5px 9px;border-radius:8px;cursor:pointer}
 #camHelp{position:fixed;right:14px;bottom:140px;padding:6px 11px;font-size:11px;opacity:.7}
 #sluice{top:150px!important}
 #sluice{position:fixed;right:14px;top:96px;padding:10px 14px;font-size:13px;min-width:190px;text-align:right}
@@ -69,6 +77,10 @@ html,body{margin:0;height:100%;overflow:hidden;background:#1b1a17;font-family:"I
 <div id="top" class="panel"><div id="money">$0</div><div id="rate">$0/s</div><div id="rank"><span id="rankName">Aprendiz</span> <span id="rankMul" style="opacity:.6"></span><div class="bar"><div id="rankBar"></div></div><div id="rankNext" style="font-size:11px;opacity:.55;margin-top:3px"></div></div></div>
 <div id="rock" class="panel"><div id="rockName">—</div><div id="rockSub" style="opacity:.7">0% erodido</div><div class="bar"><div id="rockBar"></div></div><div id="mileTxt" style="font-size:11.5px;opacity:.75;margin-top:4px"></div><button id="nextRock">Próxima rocha →</button></div>
 <div id="combo"></div>
+<button id="perkBtn" class="panel">✦ Escolher perk</button>
+<div id="perkModal"></div>
+<div id="settings" class="panel"><button id="gfxBtn" title="Qualidade gráfica">🖥️ Alto</button><button id="sndBtn" title="Som">🔊</button><button id="expBtn" title="Nova expedição (prestígio)">🧭 Expedição</button></div>
+<div id="perkList" class="panel"></div>
 <div id="camHelp" class="panel">WASD mover · Q/E girar · R/F zoom · botão do meio arrasta · <b>C</b> centraliza · <b>B</b> loja · <b>L</b> lava</div>
 <div id="sluice" class="panel"><div><b>Calha de garimpo</b></div><div id="sluiceTxt" style="opacity:.75">$0 / $0</div><div class="bar"><div id="sluiceBar"></div></div><button id="wash">Lavar a calha</button></div>
 <div id="quest" class="panel"></div>
@@ -169,14 +181,16 @@ const R=Math.random;
 // Estado & upgrades
 // =================================================================
 const KEY='erosao3d_v2';
-const UP0={calhas:0,extracao:0,peixes:0,aqueduto:0,tempestade:0,gota:0,chuva:0,altura:0,acido:0,nuvem:0,calha:0,riffle:0,auto:0,jato:0,balao:0,granizo:0,onda:0,forcaJato:0,t_gota:0,t_esg:0,t_bal:0,cadencia:0,nascente:0,represa:0};
-const S={money:0,level:1,total:0,sluice:0,t:Date.now(),tool:'gota',up:{...UP0},found:{},mile:0,rockSeed:0,rocks:0,extras:[],col:{},rate:0,q:0,qc:{}};
-try{const sv=JSON.parse(localStorage.getItem(KEY)||'null');if(sv){Object.assign(S,sv);S.up=Object.assign({...UP0},sv.up||{});S.found=sv.found||{};S.col=sv.col||{};S.qc=sv.qc||{};}}catch(e){}
+const UP0={tanque:0,calhas:0,extracao:0,peixes:0,aqueduto:0,tempestade:0,gota:0,chuva:0,altura:0,acido:0,nuvem:0,calha:0,riffle:0,auto:0,jato:0,balao:0,granizo:0,onda:0,forcaJato:0,t_gota:0,t_esg:0,t_bal:0,cadencia:0,nascente:0,represa:0};
+const S={money:0,level:1,total:0,sluice:0,t:Date.now(),tool:'gota',up:{...UP0},found:{},mile:0,rockSeed:0,rocks:0,extras:[],col:{},rate:0,q:0,qc:{},perks:{},perkPend:0,amber:0,lifeBase:0,gfx:2};
+try{const sv=JSON.parse(localStorage.getItem(KEY)||'null');if(sv){Object.assign(S,sv);S.up=Object.assign({...UP0},sv.up||{});S.found=sv.found||{};S.col=sv.col||{};S.qc=sv.qc||{};S.perks=sv.perks||{};}}catch(e){}
 const save=()=>{S.t=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
-const dropN=l=>18+l*6, rainRate=l=>l*2.5, dropH=l=>.55+l*.22, acid=l=>Math.pow(1.3,l), cloudRate=l=>l*.6,
+const dropN=l=>26+l*3, rainRate=l=>l*2.5, dropH=l=>.55+l*.22, acid=l=>Math.pow(1.3,l), cloudRate=l=>l*.6,
       cap=l=>Math.round(25*Math.pow(1.7,l)), capture=l=>Math.min(.92,.32+l*.08), autoWash=l=>l?Math.max(4,32-l*4):0,
-      waterPow=l=>1+l*.14,jetPen=l=>Math.min(120,14+l*9+S.up.altura*7+S.up.gota*3),balloonMax=()=>.6+S.up.gota*.07+S.up.altura*.03,jetRate=l=>40+l*12,aqRate=l=>l*14, jetSpeed=l=>4.6+l*.45, cad=l=>1+l*.22, springRate=l=>l*16;
+      waterPow=l=>1+l*.14,jetPen=l=>Math.min(120,Math.round((14+l*9+S.up.altura*7+S.up.gota*3)*(1+pk('ricochete')*.3))),balloonMax=()=>.6+S.up.gota*.07+S.up.altura*.03,jetRate=l=>40+l*12,aqRate=l=>l*14, jetSpeed=l=>4.6+l*.45, cad=l=>1+l*.22, springRate=l=>l*16;
+const tankCap=()=>(5+S.up.tanque*1.5)*(1+pk('tanque')*.4),tankRegen=()=>(.85+S.up.tanque*.1)*(1+pk('tanque')*.3);
 const extScale=l=>1+l*.15;const totalCap=()=>cap(S.up.calha)*(1+.6*S.up.calhas);
+const pk=k=>(S.perks&&S.perks[k])||0;
 const turretCount=()=>S.up.t_gota+S.up.t_esg+S.up.t_bal;
 const SHOP=[
  // Ferramentas
@@ -185,9 +199,10 @@ const SHOP=[
  {k:'granizo',tab:'Ferramentas',n:'🧊 Granizo',d:l=>l?'Tecla 4 · pedras de gelo que lascam':'Gelo duro que lasca a rocha e derrete',base:1100,mul:1,max:1,tool:'granizo'},
  {k:'onda',tab:'Ferramentas',n:'🌊 Onda',d:l=>l?'Tecla 5 · parede de água':'Uma parede de água varre a base',base:2800,mul:1,max:1,tool:'onda'},
  {k:'forcaJato',tab:'Ferramentas',n:'Pressão do jato',d:l=>`${jetSpeed(l).toFixed(1)} m/s · penetração ${jetPen(l)}`,base:90,mul:1.95,max:8,req:'jato'},
+ {k:'tanque',tab:'Ferramentas',n:'Tanque de pressão',d:l=>`Jato dura ${tankCap().toFixed(1)} s · recarrega ${tankRegen().toFixed(2)}/s`,base:110,mul:1.9,max:8,req:'jato'},
  {k:'chuva',tab:'Ferramentas',n:'Chuva',d:l=>l?`Gota: segure para ${rainRate(l)} gotas/s`:'Com a gota, segure para chover',base:40,mul:1.85},
  // Água
- {k:'gota',tab:'Água',n:'Gota maior',d:l=>`${dropN(l)} partículas · jato mais grosso · balão maior`,base:8,mul:1.68},
+ {k:'gota',tab:'Água',n:'Gota maior',d:l=>`${dropN(l)} partículas · jato mais grosso · balão maior`,base:7,mul:1.6},
  {k:'altura',tab:'Água',n:'Força da água',d:l=>`Impacto ×${waterPow(l).toFixed(2)} em todas as armas · penetração do jato`,base:25,mul:1.85,max:10},
  {k:'acido',tab:'Água',n:'Acidez',d:l=>`Erosão ×${acid(l).toFixed(2)} em tudo`,base:30,mul:2.05},
  {k:'nuvem',tab:'Água',n:'☁️ Nuvem',d:l=>l?`Chove sozinha ${cloudRate(l).toFixed(1)}/s`:'Uma nuvem que chove sozinha',base:120,mul:1.95},
@@ -291,7 +306,7 @@ const vid=(x,y,z)=>x+GX*(y+GY*z);
 // tipos de material
 const T_SAND=1,T_SAND2=2,T_GRAN=3,T_QTZ=4,T_GOLD=5,T_AME=6,T_MOSS=7,T_CRACK=8,T_IRON=9,T_MET=10,T_BONE=11,T_JADE=12,T_WOOD=13,T_OLIV=14,T_BAS=15;
 const MATS={
- [T_SAND]:{n:'arenito',hp:.22,val:.5},[T_SAND2]:{n:'arenito duro',hp:.6,val:.7},[T_GRAN]:{n:'granito',hp:.9,val:1.2},
+ [T_SAND]:{n:'arenito',hp:.2,val:.55},[T_SAND2]:{n:'arenito duro',hp:.6,val:.7},[T_GRAN]:{n:'granito',hp:.9,val:1.2},
  [T_QTZ]:{n:'quartzo',hp:1.2,val:3},[T_GOLD]:{n:'ouro',hp:.8,val:45},[T_AME]:{n:'ametista',hp:1.1,val:90},
  [T_MOSS]:{n:'musgo',hp:.12,val:.2},[T_CRACK]:{n:'fissura',hp:.1,val:.5},[T_IRON]:{n:'óxido de ferro',hp:.45,val:1},
  [T_MET]:{n:'ferro meteórico',hp:1,val:7},[T_BONE]:{n:'fóssil',hp:.45,val:12},[T_JADE]:{n:'jade',hp:.75,val:9},
@@ -465,7 +480,7 @@ const toLin=c=>c<=.04045?c/12.92:Math.pow((c+.055)/1.055,2.4);
     if(fbm(x*.6,0,z*.6,13,2)<.42)continue;
     const h=.05+R()*.14;e.set((R()-.5)*.5,R()*6,(R()-.5)*.5);q.setFromEuler(e);M.compose(new THREE.Vector3(x,terrainH(x,z)-.01,z),q,new THREE.Vector3(1+R(),h,1+R()));m.setMatrixAt(k,M);
     c.setRGB(toLin(.22+R()*.18),toLin(.32+R()*.18),toLin(.10+R()*.06));m.setColorAt(k,c);k++;}
-  m.count=k;m.receiveShadow=true;scene.add(m);window.__grass=mat;
+  m.count=k;m.receiveShadow=true;scene.add(m);window.__grass=mat;window.__grassMesh=m;
 }
 // --- árvores ao fundo (copas arredondadas)
 {
@@ -570,9 +585,9 @@ const MAXSED=1800;let sedCount=0;
 let erosionMul=1;
 const dmgQ=[];
 let comboN=0,comboT=0,comboShown=0;
-function removeVoxel(i,x,y,z,spawn){
+function removeVoxel(i,x,y,z,spawn,noPay){
   const t=vt[i];vt[i]=0;rockInfo.left--;markDirty(x,y,z);structDirty=true;
-  comboN++;comboT=1.6;const cm=comboMul();const g=MATS[t].val*valMult()*.07*cm;S.money+=g;S.total+=g;earnBatch+=g;comboGain+=g;
+  if(!noPay){comboN++;comboT=1.6+pk('combo')*1;const cm=comboMul();const g=MATS[t].val*valMult()*matBonus(t)*.07*cm;S.money+=g;S.total+=g;earnBatch+=g;comboGain+=g;}
   // revelações
   for(const [dx,dy,dz] of [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]]){const nx=x+dx,ny=y+dy,nz=z+dz;if(nx<0||ny<0||nz<0||nx>=GX||ny>=GY||nz>=GZ)continue;const nt=vt[vid(nx,ny,nz)];
     if(nt===T_GOLD&&rockInfo.kind==='idolo'&&!S.found['idol'+S.rockSeed]){S.found['idol'+S.rockSeed]=1;blessT=30;discover('Bênção do ídolo! 🗿✨','Renda ×2 por 30 segundos',RX0+nx*V,RY0+ny*V,RZ0+nz*V);}
@@ -616,7 +631,7 @@ function collide(){
           const mt=F.mat[i],jp=mt>=128?mt-128:0;
           const dmg=(.0006+.004*vn*vn+.003*vtg)*erosionMul*(jp?1+jp*.05:1+mt*.1);
           vhp[hit]-=dmg;DBG.c++;DBG.d+=dmg;wetMark(hx,hy,hz);
-          if(vhp[hit]<=0){removeVoxel(hit,hx,hy,hz,R()<.6);
+          if(vhp[hit]<=0){removeVoxel(hit,hx,hy,hz,R()<.6);if(pk('cadeia')&&R()<pk('cadeia')*.06){const o=[[1,0,0],[-1,0,0],[0,1,0],[0,0,1],[0,0,-1]][(R()*5)|0];if(solid(hx+o[0],hy+o[1],hz+o[2]))removeVoxel(vid(hx+o[0],hy+o[1],hz+o[2]),hx+o[0],hy+o[1],hz+o[2],true);}
             // jato penetra: atravessa o voxel quebrado e segue perfurando
             if(jp>4&&vn>1.2){const sx_=x,sy_=y,sz_=z;x=ox[i]+dx;y=oy[i]+dy;z=oz[i]+dz;const qx=Math.floor((x-RX0)/V),qy=Math.floor((y-RY0)/V),qz=Math.floor((z-RZ0)/V);
               if(!solid(qx,qy,qz)){const k=.9;ox[i]=x-dx*k;oy[i]=y-dy*k;oz[i]=z-dz*k;F.mat[i]=Math.max(129,mt-5);}else{x=sx_;y=sy_;z=sz_;}}}
@@ -647,7 +662,7 @@ function collide(){
 }
 // captura na calha e saída
 let earnBatch=0;const earnHist=[];let lostBatch=0;let comboGain=0;
-let comboDur=0;const comboMul=()=>1+Math.min(2,comboDur/15);
+let comboDur=0;const comboMul=()=>1+Math.min(2,comboDur*(1+pk('combo')*.4)/15);
 const EXTRA_SL=[{x:.55,z:1.62,tx:.8,tz:-.6},{x:.55,z:-1.62,tx:.8,tz:.6},{x:2.12,z:0,tx:1,tz:0}];
 function inSluice(x,y,z){const e=extScale(S.up.extracao);if(x>SL_X0-.25*(e-1)*4&&x<SL_X1&&Math.abs(z)<CH_W)return true;
   for(let k=0;k<S.up.calhas;k++){const q=EXTRA_SL[k];const dx=x-q.x,dz=z-q.z;const al=dx*q.tx+dz*q.tz,lat=-dx*q.tz+dz*q.tx;if(Math.abs(al)<.42*e&&Math.abs(lat)<.2*e&&y<terrainH(x,z)+.18)return true;}return false;}
@@ -659,11 +674,11 @@ function buildExtraSluices(){extraSlGroup.clear();const wood=new THREE.MeshStand
     for(let r=-L/2+.08;r<L/2;r+=.12){const rf=new THREE.Mesh(new THREE.BoxGeometry(W,.018,.012),dark);rf.position.set(0,.01,r);g.add(rf);}
     g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});extraSlGroup.add(g);}}
 function postStep(){
-  const n=F.np;const capP=capture(S.up.riffle)*.035;const capacity=totalCap();
+  const n=F.np;const capP=Math.min(.97,capture(S.up.riffle)+pk('calha')*.08)*.035*(mareT>0?1.6+pk('mare')*.2:1);const capacity=totalCap();
   for(let i=n-1;i>=0;i--){if(F.dead[i])continue;const x=F.px[i],y=F.py[i],z=F.pz[i];
     if(F.kind[i]===1&&inSluice(x,y,z)){
       const sp=Math.hypot(F.vx[i],F.vy[i],F.vz[i])*HZ;
-      if(R()<capP*(sp<1.2?1.6:.5)){const v=MATS[F.mat[i]].val*valMult();if(S.sluice<capacity){S.sluice=Math.min(capacity,S.sluice+v);sluiceAdd+=v;}else lostBatch+=v;F.kill(i);sedCount--;continue;}}
+      if(R()<capP*(sp<1.2?1.6:.5)){const v=MATS[F.mat[i]].val*valMult()*matBonus(F.mat[i]);if(S.sluice<capacity){S.sluice=Math.min(capacity,S.sluice+v);sluiceAdd+=v;}else lostBatch+=v;F.kill(i);sedCount--;continue;}}
     const spd=Math.abs(F.vx[i])+Math.abs(F.vy[i])+Math.abs(F.vz[i]);
     if(spd<.0015)F.still[i]+=1/HZ;else F.still[i]=Math.max(0,F.still[i]-2/HZ);
     if(F.kind[i]===0&&F.still[i]>2.5&&R()<.004*(F.still[i]-2)){F.kill(i);continue;}
@@ -678,7 +693,8 @@ const RANKS=[[0,'Aprendiz'],[120,'Bateador'],[500,'Garimpeiro'],[1800,'Faiscador
 const rankIdx=()=>{let k=0;for(let i=0;i<RANKS.length;i++)if(S.total>=RANKS[i][0])k=i;return k;};
 const rankMult=()=>1+rankIdx()*.12;
 const colCount=()=>Object.keys(S.col||{}).length;const colMult=()=>1+colCount()*.06;let blessT=0;
-const valMult=()=>(1+(S.level-1)*.35)*rankMult()*colMult()*(blessT>0?2:1);
+let frenzyT=0,infTankT=0;
+const valMult=()=>(1+(S.level-1)*.35)*rankMult()*colMult()*(1+(S.amber||0)*.08)*(blessT>0?2:1)*(frenzyT>0?3:1);
 const MILES=[.01,.025,.05,.1,.2,.35,.6,1,1.5,2.2,3,4,5.5,7.5,10,14,20,28,38,50,65];
 const mileReward=k=>Math.round(6*Math.pow(k+1,1.55)*(1+(S.level-1)*.6)*rankMult());
 function spawnGrain(x,y,z,t,vx=0,vy=0,vz=0){if(sedCount>=MAXSED)return;const k=F.add(x,y,z,vx+(R()-.5)*.002,vy+.001,vz+(R()-.5)*.002,1,t);if(k>=0)sedCount++;}
@@ -703,7 +719,7 @@ function fragGeometry(f){
 // arranca voxels da rocha e os lança como fragmentos/grãos (o balão e o gelo MOVEM os blocos)
 function ejectVoxels(list,cx,cy,cz,power,chunk=5){
   if(!list.length)return;const recs=[];
-  for(const v of list){const i=v.i;if(!vt[i])continue;recs.push({x:v.x,y:v.y,z:v.z,t:vt[i],r:vr[i],g:vg[i],b:vb[i]});removeVoxel(i,v.x,v.y,v.z,false);}
+  for(const v of list){const i=v.i;if(!vt[i])continue;recs.push({x:v.x,y:v.y,z:v.z,t:vt[i],r:vr[i],g:vg[i],b:vb[i]});removeVoxel(i,v.x,v.y,v.z,false,true);}
   const seed=(R()*1000)|0;const buckets=new Map();
   for(const v of recs){const wx=v.x+(vnoise(v.x*.2,v.y*.2,v.z*.2,seed)-.5)*6,wy=v.y+(vnoise(v.x*.2+5,v.y*.2,v.z*.2,seed)-.5)*6,wz=v.z+(vnoise(v.x*.2,v.y*.2+5,v.z*.2,seed)-.5)*6;
     const key=Math.floor(wx/chunk)+','+Math.floor(wy/chunk)+','+Math.floor(wz/chunk);let b=buckets.get(key);if(!b){b=[];buckets.set(key,b);}b.push(v);}
@@ -805,7 +821,7 @@ function checkStructure(){
 // =================================================================
 let W_=0,H_=0;
 const sceneRT=new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType,depthBuffer:true});sceneRT.depthTexture=new THREE.DepthTexture(1,1);
-const FS=1;
+let FS=1;
 const mkRT=()=>new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType,format:THREE.RGBAFormat,depthBuffer:false,minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter});
 const depthRT=new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType,depthBuffer:true,minFilter:THREE.NearestFilter,magFilter:THREE.NearestFilter});
 const blurA=new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType,depthBuffer:false,minFilter:THREE.NearestFilter,magFilter:THREE.NearestFilter});
@@ -886,6 +902,11 @@ const compQuad=new THREE.Mesh(quadGeo,compMat);const compScene=new THREE.Scene()
 const grainMesh=new THREE.InstancedMesh(new THREE.BoxGeometry(V*.9,V*.9,V*.9),new THREE.MeshStandardMaterial({roughness:.85}),MAXSED+600);
 grainMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);grainMesh.setColorAt(0,new THREE.Color());grainMesh.castShadow=true;grainMesh.frustumCulled=false;grainMesh.count=0;scene.add(grainMesh);
 const MATCOL={};for(const k in MATS){}
+let gfxCap=4600;
+function applyGfx(){const q=S.gfx??2;const PRs=[.75,1,Math.min(1.5,devicePixelRatio||1)];PR=PRs[q];renderer.setPixelRatio(PR);FS=[.6,.8,1][q];
+  const sm=[1024,2048,3072][q];if(sun.shadow.mapSize.x!==sm){sun.shadow.mapSize.set(sm,sm);if(sun.shadow.map){sun.shadow.map.dispose();sun.shadow.map=null;}}
+  gfxCap=[2400,3400,4600][q];if(F.cap>gfxCap)F.cap=gfxCap;if(window.__grass&&window.__grassMesh)window.__grassMesh.visible=q>0;
+  $('gfxBtn').textContent='🖥️ '+['Baixo','Médio','Alto'][q];resize();}
 function resize(){W_=innerWidth;H_=innerHeight;renderer.setSize(W_,H_);camera.aspect=W_/H_;camera.updateProjectionMatrix();
   const w=Math.floor(W_*PR),h=Math.floor(H_*PR);sceneRT.setSize(w,h);
   const fw=Math.floor(w*FS),fh=Math.floor(h*FS);depthRT.setSize(fw,fh);blurA.setSize(fw,fh);blurB.setSize(fw,fh);thickRT.setSize(Math.floor(fw/2),Math.floor(fh/2));
@@ -917,15 +938,15 @@ function shootJet(src,target,speed,n,pow=128+jetPen(S.up.forcaJato)){const d=tar
 function lob(src,target,T,n,kind=0,pow=20){const v=target.clone().sub(src).divideScalar(T);v.y+=.5*9.8*T;spawnBlob(src.x,src.y,src.z,n,v.x/HZ,v.y/HZ,v.z/HZ,kind,pow);}
 const iceMat=new THREE.MeshPhysicalMaterial({color:0xcfefff,roughness:.08,metalness:0,clearcoat:1,transparent:true,opacity:.78,emissive:0x1a3344,emissiveIntensity:.4});
 const iceGeo=new THREE.BoxGeometry(1,1,1);
-function iceBlocks(target){const n=2+Math.min(4,Math.floor(S.up.gota/3));const sz=.07+Math.min(8,S.up.gota)*.012;
+function iceBlocks(target){const n=2+Math.min(3,Math.floor(S.up.gota/4))+pk('granizoDuro');const sz=.07+Math.min(8,S.up.gota)*.012;
   for(let k=0;k<n;k++){const m=new THREE.Mesh(iceGeo,iceMat);m.scale.setScalar(sz*(.8+R()*.4));m.castShadow=true;scene.add(m);
     const pos=new THREE.Vector3(target.x+(R()-.5)*.2,target.y+2+R()*.4,target.z+(R()-.5)*.2);
     projs.push({type:'ice',pos,vel:new THREE.Vector3((R()-.5)*.3,-(3+S.up.altura*.3),(R()-.5)*.3),sz,mesh:m,t:0,delay:k*.12});}}
 function shatterIce(p){const pw=waterPow(S.up.altura);const sz=p.sz,pos=p.pos;const sp=-p.vel.y;
   // lasca: dano concentrado e ejeção de pedaços
-  const rv=(sz*1.05)/V,D=(1.2+sp*.35)*erosionMul*pw;const cx=(pos.x-RX0)/V,cy=(pos.y-sz*.5-RY0)/V,cz=(pos.z-RZ0)/V;const list=[];
+  const rv=(sz*.62)/V,D=(.9+sp*.25)*erosionMul*pw;const hard=2*(1+pk('granizoDuro')*.4);const cx=(pos.x-RX0)/V,cy=(pos.y-sz*.5-RY0)/V,cz=(pos.z-RZ0)/V;const list=[];
   for(let z=Math.floor(cz-rv);z<=Math.ceil(cz+rv);z++)for(let y=Math.floor(cy-rv);y<=Math.ceil(cy+rv);y++)for(let x=Math.floor(cx-rv);x<=Math.ceil(cx+rv);x++){if(!solid(x,y,z))continue;
-    const d=Math.hypot(x+.5-cx,(y+.5-cy)*1.3,z+.5-cz)/rv;if(d>=1)continue;const i=vid(x,y,z);vhp[i]-=D*(1-d);if(vhp[i]<=0)list.push({i,x,y,z});}
+    const d=Math.hypot(x+.5-cx,(y+.5-cy)*1.3,z+.5-cz)/rv;if(d>=1)continue;const i=vid(x,y,z);vhp[i]-=D*(1-d)*(MATS[vt[i]].hp>=.6?hard:1);if(vhp[i]<=0)list.push({i,x,y,z});}
   ejectVoxels(list,pos.x,pos.y+.05,pos.z,.6+sp*.12,4);
   // estilhaços de gelo (derretem em água)
   for(let q=0;q<10;q++){const a=R()*6.283,e=R()*.9;const v=(1+R()*1.6)/HZ;const i=F.add(pos.x,pos.y+.02,pos.z,Math.cos(a)*Math.cos(e)*v,Math.sin(e)*v+.006,Math.sin(a)*Math.cos(e)*v,2);if(i>=0)F.mat[i]=150;}
@@ -933,7 +954,8 @@ function shatterIce(p){const pw=waterPow(S.up.altura);const sz=p.sz,pos=p.pos;co
   sfx.ice(1);sfx.thud(.4);shake=Math.max(shake,.01);}
 function iceShot(target){const n=4+Math.floor(S.up.gota/2),v=(5.5+S.up.altura*.35)/HZ;for(let k=0;k<n;k++){const x=target.x+(R()-.5)*.25,z=target.z+(R()-.5)*.25;const i=F.add(x,target.y+1.4+R()*.4,z,(R()-.5)*.002,-v,(R()-.5)*.002,2);if(i>=0)F.mat[i]=220;}}
 const waves=[];
-function waveShot(target){const toCam=camera.position.clone().sub(target);toCam.y=0;toCam.normalize();const side=new THREE.Vector3(-toCam.z,0,toCam.x);
+let mareT=0,jetTank=99,jetLock=false;
+function waveShot(target){mareT=6+pk('mare')*4;const toCam=camera.position.clone().sub(target);toCam.y=0;toCam.normalize();const side=new THREE.Vector3(-toCam.z,0,toCam.x);
   waves.push({base:target.clone().addScaledVector(toCam,1.7),toCam,side,t:0,layers:0,target:target.clone()});}
 function stepWaves(dt){for(let k=waves.length-1;k>=0;k--){const w=waves[k];w.t+=dt;const want=Math.min(6,Math.floor(w.t/.06)+1);
   const hw=10+Math.min(12,S.up.gota),pw=Math.min(120,20+S.up.altura*5),spd=(3.6+S.up.altura*.25)/HZ;
@@ -950,10 +972,10 @@ function waveShotOld(target){const toCam=camera.position.clone().sub(target);toC
   const base=target.clone().addScaledVector(toCam,1.5);const vel=toCam.clone().multiplyScalar(-3.4/HZ);
   const hw=9+Math.min(10,S.up.gota),pw=Math.min(120,15+S.up.altura*4);vel.multiplyScalar(1+S.up.altura*.06);
   for(let a=-hw;a<=hw;a++)for(let h=0;h<5;h++)for(let d=0;d<3;d++){const x=base.x+side.x*a*.05+toCam.x*d*.05,z=base.z+side.z*a*.05+toCam.z*d*.05;F.add(x,terrainH(x,z)+.04+h*.05,z,vel.x,0,vel.z,0,pw);}}
-const CD={gota:0,jato:0,balao:.4,granizo:.35,onda:4.5};const cdLeft={gota:0,jato:0,balao:0,granizo:0,onda:0};
+const CD0={gota:0,jato:0,balao:6,granizo:3,onda:7};const CD={...CD0};function updCD(){const m=Math.pow(.85,pk('recarga'));for(const k in CD0)CD[k]=CD0[k]*m;}const cdLeft={gota:0,jato:0,balao:0,granizo:0,onda:0};
 function useTool(first){
-  if(!aim)return;const t=S.tool;
-  if(t==='gota'){if(first){spawnDrop(aim,dropN(S.up.gota),dropH(S.up.altura));sfx.drip();qBump('drops');}return;}
+  if(!aim)return;const t=S.tool;updCD();
+  if(t==='gota'){if(first){spawnDrop(aim,dropN(S.up.gota),dropH(S.up.altura));if(Math.random()<pk('gemeas')*.5){const p2=aim.clone();p2.x+=(Math.random()-.5)*.2;p2.z+=(Math.random()-.5)*.2;spawnDrop(p2,dropN(S.up.gota),dropH(S.up.altura));}sfx.drip();qBump('drops');}return;}
   if(t==='jato')return; // contínuo no tick
   if(!first||cdLeft[t]>0)return;cdLeft[t]=CD[t];
   if(t==='balao'){cdLeft[t]=0;startCharge();}
@@ -976,8 +998,8 @@ function stepCharge(dt){
   charge.t+=dt;const sz=chargeSize();const r=balloonRad(sz);
   chargeMesh.visible=true;chargeMesh.position.copy(fromCamera(charge.target,1.6,.7));const wob=1+Math.sin(charge.t*18)*.03*(sz>=balloonMax()*.99?1:.3);chargeMesh.scale.set(r*wob,r*1.12/wob,r*wob);
   targetRing.visible=true;targetRing.position.copy(charge.target).y+=.01;const tr=blastR(sz)*1.0;targetRing.scale.set(tr,tr,tr);}
-const blastR=sz=>(.07+.17*sz)*(1+S.up.altura*.04);
-function throwBalloon(){const sz=Math.max(.12,chargeSize());if(sz>=balloonMax()*.95)qBump('balloon');const src=chargeMesh.position.clone();const tg=charge.target;charge=null;sfx.inflate(false);
+const blastR=sz=>(.055+.1*sz)*(1+S.up.altura*.04)*(1+pk('balaoGrande')*.15);
+function throwBalloon(){updCD();const sz=Math.max(.12,chargeSize());if(sz>=balloonMax()*.95)qBump('balloon');const src=chargeMesh.position.clone();const tg=charge.target;charge=null;sfx.inflate(false);
   const T=.5+sz*.15;const v=tg.clone().sub(src).divideScalar(T);v.y+=.5*9.8*T;
   const m=new THREE.Mesh(chargeMesh.geometry,balloonMatl);m.castShadow=true;const r=balloonRad(sz);m.scale.set(r,r*1.12,r);m.position.copy(src);scene.add(m);
   projs.push({pos:src,vel:v,sz,mesh:m,t:0});cdLeft.balao=CD.balao;sfx.whoosh();}
@@ -995,7 +1017,7 @@ function burstBalloon(p){
   for(let q=0;q<n;q++){const L=LAT[q];const ox=L[1]*sp,oy=L[2]*sp,oz=L[3]*sp;const d=Math.hypot(ox,oy,oz)||1;
     F.add(pos.x+ox,pos.y+oy+.03,pos.z+oz,(ox/d*outV+p.vel.x*.25)/HZ,(Math.abs(oy/d)*outV*.6+.6)/HZ,(oz/d*outV+p.vel.z*.25)/HZ,0,Math.min(120,25+Math.round(sz*40)));}
   // 2) cratera: dano direto aos voxels no raio
-  const blast=[];const rb=blastR(sz),D=(1+4.5*sz)*erosionMul*pw;const cx=(pos.x-RX0)/V,cy=(pos.y-RY0)/V,cz=(pos.z-RZ0)/V,rv=rb/V;let broke=0;
+  const blast=[];const rb=blastR(sz),D=(.9+3.2*sz)*erosionMul*pw;const cx=(pos.x-RX0)/V,cy=(pos.y-RY0)/V,cz=(pos.z-RZ0)/V,rv=rb/V;let broke=0;
   for(let z=Math.floor(cz-rv);z<=Math.ceil(cz+rv);z++)for(let y=Math.floor(cy-rv);y<=Math.ceil(cy+rv);y++)for(let x=Math.floor(cx-rv);x<=Math.ceil(cx+rv);x++){
     if(!solid(x,y,z))continue;const d=Math.hypot(x+.5-cx,y+.5-cy,z+.5-cz)/rv;if(d>=1)continue;const i=vid(x,y,z);vhp[i]-=D*Math.pow(1-d,1.2);if(vhp[i]<=0){blast.push({i,x,y,z});broke++;}}
   ejectVoxels(blast,pos.x-p.vel.x*.02,pos.y-.05,pos.z-p.vel.z*.02,(.7+1.3*sz)*Math.sqrt(pw),6+Math.round(sz*3));
@@ -1021,7 +1043,7 @@ const _tp=new THREE.Vector3();
 function rockSurfacePoint(from){ // marcha do lado de 'from' até a rocha
   const c=new THREE.Vector3((R()-.5)*1.4,RY0+.35+R()*1.2,(R()-.5)*1.4);const d=c.clone().sub(from).normalize();
   for(let t=0;t<8;t+=.02){_tp.copy(from).addScaledVector(d,t);const gx=Math.floor((_tp.x-RX0)/V),gy=Math.floor((_tp.y-RY0)/V),gz=Math.floor((_tp.z-RZ0)/V);if(solid(gx,gy,gz))return _tp.clone();}return null;}
-function stepTurrets(dt){const sp=cad(S.up.cadencia);
+function stepTurrets(dt){const sp=cad(S.up.cadencia)*(1+pk('torretas')*.2);
   for(const t of turrets){t.t-=dt*sp;const hw=new THREE.Vector3();t.head.getWorldPosition(hw);
     if(!t.target||t.t<=0&&t.burst<=0)t.target=rockSurfacePoint(t.typ==='gota'?hw.clone().setY(hw.y+.5):hw);
     if(t.target){const q=t.head.parent.worldToLocal(t.target.clone());t.head.lookAt(t.target);}
@@ -1036,6 +1058,57 @@ const beamMat=new THREE.MeshPhysicalMaterial({color:0x9fd6ff,roughness:.05,trans
 const beam=new THREE.Mesh(beamGeo,beamMat);beam.visible=false;beam.renderOrder=3;scene.add(beam);
 function updBeam(on,src,dst,t){if(!on){beam.visible=false;return;}beam.visible=true;beam.position.copy(src);beam.lookAt(dst);const L=src.distanceTo(dst);const r=.028+S.up.gota*.003;
   beam.scale.set(r*(1+Math.sin(t*40)*.15),r*(1+Math.cos(t*37)*.15),L);beamMat.opacity=.55+Math.sin(t*25)*.1;}
+// ----- perks: escolha 1 de 3 a cada rank novo e a cada rocha nova
+const PERKS=[
+ {k:'gemeas',ic:'💧',n:'Gotas gêmeas',d:'Cada gota tem 50% de chance de vir com uma gêmea',max:2},
+ {k:'tanque',ic:'🫁',n:'Pulmão de aço',d:'Tanque do jato +40% e recarga +30%',max:3},
+ {k:'ricochete',ic:'🗡️',n:'Jato afiado',d:'Penetração do jato +30%',max:3},
+ {k:'recarga',ic:'⏱️',n:'Mãos rápidas',d:'Recarga de balão, granizo e onda −15%',max:3},
+ {k:'balaoGrande',ic:'🎈',n:'Balão gordo',d:'Cratera do balão +15%',max:3},
+ {k:'granizoDuro',ic:'💎',n:'Granizo de diamante',d:'+1 bloco de gelo e +40% contra rocha dura',max:2},
+ {k:'mare',ic:'🌊',n:'Maré alta',d:'A maré da onda dura +4 s e captura +20%',max:2},
+ {k:'cadeia',ic:'⛓️',n:'Erosão em cadeia',d:'Voxel quebrado pela água pode derrubar o vizinho (6%)',max:3},
+ {k:'geologo',ic:'🔍',n:'Olho de geólogo',d:'Ouro, ametista e olivina valem +35%',max:3},
+ {k:'bateia',ic:'🥘',n:'Bateia de ouro',d:'Bateia +25% de raio e de valor',max:3},
+ {k:'peixe',ic:'🐟',n:'Cardume',d:'+1 peixe e peixes 25% mais rápidos',max:3},
+ {k:'calha',ic:'🧲',n:'Calha magnética',d:'+8% de retenção nas calhas',max:3},
+ {k:'combo',ic:'🔥',n:'Embalo',d:'Combo dura mais e cresce 40% mais rápido',max:2},
+ {k:'torretas',ic:'⚙️',n:'Engrenagens',d:'Torretas 20% mais rápidas',max:3},
+ {k:'nuvem',ic:'☁️',n:'Chuva farta',d:'Nuvem chove 50% mais',max:2},
+ {k:'represa',ic:'🦫',n:'Castores amigos',d:'Represas surgem antes e seguram +50% de água',max:2},
+ {k:'sorte',ic:'🍀',n:'Trevo',d:'A libélula dourada aparece com mais frequência',max:2},
+ {k:'marco',ic:'🗺️',n:'Cartógrafo',d:'Recompensas de marcos +30%',max:3},
+ {k:'offline',ic:'🌙',n:'Vigia noturno',d:'Ganhos offline +50%',max:2},
+ {k:'raio',ic:'⚡',n:'Para-raios',d:'Raios atingem a rocha nas tempestades',max:2},
+];
+function perkPool(){return PERKS.filter(p=>pk(p.k)<p.max&&(p.k!=='tanque'&&p.k!=='ricochete'||S.up.jato)&&(p.k!=='balaoGrande'||S.up.balao)&&(p.k!=='granizoDuro'||S.up.granizo)&&(p.k!=='mare'||S.up.onda)&&(p.k!=='torretas'||turretCount())&&(p.k!=='nuvem'||S.up.nuvem)&&(p.k!=='represa'||S.up.represa)&&(p.k!=='raio'||S.up.tempestade));}
+function grantPerkChoice(why){S.perkPend=(S.perkPend||0)+1;toast('Novo perk disponível ✦',why);sfx.reveal();save();}
+function openPerks(){if(!S.perkPend)return;const pool=perkPool();if(!pool.length){S.perkPend=0;return;}
+  const pick=[];const tmp=[...pool];while(pick.length<3&&tmp.length)pick.push(tmp.splice((Math.random()*tmp.length)|0,1)[0]);
+  const m=$('perkModal');m.innerHTML='<div class="pm-in panel"><h3>Escolha um perk</h3><div class="pm-cards"></div><small>Perks são permanentes até a próxima expedição</small></div>';
+  const cards=m.querySelector('.pm-cards');for(const p of pick){const b=document.createElement('button');b.className='pcard';b.innerHTML=`<span class="pic">${p.ic}</span><b>${p.n}${pk(p.k)?' '+'I'.repeat(pk(p.k)+1):''}</b><span>${p.d}</span>`;
+    b.onclick=()=>{S.perks[p.k]=pk(p.k)+1;S.perkPend--;m.style.display='none';toast(p.ic+' '+p.n,p.d);sfx.coin(50);if(p.k==='peixe')syncFish();updCD();save();ui();};cards.appendChild(b);}
+  m.style.display='flex';}
+function lightningStrike(){const p=rockSurfacePoint(new THREE.Vector3((Math.random()-.5)*.6,RY0+GY*V+1,(Math.random()-.5)*.6));if(!p)return;
+  const list=[];const cx=(p.x-RX0)/V,cy=(p.y-RY0)/V,cz=(p.z-RZ0)/V,rv=4+pk('raio')*2;for(let z=Math.floor(cz-rv);z<=cz+rv;z++)for(let y=Math.floor(cy-rv);y<=cy+rv;y++)for(let x=Math.floor(cx-rv);x<=cx+rv;x++)if(solid(x,y,z)&&Math.hypot(x-cx,y-cy,z-cz)<rv)list.push({i:vid(x,y,z),x,y,z});
+  ejectVoxels(list,p.x,p.y+.05,p.z,1.2,4);for(let q=0;q<30;q++)addSpray(p.x,p.y,p.z,(Math.random()-.5)*3,Math.random()*3,(Math.random()-.5)*3,.015);shake=.04;}
+// ----- libélula dourada: bônus clicável
+const fly=new THREE.Group();{const gm=new THREE.MeshStandardMaterial({color:0xffc94a,emissive:0xffa21a,emissiveIntensity:1.6,metalness:.6,roughness:.3});
+  const body=new THREE.Mesh(new THREE.CylinderGeometry(.008,.004,.16,6),gm);body.rotation.x=Math.PI/2;fly.add(body);const head=new THREE.Mesh(new THREE.SphereGeometry(.014,8,6),gm);head.position.z=.085;fly.add(head);
+  const wm=new THREE.MeshBasicMaterial({color:0xfff2c0,transparent:true,opacity:.55,side:THREE.DoubleSide});for(const [x,z] of [[.06,.03],[-.06,.03],[.055,-.01],[-.055,-.01]]){const w=new THREE.Mesh(new THREE.PlaneGeometry(.1,.025),wm);w.rotation.x=-Math.PI/2;w.position.set(x,0,z);fly.add(w);}
+  const glow=new THREE.PointLight(0xffc860,1.2,1.2);fly.add(glow);}
+fly.visible=false;scene.add(fly);let flyT=0,flyLife=0,flyTimer=50+Math.random()*40;
+function stepFly(dt){if(!fly.visible){flyTimer-=dt*(1+pk('sorte')*.5);if(flyTimer<=0){fly.visible=true;flyLife=14;flyT=Math.random()*10;toast('Uma libélula dourada! ✨','Clique nela antes que ela vá embora');}return;}
+  flyT+=dt;flyLife-=dt;const a=flyT*.7,r=1.7+Math.sin(flyT*.9)*.5;const nx=Math.cos(a)*r,nz=Math.sin(a*1.3)*r*.8+.4,ny=RY0+.9+Math.sin(flyT*2.1)*.35;
+  fly.lookAt(nx,ny,nz);fly.position.set(nx,ny,nz);fly.children.forEach((c,i)=>{if(i>1&&i<6)c.rotation.z=Math.sin(flyT*60+i)*.6;});
+  if(flyLife<=0){fly.visible=false;flyTimer=(80+Math.random()*80);}}
+function tryCatchFly(cx,cy){if(!fly.visible)return false;const v=fly.position.clone().project(camera);const sx=(v.x+1)/2*innerWidth,sy=(1-v.y)/2*innerHeight;if(Math.hypot(sx-cx,sy-cy)>48)return false;
+  fly.visible=false;flyTimer=80+Math.random()*80;const r=Math.random();
+  if(r<.3){frenzyT=15;toast('Frenesi! ✨','Renda ×3 por 15 segundos');}
+  else if(r<.55){for(const k in cdLeft)cdLeft[k]=0;infTankT=12;jetLock=false;toast('Fôlego infinito! 💨','Recargas zeradas e jato sem limite por 12 s');}
+  else if(r<.8){const g=Math.round(Math.max(40,(S.rate||1)*90)*valMult()/Math.max(1,valMult()));S.money+=g;S.total+=g;toast('Saco de ouro! 💰','+$'+fmt(g));}
+  else{for(let k=0;k<30;k++)setTimeout(()=>{const a=Math.random()*6.28,rr=Math.random()*1.1;spawnBlob(Math.cos(a)*rr,RY0+GY*V+.6,Math.sin(a)*rr,20,0,-.02,0,0,40);},k*80);toast('Chuva dourada! 🌧️','Gotas poderosas caem sobre a rocha');}
+  sfx.reveal();floatText(fly.position.clone(),'✨','#ffe08a',34);return true;}
 // ----- borrifo/espuma (só visual)
 const SPRAY_N=900;const sprayMesh=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,0),new THREE.MeshStandardMaterial({color:0xeaf6ff,roughness:.3,transparent:true,opacity:.85}),SPRAY_N);
 sprayMesh.frustumCulled=false;sprayMesh.count=0;scene.add(sprayMesh);const spray=[];
@@ -1052,10 +1125,10 @@ function makeFish(k){const g=new THREE.Group();const m=fishMats[k%fishMats.lengt
   const tail=new THREE.Mesh(new THREE.ConeGeometry(.03,.05,4),m);tail.rotation.x=-Math.PI/2;tail.position.z=-.075;tail.scale.set(.3,1,1);g.add(tail);
   const fin=new THREE.Mesh(new THREE.ConeGeometry(.012,.03,3),m);fin.position.set(0,.028,-.005);g.add(fin);
   g.traverse(o=>{if(o.isMesh)o.castShadow=true;});g.visible=false;scene.add(g);return {g,tail,target:-1,retarget:0,pos:new THREE.Vector3(0,-.05,1.2),vel:new THREE.Vector3(),wig:Math.random()*6,eaten:0};}
-function syncFish(){while(fishes.length<S.up.peixes)fishes.push(makeFish(fishes.length));}
+function syncFish(){while(fishes.length<S.up.peixes+pk('peixe'))fishes.push(makeFish(fishes.length));}
 let fishGain=0,fishT=0;
 function inWater(i){return F.density[i]>F.REST*.45&&F.py[i]<terrainH(F.px[i],F.pz[i])+.22&&!solid(Math.floor((F.px[i]-RX0)/V),Math.floor((F.py[i]-.05-RY0)/V),Math.floor((F.pz[i]-RZ0)/V));}
-function stepFish(dt){if(!fishes.length)return;const sp=.55+S.up.peixes*.03;
+function stepFish(dt){if(!fishes.length)return;const sp=(.55+S.up.peixes*.03)*(1+pk('peixe')*.25);
   for(const f of fishes){f.retarget-=dt;
     if(f.target>=F.np||f.target>=0&&(F.kind[f.target]!==1||F.dead[f.target]))f.target=-1;
     if(f.retarget<=0){f.retarget=.35+Math.random()*.2;let best=-1,bd=6.25;
@@ -1090,11 +1163,11 @@ function stepAqueduct(dt){if(!S.up.aqueduto)return;aqAcc+=aqRate(S.up.aqueduto)*
 let storm=0,stormTimer=150+R()*90,stormAcc=0,flash=0;
 const rainGeo=new THREE.CylinderGeometry(.004,.004,.35,3);const rainMesh=new THREE.InstancedMesh(rainGeo,new THREE.MeshBasicMaterial({color:0xbcd4e6,transparent:true,opacity:.45}),700);rainMesh.frustumCulled=false;rainMesh.count=0;scene.add(rainMesh);
 const rainP=[];for(let i=0;i<700;i++)rainP.push(new THREE.Vector3((R()-.5)*14,R()*7,(R()-.5)*14));
-function startStorm(){storm=14+S.up.tempestade*3;toast('Tempestade de verão! ⛈️','Chuva forte sobre a rocha por alguns segundos');sfx.thunder(1);}
+function startStorm(){storm=14+S.up.tempestade*3+pk('raio')*5;toast('Tempestade de verão! ⛈️','Chuva forte sobre a rocha por alguns segundos');sfx.thunder(1);}
 function stepStorm(dt){
   if(S.up.tempestade&&storm<=0){stormTimer-=dt;if(stormTimer<=0){stormTimer=(170-S.up.tempestade*20)+R()*80;startStorm();}}
   if(storm>0){storm-=dt;stormAcc+=(14+S.up.tempestade*5)*dt;while(stormAcc>=1){stormAcc--;const a=R()*6.283,r=Math.sqrt(R())*1.6;spawnBlob(Math.cos(a)*r,RY0+GY*V+.8+R()*.5,Math.sin(a)*r,5,0,-.03,0,0,4);}
-    if(R()<dt*.25){flash=1;setTimeout(()=>sfx.thunder(.7+R()*.3),300+R()*900);}}
+    if(R()<dt*.25*(1+pk('raio'))){flash=1;setTimeout(()=>sfx.thunder(.7+R()*.3),300+R()*900);if(pk('raio'))lightningStrike();}}
 }
 const SUN_I=3.1;
 function applyWeather(dt){const k=storm>0?Math.min(1,storm/2,(14+S.up.tempestade*3-storm)/2+0):0;const tgt=storm>0?1:0;weatherK+=(tgt-weatherK)*Math.min(1,dt*.8);
@@ -1104,7 +1177,7 @@ function applyWeather(dt){const k=storm>0?Math.min(1,storm/2,(14+S.up.tempestade
 let weatherK=0;
 // ----- desempenho adaptativo: limita partículas se a física ficar cara
 let simCost=8;
-function adaptCap(ms){simCost=simCost*.95+ms*.05;if(simCost>13&&F.cap>1600)F.cap-=20;else if(simCost<9&&F.cap<F.MAXP)F.cap+=10;}
+function adaptCap(ms){simCost=simCost*.95+ms*.05;if(simCost>13&&F.cap>1600)F.cap-=20;else if(simCost<9&&F.cap<Math.min(F.MAXP,gfxCap))F.cap+=10;}
 // ----- nascente e represa
 let springAcc=0;
 function stepSpring(dt){if(!S.up.nascente)return;springAcc+=springRate(S.up.nascente)*dt;
@@ -1126,26 +1199,26 @@ function stepDam(dt){
   if(S.up.represa&&!dam){damTimer-=dt;if(damTimer<=0)startDam();}
   if(dam){
     if(dam.active){// enche o reservatório rio acima
-      const goal=420+S.up.represa*180;if(dam.fill<goal){const k=Math.min(goal-dam.fill,Math.ceil(110*dt));for(let i=0;i<k;i++){const p=creekPoint(dam.t-.03-R()*.13);const ox=(R()-.5)*.35;const x=p.x-p.tz*ox,z=p.z+p.tx*ox;F.add(x,terrainH(x,z)+.08+R()*.15,z,0,0,0,0);}dam.fill+=k;}
+      const goal=(420+S.up.represa*180)*(1+pk('represa')*.5);if(dam.fill<goal){const k=Math.min(goal-dam.fill,Math.ceil(110*dt));for(let i=0;i<k;i++){const p=creekPoint(dam.t-.03-R()*.13);const ox=(R()-.5)*.35;const x=p.x-p.tz*ox,z=p.z+p.tx*ox;F.add(x,terrainH(x,z)+.08+R()*.15,z,0,0,0,0);}dam.fill+=k;}
       else{dam.full+=dt;if(dam.full>14)burstDam();}
       const pc=dam.fill/goal;$('event').style.display='block';$('eventTxt').textContent=pc<1?`Represa enchendo… ${Math.round(pc*100)}%`:'Represa cheia! Clique nela para estourar';$('eventBar').style.width=Math.round(pc*100)+'%';}
     else{$('event').style.display='none';let alive=false;for(const l of dam.logs){l.v.y-=9.8*dt;l.o.position.addScaledVector(l.v,dt);l.o.rotation.x+=l.w.x*dt;l.o.rotation.z+=l.w.z*dt;const th=terrainH(l.o.position.x,l.o.position.z)+.05;if(l.o.position.y<th){l.o.position.y=th;l.v.multiplyScalar(.5);l.v.y=Math.abs(l.v.y)*.3;l.w.multiplyScalar(.7);}if(l.v.lengthSq()>.01)alive=true;}
-      dam.dead=(dam.dead||0)+dt;if(dam.dead>9){damGroup.clear();dam=null;damTimer=(110-S.up.represa*12)+R()*50;}}}
+      dam.dead=(dam.dead||0)+dt;if(dam.dead>9){damGroup.clear();dam=null;damTimer=((110-S.up.represa*12)+R()*50)*Math.pow(.6,pk('represa'));}}}
   if(floodT>0)floodT-=dt;
 }
 const marker=new THREE.Mesh(new THREE.RingGeometry(.035,.05,32),new THREE.MeshBasicMaterial({color:0xbfe6ff,transparent:true,opacity:.7,depthTest:false}));
 marker.renderOrder=10;marker.visible=false;scene.add(marker);
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
 canvas.addEventListener('pointermove',e=>{aim=pick(e.clientX,e.clientY);lastMove=performance.now();});
-canvas.addEventListener('pointerdown',e=>{sfx.init();if(e.button!==0)return;aim=pick(e.clientX,e.clientY);down=true;
+canvas.addEventListener('pointerdown',e=>{sfx.init();if(e.button!==0)return;if(tryCatchFly(e.clientX,e.clientY))return;aim=pick(e.clientX,e.clientY);down=true;
   if(dam&&dam.active&&aim&&Math.hypot(aim.x-dam.x,aim.z-dam.z)<.75){burstDam();return;}
   if(aim&&aim.x>SL_X0-.1&&aim.x<SL_X1+.1&&Math.abs(aim.z)<CH_W+.2&&S.sluice>.01){wash();return;}
   if(aim&&panGrains(aim))return;
   if(aim){useTool(true);document.getElementById('hint').style.opacity=0;}});
 function panGrains(p){ // bateia: recolhe grãos encalhados perto do clique
   const gx=Math.floor((p.x-RX0)/V),gy=Math.floor((p.y-RY0)/V),gz=Math.floor((p.z-RZ0)/V);if(solid(gx,gy,gz)||solid(gx,gy-1,gz))return false;
-  let got=0,n=0;const rb=.3*extScale(S.up.extracao);const r2=rb*rb;for(let i=0;i<F.np;i++){if(F.kind[i]!==1||F.dead[i]||F.still[i]<1)continue;const dx=F.px[i]-p.x,dz=F.pz[i]-p.z;if(dx*dx+dz*dz>r2||Math.abs(F.py[i]-p.y)>.3)continue;
-    got+=MATS[F.mat[i]].val*valMult()*.6;F.kill(i);sedCount--;n++;}
+  let got=0,n=0;const rb=.3*extScale(S.up.extracao)*(1+pk('bateia')*.25);const r2=rb*rb;for(let i=0;i<F.np;i++){if(F.kind[i]!==1||F.dead[i]||F.still[i]<1)continue;const dx=F.px[i]-p.x,dz=F.pz[i]-p.z;if(dx*dx+dz*dz>r2||Math.abs(F.py[i]-p.y)>.3)continue;
+    got+=MATS[F.mat[i]].val*valMult()*matBonus(F.mat[i])*.6*(1+pk('bateia')*.25);F.kill(i);sedCount--;n++;}
   if(!n)return false;qBump('pan');F.compact();S.money+=got;S.total+=got;earnBatch+=got;floatText(p.clone().add(new THREE.Vector3(0,.15,0)),'🥘 +$'+fmt(got),'#ffd970',20);sfx.coin(got);
   if(!S.found.bateia){S.found.bateia=1;toast('Bateia!','Clique nos grãos encalhados para recolher na mão');}return true;}
 addEventListener('pointerup',()=>{down=false;});
@@ -1227,6 +1300,17 @@ function wash(){if(S.sluice<.01)return;qBump('wash');const v=S.sluice;S.money+=v
   const p=new THREE.Vector3((SL_X0+SL_X1)/2,chanBed((SL_X0+SL_X1)/2)+.25,0);floatText(p,'+$'+fmt(v),'#ffe08a',26);save();ui();}
 $('wash').onclick=()=>{sfx.init();wash();};
 $('nextRock').onclick=()=>{sfx.init();finishRock(false);};
+$('perkBtn').onclick=()=>{sfx.init();openPerks();};
+$('sndBtn').onclick=()=>{sfx.init();$('sndBtn').textContent=sfx.toggle()?'🔇':'🔊';};
+$('gfxBtn').onclick=()=>{S.gfx=((S.gfx??2)+2)%3;applyGfx();save();};
+const amberGain=()=>Math.max(0,Math.floor(Math.sqrt(((S.lifeBase||0)+S.total)/4000))-(S.amber||0));
+$('expBtn').onclick=()=>{sfx.init();const g=amberGain();const m=$('perkModal');const ok=S.rocks>=3&&g>0;
+  m.innerHTML=`<div class="pm-in panel"><h3>🧭 Nova expedição</h3><p style="max-width:440px;margin:0 auto 12px;opacity:.85;line-height:1.45">Recomece numa clareira nova: dinheiro, melhorias, perks e rochas voltam ao início.<br>Você ganha <b>${g} âmbar</b> 🟠. Cada âmbar dá <b>+8% de renda e +3% de erosão</b> para sempre.<br>Coleção, objetivos e âmbar ficam.</p>
+    <p style="opacity:.7;font-size:12.5px">Âmbar atual: ${S.amber||0} · ${ok?'':(S.rocks<3?'Disponível após trocar 3 rochas.':'Ganhe mais para render âmbar.')}</p>
+    <div class="pm-cards"><button class="pcard" id="expNo"><b>Ainda não</b></button>${ok?'<button class="pcard" id="expYes"><span class="pic">🧭</span><b>Partir (+'+g+' 🟠)</b></button>':''}</div></div>`;m.style.display='flex';
+  $('expNo').onclick=()=>m.style.display='none';if(ok)$('expYes').onclick=()=>{S.amber=(S.amber||0)+g;S.lifeBase=(S.lifeBase||0)+S.total;
+    Object.assign(S,{money:0,level:1,total:0,sluice:0,tool:'gota',up:{...UP0},mile:0,rockSeed:0,rocks:0,extras:[],perks:{},perkPend:0,lastRank:0,found:{}});
+    try{localStorage.removeItem(KEY+'_rock');}catch(e){}save();location.reload();};};
 addEventListener('keydown',e=>{if(e.key==='l'||e.key==='L'){sfx.init();wash();}});
 function ui(){
   $('money').textContent='$'+fmt(S.money);const r=earnHist.length?earnHist.reduce((a,b)=>a+b,0)/(earnHist.length):0;$('rate').textContent='$'+fmt(r)+'/s em média';
@@ -1234,13 +1318,16 @@ function ui(){
   const prev=S.mile?MILES[S.mile-1]:0,nxt=MILES[S.mile];$('rockBar').style.width=(nxt?Math.min(100,(pct-prev)/(nxt-prev)*100):100)+'%';
   $('mileTxt').textContent=nxt?`Próximo marco: ${String(nxt).replace('.',',')}% → +$${fmt(mileReward(S.mile))}`:'Todos os marcos atingidos!';
   $('nextRock').style.display=pct>=10&&!rockInfo.done?'block':'none';
+  if(S.lastRank===undefined)S.lastRank=rankIdx();if(rankIdx()>S.lastRank){S.lastRank=rankIdx();grantPerkChoice('Novo rank: '+RANKS[S.lastRank][1]);}
+  {const pl=$('perkList');const ks=Object.keys(S.perks||{}).filter(k=>S.perks[k]);if(ks.length){pl.style.display='flex';const h=ks.map(k=>{const p=PERKS.find(x=>x.k===k);return p?`<span title="${p.n} ${S.perks[k]}: ${p.d}">${p.ic}${S.perks[k]>1?'<sub>'+S.perks[k]+'</sub>':''}</span>`:'';}).join('');if(pl._h!==h){pl.innerHTML=h;pl._h=h;}}else pl.style.display='none';}
+  $('perkBtn').style.display=S.perkPend?'block':'none';$('perkBtn').textContent='✦ Escolher perk'+(S.perkPend>1?' ('+S.perkPend+')':'');
   const ri=rankIdx(),r0=RANKS[ri][0],r1=RANKS[ri+1]?RANKS[ri+1][0]:null;$('rankName').textContent='🏅 '+RANKS[ri][1];$('rankMul').textContent='· renda ×'+rankMult().toFixed(2).replace('.',',');
   $('rankMul').textContent='· renda ×'+(rankMult()*colMult()).toFixed(2).replace('.',',')+' · coleção '+colCount()+'/'+OBJ_TYPES.length+(blessT>0?' · ✨×2 '+Math.ceil(blessT)+'s':'');$('rankBar').style.width=(r1?Math.min(100,(S.total-r0)/(r1-r0)*100):100)+'%';$('rankNext').textContent=r1?`Próximo: ${RANKS[ri+1][1]} ($${fmt(r1)} ganhos no total)`:'Rank máximo';
   const c=totalCap();$('sluiceTxt').textContent='$'+fmt(S.sluice)+' / $'+fmt(c)+(lostBatchShown>0?' · perdeu $'+fmt(lostBatchShown):'');$('sluiceBar').style.width=Math.min(100,S.sluice/c*100)+'%';
   $('wash').disabled=S.sluice<.01;$('wash').classList.toggle('full',S.sluice>=c*.98);
   for(const b of btns){const u=b._u,l=S.up[u.k],mx=maxed(u),c2=costOf(u),av=avail(u);const h=`<b>${u.n}${l&&u.max!==1?` · ${l}`:''}</b><span>${av?u.d(l):'Requer: '+SHOP.find(x=>x.k===u.req).n}</span><span class="c">${mx?(u.max===1?'✓ desbloqueado':'✓ máximo'):'$'+fmt(c2)}</span>`;if(b._h!==h){b.innerHTML=h;b._h=h;}b.disabled=mx||!av||S.money<c2;b.classList.toggle('ok',!mx&&av&&S.money>=c2);}
   for(const t of TABS){const has=SHOP.some(u=>u.tab===t&&!maxed(u)&&avail(u)&&S.money>=costOf(u));tabBtns[t].classList.toggle('has',has&&t!==curTab);}
-  for(const t of TOOLS){const e=document.getElementById('cd_'+t.k);if(e)e.style.width=(CD[t.k]?Math.max(0,cdLeft[t.k]/CD[t.k])*100:0)+'%';}
+  jetTank=Math.min(jetTank,tankCap());for(const t of TOOLS){const e=document.getElementById('cd_'+t.k);if(!e)continue;if(t.k==='jato'){e.style.width=(jetTank/tankCap()*100)+'%';e.style.background=jetLock?'#ff8a6a':'#9fd3ff';}else e.style.width=(CD[t.k]?Math.max(0,cdLeft[t.k]/CD[t.k])*100:0)+'%';}
 }
 let lostBatchShown=0;
 const fts=[];const v3=new THREE.Vector3();
@@ -1268,7 +1355,7 @@ function loadRockMask(){try{const raw=localStorage.getItem(KEY+'_rock');if(!raw)
   const runs=data.split(',').map(v=>parseInt(v,36));let i=0,cur=0,left=0;for(const r of runs){if(!cur){for(let k=0;k<r&&i<GN;k++,i++)vt[i]=0;}else{for(let k=0;k<r&&i<GN;k++,i++)if(vt[i])left++;}cur^=1;}
   rockInfo.left=left;return true;}catch(e){return false;}}
 function addCol(k,name){if(!S.col)S.col={};if(S.col[k])return;S.col[k]=1;toast('Nova peça na coleção: '+name,'Renda permanente +6% · coleção '+colCount()+'/'+OBJ_TYPES.length);sfx.reveal();}
-function finishRock(auto){if(rockInfo.done)return;rockInfo.done=true;S.rocks++;setTimeout(()=>addCol(rockInfo.kind,rockInfo.name),1200);const bonus=Math.round(60*S.level*valMult()*(1+rockPct()/20));S.money+=bonus;S.total+=bonus;
+function finishRock(auto){if(rockInfo.done)return;rockInfo.done=true;S.rocks++;setTimeout(()=>grantPerkChoice('Você trocou de rocha'),3200);setTimeout(()=>addCol(rockInfo.kind,rockInfo.name),1200);const bonus=Math.round(60*S.level*valMult()*(1+rockPct()/20));S.money+=bonus;S.total+=bonus;
   toast((auto?rockInfo.name+' desfeita!':'Rocha trocada!'),'Bônus +$'+fmt(bonus)+' · a próxima rocha vale '+Math.round((valMultAt(S.level+1)/valMultAt(S.level)-1)*100)+'% mais');sfx.reveal();
   S.level++;for(const f of [...frags])dissolveFragment(f,false);save();setTimeout(()=>{showLoading('Uma nova rocha está surgindo…');setTimeout(()=>{newRock(true);buildAqueduct();hideLoading();},60);},2300);}
 function showLoading(t){let el=document.getElementById('loading');if(!el){el=document.createElement('div');el.id='loading';document.body.appendChild(el);}el.textContent=t;el.style.display='flex';el.style.opacity=.85;}
@@ -1293,18 +1380,20 @@ function rareVisitor(){const k=Math.random()<.5?'idolo':'bau';const sp=freeSpot(
   toast(k==='idolo'?'Um ídolo de jade emergiu! 🗿':'Um baú enterrado apareceu! 💰','Erosione até o tesouro dentro dele');sfx.reveal();
   floatText(new THREE.Vector3(sp.x,terrainH(sp.x,sp.z)+.9,sp.z),'✦','#ffe9a0',34);}
 function stepEvents(dt){if(S.level<2&&S.total<300)return;evTimer-=dt;if(evTimer<=0){evTimer=140+Math.random()*120;if(Math.random()<.6)meteorShower();else rareVisitor();}}
+const matBonus=t=>(t===T_GOLD||t===T_AME||t===T_OLIV)?1+pk('geologo')*.35:1;
 const valMultAt=l=>(1+(l-1)*.35)*rankMult()*colMult();
 const rockPct=()=>(1-rockInfo.left/rockInfo.total)*100;
 function simFrame(){
-  const dt=1/60;erosionMul=acid(S.up.acido)*(floodT>0?2:1);splashBudget=3;
+  const dt=1/60;erosionMul=acid(S.up.acido)*(floodT>0?2:1)*(1+(S.amber||0)*.03);if(frenzyT>0)frenzyT-=dt;if(infTankT>0){infTankT-=dt;jetTank=tankCap();jetLock=false;}splashBudget=3;
   for(const k in cdLeft)if(cdLeft[k]>0)cdLeft[k]-=dt;
   // segurar
   if(down&&aim&&S.tool==='gota'&&S.up.chuva){holdAcc+=rainRate(S.up.chuva)/60;while(holdAcc>=1){holdAcc--;const p=aim.clone();p.x+=(R()-.5)*.12;p.z+=(R()-.5)*.12;spawnDrop(p,dropN(S.up.gota),dropH(S.up.altura));}}
-  if(down&&aim&&S.tool==='jato'){holdAcc+=jetRate(S.up.forcaJato)/60;const src=jetSource(aim);updBeam(true,src,aim,frames/60);const thick=1+Math.floor(S.up.gota/3);const spd=Math.min(7,jetSpeed(S.up.forcaJato)+S.up.altura*.2);while(holdAcc>=1){holdAcc--;shootJet(src,aim,spd,thick);}sfx.jet(true);}else{sfx.jet(false);updBeam(false);}
-  stepTurrets(dt);stepSpring(dt);stepDam(dt);stepAqueduct(dt);stepStorm(dt);stepCharge(dt);stepProjs(dt);stepWaves(dt);stepEvents(dt);stepFish(dt);
+  jetTank=Math.min(tankCap(),jetTank+(down&&S.tool==='jato'&&!jetLock?0:tankRegen()/60));if(jetLock&&jetTank>=tankCap()*.3)jetLock=false;if(mareT>0)mareT-=1/60;
+  if(down&&aim&&S.tool==='jato'&&!jetLock&&jetTank>0){jetTank-=1/60;if(jetTank<=0){jetTank=0;jetLock=true;sfx.empty&&sfx.empty();toast('Tanque vazio','Solte para recarregar a pressão');}holdAcc+=jetRate(S.up.forcaJato)/60;const src=jetSource(aim);updBeam(true,src,aim,frames/60);const thick=1+Math.floor(S.up.gota/3);const spd=Math.min(7,jetSpeed(S.up.forcaJato)+S.up.altura*.2);while(holdAcc>=1){holdAcc--;shootJet(src,aim,spd,thick);}sfx.jet(true);}else{sfx.jet(false);updBeam(false);}
+  stepTurrets(dt);stepSpring(dt);stepDam(dt);stepAqueduct(dt);stepStorm(dt);stepCharge(dt);stepProjs(dt);stepWaves(dt);stepEvents(dt);stepFish(dt);stepFly(dt);
   // nuvem
-  if(S.up.nuvem){cloud.visible=true;cloudT+=1/60;const cx=Math.sin(cloudT*.21)*.55,cz=Math.cos(cloudT*.17)*.45;cloud.position.lerp(new THREE.Vector3(cx,RY0+GY*V+.9,cz),.03);
-    cloudAcc+=cloudRate(S.up.nuvem)/60;while(cloudAcc>=1){cloudAcc--;const p=new THREE.Vector3(cloud.position.x+(R()-.5)*.6,cloud.position.y-1.1,cloud.position.z+(R()-.5)*.4);
+  if(S.up.nuvem){cloud.visible=true;cloudT+=1/60;const cx=Math.sin(cloudT*.21)*.55,cz=Math.cos(cloudT*.17)*.45;cloud.position.lerp(new THREE.Vector3(cx,RY0+GY*V+1.6,cz),.03);
+    cloudAcc+=cloudRate(S.up.nuvem)*(1+pk('nuvem')*.5)/60;while(cloudAcc>=1){cloudAcc--;const p=new THREE.Vector3(cloud.position.x+(R()-.5)*.6,cloud.position.y-1.1,cloud.position.z+(R()-.5)*.4);
       // gota cai de dentro da nuvem
       spawnDrop(new THREE.Vector3(p.x,cloud.position.y-.15-.1,p.z),dropN(S.up.gota),0);}}
   F.step(collide);fragWater();postStep();F.step(collide);fragWater();postStep();stepFragments(dt);
@@ -1315,7 +1404,7 @@ function simFrame(){
     if(sluiceAdd>0){const p=new THREE.Vector3((SL_X0+SL_X1)/2,chanBed(SL_X0)+.12,0);floatText(p,'+$'+fmt(sluiceAdd),'#ffd970',16);sfx.coin(sluiceAdd);sluiceAdd=0;}}
   // marcos de erosão
   const pct=rockPct();
-  while(S.mile<MILES.length&&pct>=MILES[S.mile]){const rw=mileReward(S.mile);S.money+=rw;S.total+=rw;toast('Marco: '+String(MILES[S.mile]).replace('.',',')+'% erodido','Recompensa +$'+fmt(rw));sfx.reveal();S.mile++;
+  while(S.mile<MILES.length&&pct>=MILES[S.mile]){const rw=Math.round(mileReward(S.mile)*(1+pk('marco')*.3));S.money+=rw;S.total+=rw;toast('Marco: '+String(MILES[S.mile]).replace('.',',')+'% erodido','Recompensa +$'+fmt(rw));sfx.reveal();S.mile++;
     floatText(new THREE.Vector3(0,RY0+GY*V*.8,0),'+$'+fmt(rw),'#f1d9a8',30);}
   if(pct>=65&&!rockInfo.done)finishRock(true);
   if(frames%1800===0)saveRockMask();
@@ -1390,10 +1479,10 @@ function loop(now){
 }
 resize();
 function offlineGains(){const away=(Date.now()-(S.t||Date.now()))/1000;const passive=turretCount()+S.up.nuvem+S.up.aqueduto+S.up.nascente+S.up.peixes+S.up.auto;
-  if(away<60||!passive||!(S.rate>0))return;const sec=Math.min(away,8*3600);const g=Math.round(sec*S.rate*Math.min(.5,.12+passive*.03));if(g<1)return;S.money+=g;S.total+=g;
+  if(away<60||!passive||!(S.rate>0))return;const sec=Math.min(away,8*3600);const g=Math.round(sec*S.rate*Math.min(.5,.12+passive*.03)*(1+pk('offline')*.5)*(1+S.amber*.08));if(g<1)return;S.money+=g;S.total+=g;
   const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60);setTimeout(()=>toast('Enquanto você estava fora ('+(h?h+'h ':'')+m+'min)','Suas máquinas renderam +$'+fmt(g)),900);}
-setTimeout(()=>{offlineGains();newRock(false);buildShop();renderHotbar();rebuildTurrets();buildAqueduct();buildExtraSluices();syncFish();ui();hideLoading();requestAnimationFrame(loop);},30);
-window.__dbg={beam,wetData,wetTex,SHOP,buy,wash,costOf,maxed,avail,get simCost(){return simCost},meteorShower,rareVisitor,newRock,get rock(){return rockInfo},hold(v){down=v;},jetAt(x,y,z){aim=new THREE.Vector3(x,y,z);S.tool='jato';down=true;},panGrains:(x,y,z)=>panGrains(new THREE.Vector3(x,y,z)),startStorm,get cap(){return F.cap},aimAt(x,y,z){aim=new THREE.Vector3(x,y,z);},carve(x0,x1,y0,y1){for(let z=0;z<GZ;z++)for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const i=vid(x,y,z);if(vt[i])removeVoxel(i,x,y,z,false);}},frags,setTool,useTool,get aim(){return aim},set aim(v){aim=v},startDam,burstDam,get dam(){return dam},DBG,setRender(v){SIMONLY=!v;},cam:camera,ctl:controls,get frames(){return frames},F,S,rockInfo:()=>rockInfo,spawnDrop:(x,y,z,n,h)=>spawnDrop(new THREE.Vector3(x,y,z),n,h)};
+setTimeout(()=>{offlineGains();applyGfx();newRock(false);buildShop();renderHotbar();rebuildTurrets();buildAqueduct();buildExtraSluices();syncFish();ui();hideLoading();requestAnimationFrame(loop);},30);
+window.__dbg={openPerks,tryCatchFly,fly,get flyTimer(){return flyTimer},set flyTimer(v){flyTimer=v},beam,wetData,wetTex,SHOP,buy,wash,costOf,maxed,avail,get simCost(){return simCost},meteorShower,rareVisitor,newRock,get rock(){return rockInfo},hold(v){down=v;},jetAt(x,y,z){aim=new THREE.Vector3(x,y,z);S.tool='jato';down=true;},panGrains:(x,y,z)=>panGrains(new THREE.Vector3(x,y,z)),startStorm,get cap(){return F.cap},aimAt(x,y,z){aim=new THREE.Vector3(x,y,z);},carve(x0,x1,y0,y1){for(let z=0;z<GZ;z++)for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const i=vid(x,y,z);if(vt[i])removeVoxel(i,x,y,z,false);}},frags,setTool,useTool,get aim(){return aim},set aim(v){aim=v},startDam,burstDam,get dam(){return dam},DBG,setRender(v){SIMONLY=!v;},cam:camera,ctl:controls,get frames(){return frames},F,S,rockInfo:()=>rockInfo,spawnDrop:(x,y,z,n,h)=>spawnDrop(new THREE.Vector3(x,y,z),n,h)};
 addEventListener('visibilitychange',()=>{if(document.hidden){save();saveRockMask();}});addEventListener('beforeunload',()=>{save();saveRockMask();});
 </script>
 </body>
