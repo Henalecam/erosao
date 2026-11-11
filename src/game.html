@@ -79,7 +79,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#1b1a17;font-family:"I
 <div id="combo"></div>
 <button id="perkBtn" class="panel">✦ Escolher perk</button>
 <div id="perkModal"></div>
-<div id="settings" class="panel"><button id="gfxBtn" title="Qualidade gráfica">🖥️ Alto</button><button id="sndBtn" title="Som">🔊</button><button id="expBtn" title="Nova expedição (prestígio)">🧭 Expedição</button></div>
+<div id="settings" class="panel"><button id="gfxBtn" title="Qualidade gráfica">🖥️ Alto</button><button id="sndBtn" title="Som">🔊</button><button id="achBtn" title="Conquistas">🏆</button><button id="expBtn" title="Nova expedição (prestígio)">🧭 Expedição</button></div>
 <div id="perkList" class="panel"></div>
 <div id="camHelp" class="panel">WASD mover · Q/E girar · R/F zoom · botão do meio arrasta · <b>C</b> centraliza · <b>B</b> loja · <b>L</b> lava</div>
 <div id="sluice" class="panel"><div><b>Calha de garimpo</b></div><div id="sluiceTxt" style="opacity:.75">$0 / $0</div><div class="bar"><div id="sluiceBar"></div></div><button id="wash">Lavar a calha</button></div>
@@ -99,7 +99,7 @@ const R=Math.random;
 // Estado & upgrades
 // =================================================================
 const KEY='erosao3d_v2';
-const UP0={tanque:0,calhas:0,extracao:0,peixes:0,aqueduto:0,tempestade:0,gota:0,chuva:0,altura:0,acido:0,nuvem:0,calha:0,riffle:0,auto:0,jato:0,balao:0,granizo:0,onda:0,forcaJato:0,t_gota:0,t_esg:0,t_bal:0,cadencia:0,nascente:0,represa:0};
+const UP0={britador:0,tanque:0,calhas:0,extracao:0,peixes:0,aqueduto:0,tempestade:0,gota:0,chuva:0,altura:0,acido:0,nuvem:0,calha:0,riffle:0,auto:0,jato:0,balao:0,granizo:0,onda:0,forcaJato:0,t_gota:0,t_esg:0,t_bal:0,cadencia:0,nascente:0,represa:0};
 const S={money:0,level:1,total:0,sluice:0,t:Date.now(),tool:'gota',up:{...UP0},found:{},mile:0,rockSeed:0,rocks:0,extras:[],col:{},rate:0,q:0,qc:{},perks:{},perkPend:0,amber:0,lifeBase:0,gfx:2};
 try{const sv=JSON.parse(localStorage.getItem(KEY)||'null');if(sv){Object.assign(S,sv);S.up=Object.assign({...UP0},sv.up||{});S.found=sv.found||{};S.col=sv.col||{};S.qc=sv.qc||{};S.perks=sv.perks||{};}}catch(e){}
 const save=()=>{S.t=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
@@ -140,6 +140,7 @@ const SHOP=[
  {k:'calhas',tab:'Garimpo',n:'🪵 Calha extra',d:l=>`${l}/3 calhas extras · +60% de capacidade cada`,base:400,mul:2.6,max:3},
  {k:'extracao',tab:'Garimpo',n:'Área de extração',d:l=>`Calhas e bateia ${Math.round(extScale(l)*100)}% maiores`,base:150,mul:1.95,max:8},
  {k:'peixes',tab:'Garimpo',n:'🐟 Peixes garimpeiros',d:l=>l?`${l} peixe${l>1?'s':''} caçando grãos na água`:'Peixes que comem os restos na água',base:300,mul:2.1,max:8},
+ {k:'britador',tab:'Garimpo',n:'⚙️ Britador',d:l=>l?`Puxa e mói fragmentos · raio ${(1+l*.3).toFixed(1)} m · ${l} nível`:'Máquina que puxa os blocos soltos e mói em grãos',base:700,mul:2.1,max:6},
  {k:'auto',tab:'Garimpo',n:'Lavagem automática',d:l=>l?`Lava a cada ${autoWash(l)} s`:'Lava a calha sozinha',base:250,mul:2.05,max:7},
 ];
 const QUESTS=[
@@ -462,7 +463,8 @@ function buildChunk(cx,cy,cz){
   for(let z=z0;z<z0+CK;z++)for(let y=y0;y<Math.min(GY,y0+CK);y++)for(let x=x0;x<x0+CK;x++){
     const i=x+GX*(y+GY*z);const t=vt[i];if(!t)continue;
     const L=(t===T_GOLD||t===T_MET)?lists[1]:(t===T_AME||t===T_OLIV)?lists[2]:(t===T_QTZ||t===T_JADE)?lists[3]:lists[0];
-    const r=LIN[vr[i]],g=LIN[vg[i]],b=LIN[vb[i]];
+    const hm=MATS[t].hp*(1+(S.level-1)*.15);const dm=Math.max(0,Math.min(1,1-vhp[i]/hm));const crk=dm>.45&&((x*7+y*13+z*5)%5===0)?.45:1;const dk=(1-dm*.4)*crk;
+    const r=LIN[vr[i]]*dk,g=LIN[vg[i]]*dk,b=LIN[vb[i]]*dk;
     for(let f=0;f<6;f++){const F=FACES[f];const nx=F[0],ny=F[1],nz=F[2];
       if(solid(x+nx,y+ny,z+nz))continue;
       const ux=F[3],uy=F[4],uz=F[5],wx=F[6],wy=F[7],wz=F[8];
@@ -504,7 +506,7 @@ let erosionMul=1;
 const dmgQ=[];
 let comboN=0,comboT=0,comboShown=0;
 function removeVoxel(i,x,y,z,spawn,noPay){
-  const t=vt[i];vt[i]=0;rockInfo.left--;markDirty(x,y,z);structDirty=true;
+  const t=vt[i];stats('voxels');if(t===T_GOLD)stats('gold');if(t===T_AME||t===T_OLIV)stats('gem');vt[i]=0;rockInfo.left--;markDirty(x,y,z);structDirty=true;
   if(!noPay){comboN++;comboT=1.6+pk('combo')*1;const cm=comboMul();const g=MATS[t].val*valMult()*matBonus(t)*.07*cm;S.money+=g;S.total+=g;earnBatch+=g;comboGain+=g;}
   // revelações
   for(const [dx,dy,dz] of [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]]){const nx=x+dx,ny=y+dy,nz=z+dz;if(nx<0||ny<0||nz<0||nx>=GX||ny>=GY||nz>=GZ)continue;const nt=vt[vid(nx,ny,nz)];
@@ -548,7 +550,7 @@ function collide(){
         if(!kind[i]){
           const mt=F.mat[i],jp=mt>=128?mt-128:0;
           const dmg=(.0006+.004*vn*vn+.003*vtg)*erosionMul*(jp?1+jp*.05:1+mt*.1);
-          vhp[hit]-=dmg;DBG.c++;DBG.d+=dmg;wetMark(hx,hy,hz);
+          {const hm=MATS[vt[hit]].hp*(1+(S.level-1)*.15);const before=vhp[hit];vhp[hit]-=dmg;if(before>hm*.5&&vhp[hit]<=hm*.5&&vhp[hit]>0)markDirty(hx,hy,hz);}DBG.c++;DBG.d+=dmg;wetMark(hx,hy,hz);
           if(vhp[hit]<=0){removeVoxel(hit,hx,hy,hz,R()<.6);if(pk('cadeia')&&R()<pk('cadeia')*.06){const o=[[1,0,0],[-1,0,0],[0,1,0],[0,0,1],[0,0,-1]][(R()*5)|0];if(solid(hx+o[0],hy+o[1],hz+o[2]))removeVoxel(vid(hx+o[0],hy+o[1],hz+o[2]),hx+o[0],hy+o[1],hz+o[2],true);}
             // jato penetra: atravessa o voxel quebrado e segue perfurando
             if(jp>4&&vn>1.2){const sx_=x,sy_=y,sz_=z;x=ox[i]+dx;y=oy[i]+dy;z=oz[i]+dz;const qx=Math.floor((x-RX0)/V),qy=Math.floor((y-RY0)/V),qz=Math.floor((z-RZ0)/V);
@@ -610,7 +612,19 @@ function postStep(){
 const RANKS=[[0,'Aprendiz'],[120,'Bateador'],[500,'Garimpeiro'],[1800,'Faiscador'],[6000,'Mineiro'],[18000,'Prospector'],[55000,'Capataz'],[160000,'Mestre das águas'],[500000,'Lenda do rio'],[2e6,'Titã da erosão']];
 const rankIdx=()=>{let k=0;for(let i=0;i<RANKS.length;i++)if(S.total>=RANKS[i][0])k=i;return k;};
 const rankMult=()=>1+rankIdx()*.12;
-const colCount=()=>Object.keys(S.col||{}).length;const colMult=()=>1+colCount()*.06;let blessT=0;
+const ACH=[
+ {k:'v1k',n:'Primeiros arranhões',d:'Erodir 1.000 voxels',s:'voxels',v:1000},{k:'v10k',n:'Escultor',d:'Erodir 10.000 voxels',s:'voxels',v:10000},{k:'v100k',n:'Força da natureza',d:'Erodir 100.000 voxels',s:'voxels',v:100000},
+ {k:'gold',n:'Febre do ouro',d:'Erodir 100 voxels de ouro',s:'gold',v:100},{k:'gem',n:'Joalheiro',d:'Erodir 50 gemas (ametista/olivina)',s:'gem',v:50},
+ {k:'dam',n:'Demolidor de represas',d:'Estourar 5 represas',s:'dams',v:5},{k:'fish',n:'Aquário de ouro',d:'Peixes comem 300 grãos',s:'fish',v:300},
+ {k:'fly',n:'Caçador de libélulas',d:'Pegar 5 libélulas douradas',s:'flies',v:5},{k:'storm',n:'Olho da tempestade',d:'Passar por 3 tempestades',s:'storms',v:3},
+ {k:'balloon',n:'Arremessador',d:'Arremessar 50 balões cheios',s:'balloons',v:50},{k:'crush',n:'Moedor',d:'O britador mói 200 vezes',s:'crush',v:200},
+ {k:'wash',n:'Lavadeiro',d:'Lavar a calha 100 vezes',s:'washes',v:100},{k:'rocks',n:'Colecionador de pedras',d:'Trocar 10 rochas',s:'rocks2',v:10},
+ {k:'combo',n:'No embalo',d:'Chegar a combo ×3',s:'combo3',v:1},{k:'exp',n:'Expedicionário',d:'Fazer uma expedição',s:'exps',v:1},
+];
+function stats(k,n=1){if(!S.st)S.st={};S.st[k]=(S.st[k]||0)+n;}
+function checkAch(){if(!S.ach)S.ach={};for(const a of ACH){if(S.ach[a.k])continue;if(((S.st||{})[a.s]||0)>=a.v){S.ach[a.k]=1;toast('🏆 Conquista: '+a.n,a.d+' · renda +2% permanente');sfx.reveal();}}}
+const achMult=()=>1+Object.keys(S.ach||{}).length*.02;
+const colCount=()=>Object.keys(S.col||{}).length;const colMult=()=>(1+colCount()*.06)*achMult();let blessT=0;
 let frenzyT=0,infTankT=0;
 const valMult=()=>(1+(S.level-1)*.35)*rankMult()*colMult()*(1+(S.amber||0)*.08)*(blessT>0?2:1)*(frenzyT>0?3:1);
 const MILES=[.01,.025,.05,.1,.2,.35,.6,1,1.5,2.2,3,4,5.5,7.5,10,14,20,28,38,50,65];
@@ -917,7 +931,7 @@ function stepCharge(dt){
   chargeMesh.visible=true;chargeMesh.position.copy(fromCamera(charge.target,1.6,.7));const wob=1+Math.sin(charge.t*18)*.03*(sz>=balloonMax()*.99?1:.3);chargeMesh.scale.set(r*wob,r*1.12/wob,r*wob);
   targetRing.visible=true;targetRing.position.copy(charge.target).y+=.01;const tr=blastR(sz)*1.0;targetRing.scale.set(tr,tr,tr);}
 const blastR=sz=>(.055+.1*sz)*(1+S.up.altura*.04)*(1+pk('balaoGrande')*.15);
-function throwBalloon(){updCD();const sz=Math.max(.12,chargeSize());if(sz>=balloonMax()*.95)qBump('balloon');const src=chargeMesh.position.clone();const tg=charge.target;charge=null;sfx.inflate(false);
+function throwBalloon(){updCD();const sz=Math.max(.12,chargeSize());if(sz>=balloonMax()*.95){qBump('balloon');stats('balloons');}const src=chargeMesh.position.clone();const tg=charge.target;charge=null;sfx.inflate(false);
   const T=.5+sz*.15;const v=tg.clone().sub(src).divideScalar(T);v.y+=.5*9.8*T;
   const m=new THREE.Mesh(chargeMesh.geometry,balloonMatl);m.castShadow=true;const r=balloonRad(sz);m.scale.set(r,r*1.12,r);m.position.copy(src);scene.add(m);
   projs.push({pos:src,vel:v,sz,mesh:m,t:0});cdLeft.balao=CD.balao;sfx.whoosh();}
@@ -1020,7 +1034,7 @@ function stepFly(dt){if(!fly.visible){flyTimer-=dt*(1+pk('sorte')*.5);if(flyTime
   flyT+=dt;flyLife-=dt;const a=flyT*.7,r=1.7+Math.sin(flyT*.9)*.5;const nx=Math.cos(a)*r,nz=Math.sin(a*1.3)*r*.8+.4,ny=RY0+.9+Math.sin(flyT*2.1)*.35;
   fly.lookAt(nx,ny,nz);fly.position.set(nx,ny,nz);fly.children.forEach((c,i)=>{if(i>1&&i<6)c.rotation.z=Math.sin(flyT*60+i)*.6;});
   if(flyLife<=0){fly.visible=false;flyTimer=(80+Math.random()*80);}}
-function tryCatchFly(cx,cy){if(!fly.visible)return false;const v=fly.position.clone().project(camera);const sx=(v.x+1)/2*innerWidth,sy=(1-v.y)/2*innerHeight;if(Math.hypot(sx-cx,sy-cy)>48)return false;
+function tryCatchFly(cx,cy){if(!fly.visible)return false;const v=fly.position.clone().project(camera);const sx=(v.x+1)/2*innerWidth,sy=(1-v.y)/2*innerHeight;if(Math.hypot(sx-cx,sy-cy)>48)return false;stats('flies');
   fly.visible=false;flyTimer=80+Math.random()*80;const r=Math.random();
   if(r<.3){frenzyT=15;toast('Frenesi! ✨','Renda ×3 por 15 segundos');}
   else if(r<.55){for(const k in cdLeft)cdLeft[k]=0;infTankT=12;jetLock=false;toast('Fôlego infinito! 💨','Recargas zeradas e jato sem limite por 12 s');}
@@ -1046,6 +1060,21 @@ function makeFish(k){const g=new THREE.Group();const m=fishMats[k%fishMats.lengt
 function syncFish(){while(fishes.length<S.up.peixes+pk('peixe'))fishes.push(makeFish(fishes.length));}
 let fishGain=0,fishT=0;
 function inWater(i){return F.density[i]>F.REST*.45&&F.py[i]<terrainH(F.px[i],F.pz[i])+.22&&!solid(Math.floor((F.px[i]-RX0)/V),Math.floor((F.py[i]-.05-RY0)/V),Math.floor((F.pz[i]-RZ0)/V));}
+// ----- britador: puxa fragmentos e mói em grãos
+const BR_POS=new THREE.Vector3(1.75,0,-1.55);const brGroup=new THREE.Group();scene.add(brGroup);let brRollers=[],brT=0;
+function buildCrusher(){brGroup.clear();brRollers=[];if(!S.up.britador)return;const y=terrainH(BR_POS.x,BR_POS.z);brGroup.position.set(BR_POS.x,y,BR_POS.z);brGroup.rotation.y=-.7;
+  const steel=new THREE.MeshStandardMaterial({color:0x5c6670,metalness:.8,roughness:.4}),rust=new THREE.MeshStandardMaterial({color:0x8a4b2a,metalness:.4,roughness:.7});
+  const body=new THREE.Mesh(new THREE.BoxGeometry(.5,.32,.4),rust);body.position.y=.16;brGroup.add(body);
+  const hop=new THREE.Mesh(new THREE.CylinderGeometry(.34,.2,.22,4,1,true),steel);hop.position.y=.43;hop.rotation.y=Math.PI/4;hop.material.side=THREE.DoubleSide;brGroup.add(hop);
+  for(const z of [-.07,.07]){const r=new THREE.Mesh(new THREE.CylinderGeometry(.065,.065,.42,12),steel);r.rotation.x=Math.PI/2;r.rotation.y=Math.PI/2;r.position.set(0,.33,z);brGroup.add(r);brRollers.push(r);}
+  brGroup.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});}
+function stepCrusher(dt){if(!S.up.britador)return;const L=S.up.britador;const rad=1+L*.3,mouth=new THREE.Vector3(BR_POS.x,terrainH(BR_POS.x,BR_POS.z)+.45,BR_POS.z);
+  brT+=dt;for(const r of brRollers)r.rotation.x+=dt*(8+L*2)*(r.position.z>0?1:-1);
+  for(const f of [...frags]){const d=f.pos.clone().sub(mouth);const D=d.length();if(D>rad)continue;
+    if(D<.3+f.rad*.5){f.crushT=(f.crushT||0)+dt;if(f.crushT>.12/(1+L*.25)){f.crushT=0;const tmp=new THREE.Vector3();for(let c=0;c<4+L&&f.vox.length;c++){const v=f.vox.pop();spawnGrain(BR_POS.x+.3+(Math.random()-.5)*.1,terrainH(BR_POS.x+.3,BR_POS.z)+.08,BR_POS.z+(Math.random()-.5)*.1,v.t,.008,.004,.004);}
+        f.dirty=true;if(f.vox.length<4)dissolveFragment(f,true);if(Math.random()<.3)sfx.crumble(T_GRAN);stats('crush');}
+      f.vel.multiplyScalar(.6);}
+    else{d.normalize().multiplyScalar(-(2.5+L*.8)*dt*(1-D/rad));f.vel.add(d);f.vel.y+=dt*2.2*(1-D/rad);}}}
 function stepFish(dt){if(!fishes.length)return;const sp=(.55+S.up.peixes*.03)*(1+pk('peixe')*.25);
   for(const f of fishes){f.retarget-=dt;
     if(f.target>=F.np||f.target>=0&&(F.kind[f.target]!==1||F.dead[f.target]))f.target=-1;
@@ -1059,7 +1088,7 @@ function stepFish(dt){if(!fishes.length)return;const sp=(.55+S.up.peixes*.03)*(1
     d.normalize().multiplyScalar(sp);f.vel.lerp(d,Math.min(1,dt*4));f.pos.addScaledVector(f.vel,dt);
     const gh=terrainH(f.pos.x,f.pos.z)+.025;if(f.pos.y<gh)f.pos.y=gh;if(f.pos.y>gh+.15)f.pos.y=gh+.15;
     f.g.visible=true;f.g.position.copy(f.pos);if(f.vel.lengthSq()>1e-4)f.g.lookAt(f.pos.clone().add(f.vel));f.wig+=dt*(10+f.vel.length()*12);f.tail.rotation.y=Math.sin(f.wig)*.6;f.g.rotation.z+=Math.sin(f.wig*.5)*.05;
-    if(f.target>=0&&L<.07){const i=f.target;const v=MATS[F.mat[i]].val*valMult()*(.5+S.up.peixes*.04);S.money+=v;S.total+=v;earnBatch+=v;fishGain+=v;F.kill(i);sedCount--;f.target=-1;f.retarget=.15;f.eaten++;}}
+    if(f.target>=0&&L<.07){const i=f.target;const v=MATS[F.mat[i]].val*valMult()*(.5+S.up.peixes*.04);S.money+=v;S.total+=v;earnBatch+=v;fishGain+=v;F.kill(i);sedCount--;stats('fish');f.target=-1;f.retarget=.15;f.eaten++;}}
   fishT+=dt;if(fishT>1.5&&fishGain>0){const f=fishes[(Math.random()*fishes.length)|0];if(f.g.visible)floatText(f.pos.clone().add(new THREE.Vector3(0,.12,0)),'🐟 +$'+fmt(fishGain),'#9fe7ff',15);fishT=0;fishGain=0;}}
 // ----- aqueduto
 const AQ_A=new THREE.Vector3(-3.1,1.5,-1.7),AQ_B=new THREE.Vector3(-.35,0,-.35);
@@ -1081,7 +1110,7 @@ function stepAqueduct(dt){if(!S.up.aqueduto)return;aqAcc+=aqRate(S.up.aqueduto)*
 let storm=0,stormTimer=150+R()*90,stormAcc=0,flash=0;
 const rainGeo=new THREE.CylinderGeometry(.004,.004,.35,3);const rainMesh=new THREE.InstancedMesh(rainGeo,new THREE.MeshBasicMaterial({color:0xbcd4e6,transparent:true,opacity:.45}),700);rainMesh.frustumCulled=false;rainMesh.count=0;scene.add(rainMesh);
 const rainP=[];for(let i=0;i<700;i++)rainP.push(new THREE.Vector3((R()-.5)*14,R()*7,(R()-.5)*14));
-function startStorm(){storm=14+S.up.tempestade*3+pk('raio')*5;toast('Tempestade de verão! ⛈️','Chuva forte sobre a rocha por alguns segundos');sfx.thunder(1);}
+function startStorm(){stats('storms');storm=14+S.up.tempestade*3+pk('raio')*5;toast('Tempestade de verão! ⛈️','Chuva forte sobre a rocha por alguns segundos');sfx.thunder(1);}
 function stepStorm(dt){
   if(S.up.tempestade&&storm<=0){stormTimer-=dt;if(stormTimer<=0){stormTimer=(170-S.up.tempestade*20)+R()*80;startStorm();}}
   if(storm>0){storm-=dt;stormAcc+=(14+S.up.tempestade*5)*dt;while(stormAcc>=1){stormAcc--;const a=R()*6.283,r=Math.sqrt(R())*1.6;spawnBlob(Math.cos(a)*r,RY0+GY*V+.8+R()*.5,Math.sin(a)*r,5,0,-.03,0,0,4);}
@@ -1109,7 +1138,7 @@ function startDam(){const t=.66+R()*.08;const p=creekPoint(t);const y0=terrainH(
     const holder=new THREE.Group();holder.position.set(p.x,y0+.05+row*.095,p.z);holder.rotation.y=ang+Math.PI/2;log.position.z=(k-.5)*.07;holder.add(log);log.castShadow=true;damGroup.add(holder);
     dam.logs.push({o:holder,v:new THREE.Vector3(),w:new THREE.Vector3()});}
   toast('Os castores represaram o riacho! 🦫','A água está acumulando. Clique na represa para estourar');sfx.creak();}
-function burstDam(){if(!dam||!dam.active)return;dam.active=false;
+function burstDam(){if(!dam||!dam.active)return;stats('dams');dam.active=false;
   for(const l of dam.logs){l.v.set(dam.tx*(2+R()*2)+(R()-.5)*2,1.5+R()*2,dam.tz*(2+R()*2)+(R()-.5)*2);l.w.set(R()*6,R()*6,R()*6);}
   floodT=12;toast('A represa estourou! 🌊','Enchente: erosão ×2 por 12 s');sfx.burst();shake=.05;}
 let floodT=0;
@@ -1205,6 +1234,7 @@ function buy(u){sfx.init();const c=costOf(u);if(S.money<c||maxed(u)||!avail(u))r
   if(u.k.startsWith('t_')){rebuildTurrets();toast('Torreta instalada','Ela mira e atira sozinha');}
   if(u.k==='nascente'&&S.up.nascente===1)toast('A nascente brotou 🏞️','Um riacho agora corre até a rocha');
   if(u.k==='calhas'||u.k==='extracao'){buildExtraSluices();if(u.k==='calhas')toast('Calha extra instalada','Ela pega os grãos que escorrem em volta da rocha');}
+  if(u.k==='britador'){buildCrusher();if(S.up.britador===1)toast('Britador instalado ⚙️','Ele puxa os blocos soltos e mói em grãos');}
   if(u.k==='peixes'){syncFish();if(S.up.peixes===1)toast('Um peixe chegou 🐟','Ele caça os grãos que a água arrasta');}
   if(u.k==='aqueduto'){buildAqueduct();if(S.up.aqueduto===1)toast('Aqueduto construído','Água corre direto para o topo da rocha');}
   if(u.k==='tempestade'&&S.up.tempestade===1){stormTimer=8;}
@@ -1214,11 +1244,12 @@ function buildShop(){$('ups').innerHTML='';btns=SHOP.filter(u=>u.tab===curTab).m
   for(const t of TABS)tabBtns[t].classList.toggle('on',t===curTab);}
 function renderHotbar(){const hb=$('hotbar');hb.innerHTML='';TOOLS.forEach((t,i)=>{const b=document.createElement('button');const on=toolOn(t.k);b.className='tool'+(S.tool===t.k?' on':'')+(on?'':' lock');
   b.title=`${t.n} (tecla ${i+1}): ${on?t.tip:'bloqueado. Desbloqueie na aba Ferramentas.'}`;b.setAttribute('aria-label',b.title);b.innerHTML=`<span class="k">${i+1}</span><span class="ic">${on?t.ic:'🔒'}</span><span class="nm">${t.n}</span><span class="cd" id="cd_${t.k}"></span>`;b.onclick=()=>{sfx.init();if(on)setTool(t.k);else{curTab='Ferramentas';buildShop();ui();}};hb.appendChild(b);});}
-function wash(){if(S.sluice<.01)return;qBump('wash');const v=S.sluice;S.money+=v;S.total+=v;earnBatch+=v;S.sluice=0;sfx.wash();
+function wash(){if(S.sluice<.01)return;qBump('wash');stats('washes');const v=S.sluice;S.money+=v;S.total+=v;earnBatch+=v;S.sluice=0;sfx.wash();
   const p=new THREE.Vector3((SL_X0+SL_X1)/2,chanBed((SL_X0+SL_X1)/2)+.25,0);floatText(p,'+$'+fmt(v),'#ffe08a',26);save();ui();}
 $('wash').onclick=()=>{sfx.init();wash();};
 $('nextRock').onclick=()=>{sfx.init();finishRock(false);};
 $('perkBtn').onclick=()=>{sfx.init();openPerks();};
+$('achBtn').onclick=()=>{const m=$('perkModal');const got=Object.keys(S.ach||{}).length;m.innerHTML=`<div class="pm-in panel" style="max-width:640px"><h3>🏆 Conquistas ${got}/${ACH.length} · renda +${got*2}%</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;text-align:left">${ACH.map(a=>{const ok=S.ach&&S.ach[a.k];const v=Math.min(a.v,(S.st||{})[a.s]||0);return `<div style="padding:7px 10px;border-radius:9px;background:rgba(255,245,225,${ok?.14:.04});opacity:${ok?1:.75}"><b>${ok?'🏆':'🔒'} ${a.n}</b><br><small style="margin:0;opacity:.75">${a.d} · ${fmt(v)}/${fmt(a.v)}</small></div>`;}).join('')}</div><div class="pm-cards" style="margin-top:12px"><button class="pcard" id="achClose" style="width:auto;padding:8px 18px"><b>Fechar</b></button></div></div>`;m.style.display='flex';$('achClose').onclick=()=>m.style.display='none';};
 $('sndBtn').onclick=()=>{sfx.init();$('sndBtn').textContent=sfx.toggle()?'🔇':'🔊';};
 $('gfxBtn').onclick=()=>{S.gfx=((S.gfx??2)+2)%3;applyGfx();save();};
 const amberGain=()=>Math.max(0,Math.floor(Math.sqrt(((S.lifeBase||0)+S.total)/4000))-(S.amber||0));
@@ -1226,7 +1257,7 @@ $('expBtn').onclick=()=>{sfx.init();const g=amberGain();const m=$('perkModal');c
   m.innerHTML=`<div class="pm-in panel"><h3>🧭 Nova expedição</h3><p style="max-width:440px;margin:0 auto 12px;opacity:.85;line-height:1.45">Recomece numa clareira nova: dinheiro, melhorias, perks e rochas voltam ao início.<br>Você ganha <b>${g} âmbar</b> 🟠. Cada âmbar dá <b>+8% de renda e +3% de erosão</b> para sempre.<br>Coleção, objetivos e âmbar ficam.</p>
     <p style="opacity:.7;font-size:12.5px">Âmbar atual: ${S.amber||0} · ${ok?'':(S.rocks<3?'Disponível após trocar 3 rochas.':'Ganhe mais para render âmbar.')}</p>
     <div class="pm-cards"><button class="pcard" id="expNo"><b>Ainda não</b></button>${ok?'<button class="pcard" id="expYes"><span class="pic">🧭</span><b>Partir (+'+g+' 🟠)</b></button>':''}</div></div>`;m.style.display='flex';
-  $('expNo').onclick=()=>m.style.display='none';if(ok)$('expYes').onclick=()=>{S.amber=(S.amber||0)+g;S.lifeBase=(S.lifeBase||0)+S.total;
+  $('expNo').onclick=()=>m.style.display='none';if(ok)$('expYes').onclick=()=>{stats('exps');S.amber=(S.amber||0)+g;S.lifeBase=(S.lifeBase||0)+S.total;
     Object.assign(S,{money:0,level:1,total:0,sluice:0,tool:'gota',up:{...UP0},mile:0,rockSeed:0,rocks:0,extras:[],perks:{},perkPend:0,lastRank:0,found:{}});
     try{localStorage.removeItem(KEY+'_rock');}catch(e){}save();location.reload();};};
 addEventListener('keydown',e=>{if(e.key==='l'||e.key==='L'){sfx.init();wash();}});
@@ -1273,7 +1304,7 @@ function loadRockMask(){try{const raw=localStorage.getItem(KEY+'_rock');if(!raw)
   const runs=data.split(',').map(v=>parseInt(v,36));let i=0,cur=0,left=0;for(const r of runs){if(!cur){for(let k=0;k<r&&i<GN;k++,i++)vt[i]=0;}else{for(let k=0;k<r&&i<GN;k++,i++)if(vt[i])left++;}cur^=1;}
   rockInfo.left=left;return true;}catch(e){return false;}}
 function addCol(k,name){if(!S.col)S.col={};if(S.col[k])return;S.col[k]=1;toast('Nova peça na coleção: '+name,'Renda permanente +6% · coleção '+colCount()+'/'+OBJ_TYPES.length);sfx.reveal();}
-function finishRock(auto){if(rockInfo.done)return;rockInfo.done=true;S.rocks++;setTimeout(()=>grantPerkChoice('Você trocou de rocha'),3200);setTimeout(()=>addCol(rockInfo.kind,rockInfo.name),1200);const bonus=Math.round(60*S.level*valMult()*(1+rockPct()/20));S.money+=bonus;S.total+=bonus;
+function finishRock(auto){if(rockInfo.done)return;rockInfo.done=true;S.rocks++;stats('rocks2');setTimeout(()=>grantPerkChoice('Você trocou de rocha'),3200);setTimeout(()=>addCol(rockInfo.kind,rockInfo.name),1200);const bonus=Math.round(60*S.level*valMult()*(1+rockPct()/20));S.money+=bonus;S.total+=bonus;
   toast((auto?rockInfo.name+' desfeita!':'Rocha trocada!'),'Bônus +$'+fmt(bonus)+' · a próxima rocha vale '+Math.round((valMultAt(S.level+1)/valMultAt(S.level)-1)*100)+'% mais');sfx.reveal();
   S.level++;for(const f of [...frags])dissolveFragment(f,false);save();setTimeout(()=>{showLoading('Uma nova rocha está surgindo…');setTimeout(()=>{newRock(true);buildAqueduct();hideLoading();},60);},2300);}
 function showLoading(t){let el=document.getElementById('loading');if(!el){el=document.createElement('div');el.id='loading';document.body.appendChild(el);}el.textContent=t;el.style.display='flex';el.style.opacity=.85;}
@@ -1308,7 +1339,7 @@ function simFrame(){
   if(down&&aim&&S.tool==='gota'&&S.up.chuva){holdAcc+=rainRate(S.up.chuva)/60;while(holdAcc>=1){holdAcc--;const p=aim.clone();p.x+=(R()-.5)*.12;p.z+=(R()-.5)*.12;spawnDrop(p,dropN(S.up.gota),dropH(S.up.altura));}}
   jetTank=Math.min(tankCap(),jetTank+(down&&S.tool==='jato'&&!jetLock?0:tankRegen()/60));if(jetLock&&jetTank>=tankCap()*.3)jetLock=false;if(mareT>0)mareT-=1/60;
   if(down&&aim&&S.tool==='jato'&&!jetLock&&jetTank>0){jetTank-=1/60;if(jetTank<=0){jetTank=0;jetLock=true;sfx.empty&&sfx.empty();toast('Tanque vazio','Solte para recarregar a pressão');}holdAcc+=jetRate(S.up.forcaJato)/60;const src=jetSource(aim);updBeam(true,src,aim,frames/60);const thick=1+Math.floor(S.up.gota/3);const spd=Math.min(7,jetSpeed(S.up.forcaJato)+S.up.altura*.2);while(holdAcc>=1){holdAcc--;shootJet(src,aim,spd,thick);}sfx.jet(true);}else{sfx.jet(false);updBeam(false);}
-  stepTurrets(dt);stepSpring(dt);stepDam(dt);stepAqueduct(dt);stepStorm(dt);stepCharge(dt);stepProjs(dt);stepWaves(dt);stepEvents(dt);stepFish(dt);stepFly(dt);
+  stepTurrets(dt);stepSpring(dt);stepDam(dt);stepAqueduct(dt);stepStorm(dt);stepCharge(dt);stepProjs(dt);stepWaves(dt);stepEvents(dt);stepFish(dt);stepFly(dt);stepCrusher(dt);
   // nuvem
   if(S.up.nuvem){cloud.visible=true;cloudT+=1/60;const cx=Math.sin(cloudT*.21)*.55,cz=Math.cos(cloudT*.17)*.45;cloud.position.lerp(new THREE.Vector3(cx,RY0+GY*V+1.6,cz),.03);
     cloudAcc+=cloudRate(S.up.nuvem)*(1+pk('nuvem')*.5)/60;while(cloudAcc>=1){cloudAcc--;const p=new THREE.Vector3(cloud.position.x+(R()-.5)*.6,cloud.position.y-1.1,cloud.position.z+(R()-.5)*.4);
@@ -1385,6 +1416,7 @@ function stepCamera(dt){
 function loop(now){
   const dt=Math.min(100,now-last);last=now;acc+=dt;let n=0;
   stepCamera(dt/1000);stepSpray(dt/1000);if(blessT>0){blessT-=dt/1000;}wetDecay();wetU.uT.value=now/1000;
+  if(comboMul()>=2.95&&!(S.st&&S.st.combo3))stats('combo3');
   if(comboT>0){comboT-=dt/1000;comboDur+=dt/1000;if(comboT<=0){comboN=0;comboGain=0;comboDur=0;}}
   {const cm=comboMul();const el=$('combo');if(cm>1.05){el.style.opacity=1;el.textContent=`Combo ×${cm.toFixed(1).replace('.',',')} · +$${fmt(comboGain)}`;}else el.style.opacity=0;}
   while(acc>=1000/60&&n<2){const t0=performance.now();simFrame();adaptCap(performance.now()-t0);acc-=1000/60;n++;frames++;}if(n===2)acc=0;
@@ -1392,15 +1424,15 @@ function loop(now){
   rebuildDirty(6);
   let motion=0;for(let i=0;i<F.np;i+=3)motion+=Math.abs(F.vx[i])+Math.abs(F.vy[i])+Math.abs(F.vz[i]);sfx.frame(motion*HZ*.3);
   if(!SIMONLY){render(now/1000);updTexts();}
-  if(frames%8===0){ui();stepQuest();}
+  if(frames%8===0){ui();stepQuest();}if(frames%60===0)checkAch();
   requestAnimationFrame(loop);
 }
 resize();
 function offlineGains(){const away=(Date.now()-(S.t||Date.now()))/1000;const passive=turretCount()+S.up.nuvem+S.up.aqueduto+S.up.nascente+S.up.peixes+S.up.auto;
   if(away<60||!passive||!(S.rate>0))return;const sec=Math.min(away,8*3600);const g=Math.round(sec*S.rate*Math.min(.5,.12+passive*.03)*(1+pk('offline')*.5)*(1+S.amber*.08));if(g<1)return;S.money+=g;S.total+=g;
   const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60);setTimeout(()=>toast('Enquanto você estava fora ('+(h?h+'h ':'')+m+'min)','Suas máquinas renderam +$'+fmt(g)),900);}
-setTimeout(()=>{offlineGains();applyGfx();newRock(false);buildShop();renderHotbar();rebuildTurrets();buildAqueduct();buildExtraSluices();syncFish();ui();hideLoading();requestAnimationFrame(loop);},30);
-window.__dbg={openPerks,tryCatchFly,fly,get flyTimer(){return flyTimer},set flyTimer(v){flyTimer=v},beam,wetData,wetTex,SHOP,buy,wash,costOf,maxed,avail,get simCost(){return simCost},meteorShower,rareVisitor,newRock,get rock(){return rockInfo},hold(v){down=v;},jetAt(x,y,z){aim=new THREE.Vector3(x,y,z);S.tool='jato';down=true;},panGrains:(x,y,z)=>panGrains(new THREE.Vector3(x,y,z)),startStorm,get cap(){return F.cap},aimAt(x,y,z){aim=new THREE.Vector3(x,y,z);},carve(x0,x1,y0,y1){for(let z=0;z<GZ;z++)for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const i=vid(x,y,z);if(vt[i])removeVoxel(i,x,y,z,false);}},frags,setTool,useTool,get aim(){return aim},set aim(v){aim=v},startDam,burstDam,get dam(){return dam},DBG,setRender(v){SIMONLY=!v;},cam:camera,ctl:controls,get frames(){return frames},F,S,rockInfo:()=>rockInfo,spawnDrop:(x,y,z,n,h)=>spawnDrop(new THREE.Vector3(x,y,z),n,h)};
+setTimeout(()=>{offlineGains();applyGfx();newRock(false);buildShop();renderHotbar();rebuildTurrets();buildAqueduct();buildExtraSluices();syncFish();buildCrusher();ui();hideLoading();requestAnimationFrame(loop);},30);
+window.__dbg={get st(){return S.st},get ach(){return S.ach},openPerks,tryCatchFly,fly,get flyTimer(){return flyTimer},set flyTimer(v){flyTimer=v},beam,wetData,wetTex,SHOP,buy,wash,costOf,maxed,avail,get simCost(){return simCost},meteorShower,rareVisitor,newRock,get rock(){return rockInfo},hold(v){down=v;},jetAt(x,y,z){aim=new THREE.Vector3(x,y,z);S.tool='jato';down=true;},panGrains:(x,y,z)=>panGrains(new THREE.Vector3(x,y,z)),startStorm,get cap(){return F.cap},aimAt(x,y,z){aim=new THREE.Vector3(x,y,z);},carve(x0,x1,y0,y1){for(let z=0;z<GZ;z++)for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const i=vid(x,y,z);if(vt[i])removeVoxel(i,x,y,z,false);}},frags,setTool,useTool,get aim(){return aim},set aim(v){aim=v},startDam,burstDam,get dam(){return dam},DBG,setRender(v){SIMONLY=!v;},cam:camera,ctl:controls,get frames(){return frames},F,S,rockInfo:()=>rockInfo,spawnDrop:(x,y,z,n,h)=>spawnDrop(new THREE.Vector3(x,y,z),n,h)};
 addEventListener('visibilitychange',()=>{if(document.hidden){save();saveRockMask();}});addEventListener('beforeunload',()=>{save();saveRockMask();});
 </script>
 </body>

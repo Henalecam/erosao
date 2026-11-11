@@ -35,6 +35,11 @@ A cada rank novo e a cada rocha nova, escolha 1 de 3 perks. São 20 no total: go
 mãos rápidas, balão gordo, granizo de diamante, maré alta, erosão em cadeia, olho de geólogo, bateia de ouro, cardume,
 calha magnética, embalo, engrenagens, chuva farta, castores amigos, trevo, cartógrafo, vigia noturno e para-raios.
 
+## Britador, rachaduras e conquistas
+- **Britador:** puxa os fragmentos soltos e os mói em grãos, que a água leva às calhas. Faz os blocos do balão e do granizo virarem dinheiro.
+- **Rachaduras:** voxels danificados escurecem e trincam antes de quebrar.
+- **15 conquistas** (🏆): cada uma dá +2% de renda permanente e sobrevive às expedições.
+
 ## Libélula dourada e expedição
 - **Libélula dourada:** de tempos em tempos ela cruza a clareira; clique nela para ganhar um bônus aleatório:
   - Frenesi: renda ×3.
