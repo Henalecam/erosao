@@ -339,15 +339,15 @@ const RX0=-GX*V/2,RZ0=-GZ*V/2,RY0=terrainRaw(0,0)-.03;
 const vt=new Uint8Array(GN),vhp=new Float32Array(GN),vr=new Uint8Array(GN),vg=new Uint8Array(GN),vb=new Uint8Array(GN);
 const vid=(x,y,z)=>x+GX*(y+GY*z);
 // tipos de material
-const T_HEART=16,T_OPAL=17,T_ICE=18,T_GLASS=19,T_BRICK=20,T_MORTAR=21,T_CLAY=22,T_FRUIT=23,T_RIND=24,T_CHEESE=25,T_STEEL=26,T_AREIA=27,T_CAKE=28,T_CREAM=29;const T_SAND=1,T_SAND2=2,T_GRAN=3,T_QTZ=4,T_GOLD=5,T_AME=6,T_MOSS=7,T_CRACK=8,T_IRON=9,T_MET=10,T_BONE=11,T_JADE=12,T_WOOD=13,T_OLIV=14,T_BAS=15;
-const MATS={[T_ICE]:{n:'gelo',hp:.1,val:.9},[T_GLASS]:{n:'vidro',hp:.35,val:5},[T_BRICK]:{n:'tijolo',hp:.8,val:1.6},[T_MORTAR]:{n:'argamassa',hp:.1,val:.4},[T_CLAY]:{n:'argila',hp:.3,val:2.2},[T_FRUIT]:{n:'polpa',hp:.06,val:.8},[T_RIND]:{n:'casca',hp:.22,val:.6},[T_CHEESE]:{n:'queijo',hp:.13,val:1.4},[T_STEEL]:{n:'aço',hp:1.8,val:6},[T_AREIA]:{n:'areia',hp:.07,val:.45},[T_CAKE]:{n:'pão de ló',hp:.08,val:1},[T_CREAM]:{n:'cobertura',hp:.05,val:1.3},
+const T_HEART=16,T_OPAL=17,T_ICE=18,T_GLASS=19,T_BRICK=20,T_MORTAR=21,T_CLAY=22,T_FRUIT=23,T_RIND=24,T_CHEESE=25,T_STEEL=26,T_AREIA=27,T_CAKE=28,T_CREAM=29,T_PLAST=30;const T_SAND=1,T_SAND2=2,T_GRAN=3,T_QTZ=4,T_GOLD=5,T_AME=6,T_MOSS=7,T_CRACK=8,T_IRON=9,T_MET=10,T_BONE=11,T_JADE=12,T_WOOD=13,T_OLIV=14,T_BAS=15;
+const MATS={[T_PLAST]:{n:'plástico',hp:.4,val:1.8},[T_ICE]:{n:'gelo',hp:.1,val:.9},[T_GLASS]:{n:'vidro',hp:.35,val:5},[T_BRICK]:{n:'tijolo',hp:.8,val:1.6},[T_MORTAR]:{n:'argamassa',hp:.1,val:.4},[T_CLAY]:{n:'argila',hp:.3,val:2.2},[T_FRUIT]:{n:'polpa',hp:.06,val:.8},[T_RIND]:{n:'casca',hp:.22,val:.6},[T_CHEESE]:{n:'queijo',hp:.13,val:1.4},[T_STEEL]:{n:'aço',hp:1.8,val:6},[T_AREIA]:{n:'areia',hp:.07,val:.45},[T_CAKE]:{n:'pão de ló',hp:.08,val:1},[T_CREAM]:{n:'cobertura',hp:.05,val:1.3},
  [T_SAND]:{n:'arenito',hp:.2,val:.55},[T_SAND2]:{n:'arenito duro',hp:.6,val:.7},[T_GRAN]:{n:'granito',hp:.9,val:1.2},
  [T_QTZ]:{n:'quartzo',hp:1.2,val:3},[T_GOLD]:{n:'ouro',hp:.8,val:45},[T_AME]:{n:'ametista',hp:1.1,val:90},
  [T_MOSS]:{n:'musgo',hp:.12,val:.2},[T_CRACK]:{n:'fissura',hp:.1,val:.5},[T_IRON]:{n:'óxido de ferro',hp:.45,val:1},
  [T_MET]:{n:'ferro meteórico',hp:1,val:7},[T_BONE]:{n:'fóssil',hp:.45,val:12},[T_JADE]:{n:'jade',hp:.75,val:9},
  [T_WOOD]:{n:'madeira antiga',hp:.25,val:2},[T_OLIV]:{n:'olivina',hp:.9,val:40},[T_BAS]:{n:'basalto',hp:1.1,val:1.5},[T_HEART]:{n:'coração de cristal',hp:2,val:400},[T_OPAL]:{n:'opala de fogo',hp:.7,val:120},
 };
-const GRAIN_COL={[T_ICE]:[.7,.88,1],[T_GLASS]:[.6,.9,.85],[T_BRICK]:[.6,.2,.12],[T_MORTAR]:[.6,.58,.52],[T_CLAY]:[.7,.36,.2],[T_FRUIT]:[.9,.12,.15],[T_RIND]:[.1,.4,.1],[T_CHEESE]:[1,.78,.2],[T_STEEL]:[.5,.54,.6],[T_AREIA]:[.85,.72,.45],[T_CAKE]:[.9,.75,.5],[T_CREAM]:[1,.6,.75],[T_OPAL]:[.4,.9,.8],[T_HEART]:[1,.15,.3],[T_GOLD]:[1,.62,.12],[T_AME]:[.35,.1,.55],[T_QTZ]:[.8,.78,.74],[T_MOSS]:[.08,.13,.04],[T_IRON]:[.3,.08,.03],[T_GRAN]:[.3,.25,.24],[T_MET]:[.12,.12,.13],[T_BONE]:[.75,.68,.55],[T_JADE]:[.12,.4,.25],[T_WOOD]:[.25,.14,.07],[T_OLIV]:[.3,.55,.12],[T_BAS]:[.1,.1,.11]};
+const GRAIN_COL={[T_PLAST]:[.95,.8,.15],[T_ICE]:[.7,.88,1],[T_GLASS]:[.6,.9,.85],[T_BRICK]:[.6,.2,.12],[T_MORTAR]:[.6,.58,.52],[T_CLAY]:[.7,.36,.2],[T_FRUIT]:[.9,.12,.15],[T_RIND]:[.1,.4,.1],[T_CHEESE]:[1,.78,.2],[T_STEEL]:[.5,.54,.6],[T_AREIA]:[.85,.72,.45],[T_CAKE]:[.9,.75,.5],[T_CREAM]:[1,.6,.75],[T_OPAL]:[.4,.9,.8],[T_HEART]:[1,.15,.3],[T_GOLD]:[1,.62,.12],[T_AME]:[.35,.1,.55],[T_QTZ]:[.8,.78,.74],[T_MOSS]:[.08,.13,.04],[T_IRON]:[.3,.08,.03],[T_GRAN]:[.3,.25,.24],[T_MET]:[.12,.12,.13],[T_BONE]:[.75,.68,.55],[T_JADE]:[.12,.4,.25],[T_WOOD]:[.25,.14,.07],[T_OLIV]:[.3,.55,.12],[T_BAS]:[.1,.1,.11]};
 let rockInfo={name:'',total:1,left:1};let weak=null,weakCD=12,boss=null,lastRate=0,incEMA=0;
 const lvHp=l=>.6*Math.pow(1.16,l-1),lvVal=l=>Math.pow(1.1,l-1),lvScale=l=>Math.min(1.15,.38+.03*(l-1));
 const MUTS=[{k:'fragil',ic:'🥚',n:'Quebradiça',d:'Resistência −30%',hp:.7},{k:'rica',ic:'💎',n:'Veios ricos',d:'Tudo desta rocha vale +50%',val:1.5},
@@ -383,9 +383,9 @@ function boulderShape(ax,ay,az,seed,nPlanes=9){const rr=mulberry(seed);const pla
     let d=Math.hypot(wx/ax,wy/ay,wz/az)+(fbm(px*4,y*4,pz*4,seed+3,3)-.5)*.12;if(d>=1)return 9;
     for(const p of planes)if(wx/ax*p[0]+wy/ay*p[1]+wz/az*p[2]>p[3])return 9;return d;};}
 function mulberry(a){let s=a>>>0;return ()=>{s=(s+0x6D2B79F5)|0;let t=Math.imul(s^(s>>>15),1|s);t=(t+Math.imul(t^(t>>>7),61|t))^t;return ((t^(t>>>14))>>>0)/4294967296;};}
-const OBJ_META={castelo:['🏰',1,'areia'],melancia:['🍉',1,'fruta'],queijo:['🧀',1,'queijo'],bolo:['🎂',2,'bolo'],neve:['⛄',2,'neve'],gelo:['🧊',3,'gelo'],vaso:['🏺',3,'argila'],caixote:['📦',4,'madeira'],muro:['🧱',4,'tijolo'],
+const OBJ_META={aquario:['🐠',3,'vidro'],dado:['🎲',2,'plástico'],pato:['🦆',3,'plástico'],piramide:['🔺',4,'arenito'],tv:['📺',6,'plástico e vidro'],castelo:['🏰',1,'areia'],melancia:['🍉',1,'fruta'],queijo:['🧀',1,'queijo'],bolo:['🎂',2,'bolo'],neve:['⛄',2,'neve'],gelo:['🧊',3,'gelo'],vaso:['🏺',3,'argila'],caixote:['📦',4,'madeira'],muro:['🧱',4,'tijolo'],
  arenito:['🪨',2,'arenito'],granito:['🪨',5,'granito'],geodo:['💜',6,'geodo'],pilar:['🗿',6,'basalto'],arco:['🌉',5,'arenito'],gemeas:['🪨',5,'arenito'],fossil:['🦴',7,'fóssil'],meteoro:['☄️',8,'ferro'],opala:['🌈',8,'opala'],idolo:['🗿',9,'jade'],bau:['💰',7,'madeira e ouro'],coracao:['❤️‍🔥',12,'cristal'],cofre:['🔐',9,'aço']};
-const OBJ_TYPES=[{k:'castelo',n:'Castelo de areia',w:14,r:''},{k:'melancia',n:'Melancia',w:12,r:''},{k:'queijo',n:'Queijo suíço',w:12,r:''},{k:'bolo',n:'Bolo de aniversário',w:10,r:''},{k:'neve',n:'Boneco de neve',w:10,r:''},{k:'gelo',n:'Bloco de gelo',w:10,r:''},{k:'vaso',n:'Vaso de argila',w:10,r:''},{k:'caixote',n:'Caixote de madeira',w:10,r:''},{k:'muro',n:'Muro de tijolos',w:10,r:''},{k:'cofre',n:'Cofre de aço',w:5,r:'Raro'},
+const OBJ_TYPES=[{k:'aquario',n:'Aquário',w:9,r:''},{k:'dado',n:'Dado gigante',w:9,r:''},{k:'pato',n:'Pato de borracha',w:9,r:''},{k:'piramide',n:'Pirâmide',w:9,r:''},{k:'tv',n:'TV antiga',w:8,r:''},{k:'castelo',n:'Castelo de areia',w:14,r:''},{k:'melancia',n:'Melancia',w:12,r:''},{k:'queijo',n:'Queijo suíço',w:12,r:''},{k:'bolo',n:'Bolo de aniversário',w:10,r:''},{k:'neve',n:'Boneco de neve',w:10,r:''},{k:'gelo',n:'Bloco de gelo',w:10,r:''},{k:'vaso',n:'Vaso de argila',w:10,r:''},{k:'caixote',n:'Caixote de madeira',w:10,r:''},{k:'muro',n:'Muro de tijolos',w:10,r:''},{k:'cofre',n:'Cofre de aço',w:5,r:'Raro'},
 
  {k:'arenito',n:'Bloco de arenito',w:20,r:''},{k:'granito',n:'Matacão de granito',w:16,r:''},{k:'geodo',n:'Geodo de ametista',w:9,r:'Raro'},
  {k:'pilar',n:'Pilar de basalto',w:10,r:''},{k:'arco',n:'Arco natural',w:9,r:''},{k:'gemeas',n:'Pedras gêmeas',w:12,r:''},
@@ -444,6 +444,26 @@ function buildObject(k,cx,cz,scale,seed,hpMul){let n=0;const rr=mulberry(seed);
   else if(k==='cofre'){const B=.7*scale;
     n+=stamp(cx,cz,0,B,B*1.9,B*.9,(px,py,pz)=>Math.max(Math.abs(px)/B,Math.abs(py-B*.95)/(B*.95),Math.abs(pz)/(B*.9)),(px,py,pz,d,x,y,z)=>{if(d<.72){const h=hash3(x>>1,y>>1,z>>1,seed);return h>.9?[T_GOLD,245,195,70]:h>.87?[T_AME,170,80,220]:[T_AREIA,120+h*40,170+h*30,120];}
       if(pz>B*.8&&Math.hypot(px,py-B*.95)<B*.22)return Math.hypot(px,py-B*.95)<B*.07?[T_GOLD,240,200,90]:[T_MET,60,64,72];const f=fbm(px*5,py*5,pz*5,seed,2);const pan=Math.abs(px)<B*.8&&Math.abs(py-B*.95)<B*.78&&pz>B*.8;return pan?[T_STEEL,95+f*20,105+f*20,120+f*20]:[T_STEEL,130+f*25,138+f*25,150+f*25];},hpMul);}
+  else if(k==='aquario'){const L=1.05*scale,H=.62*scale,W=.6*scale;
+    n+=stamp(cx,cz,0,L,H*2,W,(px,py,pz)=>{const d=Math.max(Math.abs(px)/L,Math.abs(py-H)/H,Math.abs(pz)/W);if(d>1)return 9;const wall=Math.abs(px)>L-V*2.2||Math.abs(pz)>W-V*2.2||py<V*2.2;if(wall)return .95;if(py<H*.3)return .5;
+      const fish=(fx,fy,fz)=>Math.hypot((px-fx)/(L*.16),(py-fy)/(H*.14),(pz-fz)/(W*.12))<1;if(fish(L*.3,H*1.1,0)||fish(-L*.4,H*.8,W*.3))return .3;if(Math.hypot(px+L*.6,pz+W*.4)<L*.04*(1+Math.sin(py*20/scale)*.5)&&py<H*1.5)return .4;return 9;},
+      (px,py,pz,d,x,y,z)=>{if(d>.9)return [T_GLASS,185,235,235];if(d<.35)return [T_GOLD,255,150,40];if(d<.45)return [T_RIND,40,150,60];const f=hash3(x,y,z,seed);return f>.97?[T_GOLD,245,195,70]:[T_AREIA,225+f*20,205+f*20,150];},hpMul);}
+  else if(k==='dado'){const B=.7*scale;const pips={1:[[0,0]],2:[[-.5,-.5],[.5,.5]],3:[[-.5,-.5],[0,0],[.5,.5]],4:[[-.5,-.5],[.5,.5],[-.5,.5],[.5,-.5]],5:[[-.5,-.5],[.5,.5],[-.5,.5],[.5,-.5],[0,0]],6:[[-.5,-.5],[.5,.5],[-.5,.5],[.5,-.5],[-.5,0],[.5,0]]};
+    const pip=(u,v,nn)=>pips[nn].some(q=>Math.hypot(u-q[0],v-q[1])<.19);
+    n+=stamp(cx,cz,0,B,B*2,B,(px,py,pz)=>{const a=Math.abs(px)/B,b=Math.abs(py-B)/B,c=Math.abs(pz)/B;return Math.pow(a**6+b**6+c**6,1/6);},(px,py,pz,d,x,y,z)=>{const u=px/B,v=(py-B)/B,w=pz/B;const m=Math.max(Math.abs(u),Math.abs(v),Math.abs(w));
+      if(m>.86){let on=false;if(Math.abs(w)===m)on=pip(u,v,w>0?1:6);else if(Math.abs(u)===m)on=pip(w,v,u>0?3:4);else on=pip(u,w,v>0?5:2);if(on)return [T_PLAST,20,20,25];}return d<.2?[T_GOLD,245,195,70]:[T_PLAST,240,238,232];},hpMul);}
+  else if(k==='pato'){const Rb=.62*scale,Rh=.36*scale;const hy=Rb*1.55,hz=Rb*.55;
+    n+=stamp(cx,cz,0,Rb*1.05,hy+Rh*1.1,Rb*1.45,(px,py,pz)=>{const body=Math.hypot(px/Rb,(py-Rb*.72)/(Rb*.72),pz/(Rb*1.25));const tail=Math.hypot(px/(Rb*.45),(py-Rb*1.05)/(Rb*.4),(pz+Rb*1.1)/(Rb*.45));const head=Math.hypot(px,py-hy,pz-hz)/Rh;const beak=Math.hypot(px/(Rh*.55),(py-hy+Rh*.15)/(Rh*.28),(pz-hz-Rh*1.05)/(Rh*.5));
+      const o=Math.min(body,tail,head,beak);if(o>1)return 9;const inner=Math.min(body*1.25,head*1.4);return inner<1&&beak>1?(inner<.82?9:.95):o;},
+      (px,py,pz,d,x,y,z)=>{const beak=Math.hypot(px/(Rh*.55),(py-hy+Rh*.15)/(Rh*.28),(pz-hz-Rh*1.05)/(Rh*.5))<1.05;if(beak)return [T_PLAST,255,120,25];const eye=(e)=>Math.hypot(px-e,py-hy-Rh*.25,pz-hz-Rh*.75)<Rh*.17;if(eye(Rh*.42)||eye(-Rh*.42))return [T_PLAST,15,15,20];return [T_PLAST,255,212,40];},hpMul);}
+  else if(k==='piramide'){const B=1.05*scale,H=1.25*scale,st=7;
+    n+=stamp(cx,cz,0,B,H,B,(px,py,pz)=>{const lv=Math.floor(py/H*st);const hw=B*(1-lv/st);const m=Math.max(Math.abs(px),Math.abs(pz));if(m>hw)return 9;const ch=Math.max(Math.abs(px),Math.abs(pz))<B*.16&&py>H*.12&&py<H*.3;return ch?.1:.4+.5*m/hw;},
+      (px,py,pz,d,x,y,z)=>{if(d<.2)return [T_GOLD,245,195,70];const f=fbm(px*5,py*5,pz*5,seed,2);const bl=Math.floor(px*9/scale)+Math.floor(pz*9/scale)+Math.floor(py*14/scale);const j=((Math.floor(py*14/scale)%2)?.92:1);return d>.8?[T_SAND2,(215+f*25)*j,(180+f*25)*j,(120+f*25)*j]:[T_SAND,200+f*30,165+f*25,105+f*20];},hpMul);}
+  else if(k==='tv'){const L=.9*scale,H=.68*scale,W=.6*scale;
+    n+=stamp(cx,cz,0,L,H*2+.12*scale,W,(px,py,pz)=>{const y0=.12*scale;if(py<y0)return (Math.abs(Math.abs(px)-L*.6)<L*.08&&Math.abs(pz)<W*.5)?.9:9;const d=Math.max(Math.abs(px)/L,Math.abs(py-y0-H)/H,Math.abs(pz)/W);if(py>y0+H*1.9&&false)return 9;return d;},
+      (px,py,pz,d,x,y,z)=>{const y0=.12*scale;const u=px/L,v=(py-y0-H)/H;if(pz>W*.86&&Math.abs(u+.15)<.66&&Math.abs(v)<.74){const f=hash3(x>>1,y,z,seed+((y>>2)&3));return [T_GLASS,60+f*120,90+f*100,110+f*120];}
+        if(pz>W*.86&&u>.62){if(Math.hypot(u-.8,v-.45)<.11||Math.hypot(u-.8,v-.05)<.11)return [T_STEEL,190,190,200];}
+        if(d<.6){const h=hash3(x>>1,y>>1,z>>1,seed);return h>.92?[T_GOLD,245,195,70]:h>.6?[T_PLAST,30,110,60]:[T_MET,150,150,160];}const f=fbm(px*2,py*12,pz*2,seed,2);return [T_PLAST,125+f*25,85+f*18,55+f*14];},hpMul);}
   else if(k==='arco'){const Ra=.85*scale,th=.32*scale;
     n+=stamp(cx,cz,0,Ra+th*1.5,Ra+th*1.6,th*1.6,(px,py,pz)=>{const w=(fbm(px*2,py*2,pz*2,seed,3)-.5)*.18;const rr2=Math.hypot(px,py)-Ra;const d=Math.hypot(rr2,pz*.9)/(th+w);return py<0?9:d;},withVeins(sandMat(seed),seed),hpMul);}
   else if(k==='gemeas'){const m=2+(rr()<.5?1:0);for(let q=0;q<m;q++){const a=q/m*Math.PI*2+rr();const s=(.5+rr()*.2)*scale;const ox=Math.cos(a)*.62*scale,oz=Math.sin(a)*.62*scale;
@@ -478,6 +498,12 @@ function buildObject(k,cx,cz,scale,seed,hpMul){let n=0;const rr=mulberry(seed);
         if(!shell)return hash3(x,y,z,seed)<.04?[T_AME,150,60,200]:[T_GOLD,255,190+hash3(x,y,z,seed+1)*30,60];
         if(Math.abs(Math.abs(px)-W*.55)<.05*s2||Math.abs(py-Hh)<.03*s2)return [T_MET,58,54,50];const f=fbm(px*3,py*14,pz*3,seed,2);return [T_WOOD,92+f*30,60+f*18,34+f*10];},hpMul);}
   return n;}
+function matFx(t,x,y,z){matFx.busy=true;
+  if(t===T_AREIA){for(let k=1;k<=5;k++){const j=vid(x,y+k,z);if(y+k>=GY||vt[j]!==T_AREIA)break;if(R()<.75)removeVoxel(j,x,y+k,z,R()<.25,true);}}
+  else if(t===T_GLASS){const q=[[x,y,z]];let n=0;while(q.length&&n<70){const [a,b,c]=q.pop();for(const [dx,dy,dz] of [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]]){const X=a+dx,Y=b+dy,Z=c+dz;if(X<0||Y<0||Z<0||X>=GX||Y>=GY||Z>=GZ)continue;const j=vid(X,Y,Z);if(vt[j]===T_GLASS&&R()<.62){removeVoxel(j,X,Y,Z,R()<.4,true);q.push([X,Y,Z]);n++;}}}
+    if(n>12){sfx.ice&&sfx.ice(1);for(let k=0;k<10;k++)addSpray(RX0+x*V,RY0+y*V,RZ0+z*V,(Math.random()-.5)*3,Math.random()*2.5,(Math.random()-.5)*3,.012,0xcfffff);}}
+  else if((t===T_FRUIT||t===T_CREAM)&&R()<.12){const c=t===T_FRUIT?0xff2a3a:0xffc0dc;addSpray(RX0+x*V,RY0+y*V,RZ0+z*V,(Math.random()-.5)*1.6,.6+Math.random()*1.6,(Math.random()-.5)*1.6,.014,c);}
+  matFx.busy=false;}
 const NATURAL=new Set(['arenito','granito','geodo','pilar','arco','gemeas','fossil','meteoro','opala']);
 function decorate(seed){// pepitas no interior, musgo/líquen no topo
   const rr=mulberry(seed+9);
@@ -649,7 +675,7 @@ function buildChunk(cx,cy,cz){
   const x0=cx*CK,y0=cy*CK,z0=cz*CK;
   for(let z=z0;z<z0+CK;z++)for(let y=y0;y<Math.min(GY,y0+CK);y++)for(let x=x0;x<x0+CK;x++){
     const i=x+GX*(y+GY*z);const t=vt[i];if(!t)continue;
-    const L=(t===T_GOLD||t===T_MET)?lists[1]:(t===T_AME||t===T_OLIV||t===T_HEART||t===T_OPAL)?lists[2]:(t===T_QTZ||t===T_JADE)?lists[3]:lists[0];
+    const L=(t===T_GOLD||t===T_MET)?lists[1]:(t===T_AME||t===T_OLIV||t===T_HEART||t===T_OPAL)?lists[2]:(t===T_QTZ||t===T_JADE||t===T_GLASS||t===T_ICE)?lists[3]:lists[0];
     const hm=MATS[t].hp*lvHp(S.level);const dm=Math.max(0,Math.min(1,1-vhp[i]/hm));const crk=dm>.45&&((x*7+y*13+z*5)%5===0)?.45:1;const dk=(1-dm*.4)*crk;
     const r=LIN[vr[i]]*dk,g=LIN[vg[i]]*dk,b=LIN[vb[i]]*dk;
     for(let f=0;f<6;f++){const F=FACES[f];const nx=F[0],ny=F[1],nz=F[2];
@@ -693,7 +719,7 @@ let erosionMul=1;
 const dmgQ=[];
 let comboN=0,comboT=0,comboShown=0,erodeAcc=0,erodeT=0;
 function removeVoxel(i,x,y,z,spawn,noPay){
-  const t=vt[i];erodeAcc++;stats('voxels');if(rockInfo.mut&&rockInfo.mut.k==='cristal'&&(++mutCnt%1800)===0)crystalBurst(RX0+x*V,RY0+y*V,RZ0+z*V,T_AME,10);if(weak)weakHit(x,y,z);if(t===T_GOLD)stats('gold');if(t===T_AME||t===T_OLIV)stats('gem');vt[i]=0;rockInfo.left--;markDirty(x,y,z);structDirty=true;
+  const t=vt[i];erodeAcc++;stats('voxels');if(!matFx.busy)matFx(t,x,y,z);if(rockInfo.mut&&rockInfo.mut.k==='cristal'&&(++mutCnt%1800)===0)crystalBurst(RX0+x*V,RY0+y*V,RZ0+z*V,T_AME,10);if(weak)weakHit(x,y,z);if(t===T_GOLD)stats('gold');if(t===T_AME||t===T_OLIV)stats('gem');vt[i]=0;rockInfo.left--;markDirty(x,y,z);structDirty=true;
   if(!noPay){comboN++;comboT=1.6+pk('combo')*1;const cm=comboMul();const g=MATS[t].val*valMult()*matBonus(t)*.03*cm;S.money+=g;S.total+=g;earnBatch+=g;comboGain+=g;}
   // revelações
   for(const [dx,dy,dz] of [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]]){const nx=x+dx,ny=y+dy,nz=z+dz;if(nx<0||ny<0||nz<0||nx>=GX||ny>=GY||nz>=GZ)continue;const nt=vt[vid(nx,ny,nz)];
@@ -739,7 +765,7 @@ function collide(){
         const vn=Math.max(0,-inward)*HZ;const tx=dx-nx*inward,ty=dy-ny*inward,tz=dz-nz*inward;const vtg=Math.sqrt(tx*tx+ty*ty+tz*tz)*HZ;
         if(!kind[i]){
           const mt=F.mat[i],jp=mt>=128?mt-128:0;
-          const dmg=(.0006+.004*vn*vn+.003*vtg)*erosionMul*(jp?1+jp*.05:1+mt*.1);
+          const ht=vt[hit];let dmg=(.0006+.004*vn*vn+.003*vtg)*erosionMul*(jp?1+jp*.05:1+mt*.1);if(ht===T_ICE)dmg=dmg*1.5+.012;else if(ht===T_STEEL||ht===T_MET)dmg*=jp?1.7:.12;else if(ht===T_GLASS)dmg*=vn>2?2.5:.4;
           {const hm=MATS[vt[hit]].hp*lvHp(S.level);const before=vhp[hit];vhp[hit]-=dmg;if(before>hm*.5&&vhp[hit]<=hm*.5&&vhp[hit]>0)markDirty(hx,hy,hz);}DBG.c++;DBG.d+=dmg;wetMark(hx,hy,hz);
           if(vhp[hit]<=0){removeVoxel(hit,hx,hy,hz,R()<.6);if(pk('cadeia')&&R()<pk('cadeia')*.06){const o=[[1,0,0],[-1,0,0],[0,1,0],[0,0,1],[0,0,-1]][(R()*5)|0];if(solid(hx+o[0],hy+o[1],hz+o[2]))removeVoxel(vid(hx+o[0],hy+o[1],hz+o[2]),hx+o[0],hy+o[1],hz+o[2],true);}
             // jato penetra: atravessa o voxel quebrado e segue perfurando
@@ -845,7 +871,7 @@ function stepFlood(dt){const vol=S.flood||0;
   const samples=Math.round(140*(1+.25*(S.up.correnteza||0)));const dmg=.035*mut('fl')*erosionMul*(1+.35*(S.up.correnteza||0))*(draining?2.2:1);
   for(let k=0;k<samples;k++){const x=(R()*GX)|0,y=(R()*ly)|0,z=(R()*GZ)|0;const i=vid(x,y,z);if(!vt[i])continue;
     if(solid(x+1,y,z)&&solid(x-1,y,z)&&solid(x,y+1,z)&&solid(x,y,z+1)&&solid(x,y,z-1))continue;
-    vhp[i]-=dmg;wetMark(x,y,z);if(vhp[i]<=0)removeVoxel(i,x,y,z,R()<.5);}}
+    vhp[i]-=vt[i]===T_ICE?dmg*10:dmg;wetMark(x,y,z);if(vhp[i]<=0)removeVoxel(i,x,y,z,R()<.5);}}
 function floodAbsorb(i){if(F.kind[i]!==0)return false;if((S.flood||0)*FL_K+FL_MIN>FL_MAX){F.kill(i);return true;}S.flood=(S.flood||0)+1;F.kill(i);return true;}
 const extraSlGroup=new THREE.Group();scene.add(extraSlGroup);
 function buildExtraSluices(){extraSlGroup.clear();const wood=new THREE.MeshStandardMaterial({color:0x8d969c,roughness:.38,metalness:.75}),dark=new THREE.MeshStandardMaterial({color:0x2b3034,roughness:.5,metalness:.6});const e=extScale(S.up.extracao);
@@ -936,7 +962,7 @@ function ejectVoxels(list,cx,cy,cz,power,chunk=5){
 function makeFragment(list,vel){
   if(frags.length>=FRAG_MAX){const old=frags.shift();dissolveFragment(old,true);}
   let cx=0,cy=0,cz=0;for(const v of list){cx+=v.x;cy+=v.y;cz+=v.z;}cx/=list.length;cy/=list.length;cz/=list.length;
-  const f={vox:list.map(v=>({...v,k:v.x+(v.y<<10)+(v.z<<20)})),cx,cy,cz,dmg:0,settle:0,dirty:false,age:0};
+  const f={buoy:list.filter(v=>v.t===T_WOOD||v.t===T_PLAST).length>list.length*.5,vox:list.map(v=>({...v,k:v.x+(v.y<<10)+(v.z<<20)})),cx,cy,cz,dmg:0,settle:0,dirty:false,age:0};
   f.pos=new THREE.Vector3(RX0+(cx+.5)*V,RY0+(cy+.5)*V,RZ0+(cz+.5)*V);f.vel=vel?vel.clone():new THREE.Vector3((R()-.5)*.2,0,(R()-.5)*.2);
   f.q=new THREE.Quaternion();f.w=new THREE.Vector3((R()-.5)*2,(R()-.5)*2,(R()-.5)*2);
   fragShape(f);f.mesh=new THREE.Mesh(fragGeometry(f),fragMat);f.mesh.castShadow=f.mesh.receiveShadow=true;scene.add(f.mesh);frags.push(f);return f;}
@@ -953,7 +979,7 @@ function chipFragment(f,n){const tmp=new THREE.Vector3();for(let c=0;c<n&&f.vox.
 const _w=new THREE.Vector3(),_n=new THREE.Vector3(),_r=new THREE.Vector3(),_dq=new THREE.Quaternion();
 function stepFragments(dt){
   for(let fi=frags.length-1;fi>=0;fi--){const f=frags[fi];f.age+=dt;
-    f.vel.y-=9.8*dt;f.pos.addScaledVector(f.vel,dt);
+    f.vel.y-=9.8*dt;if(S.flood>40&&f.pos.y<floodLevel()){f.vel.y+=(f.buoy?15:5)*dt;f.vel.multiplyScalar(.95);f.w.multiplyScalar(.97);}f.pos.addScaledVector(f.vel,dt);
     const wl=f.w.length();if(wl>1e-4){_dq.setFromAxisAngle(_n.copy(f.w).multiplyScalar(1/wl),wl*dt);f.q.premultiply(_dq);}
     let maxPen=0,cn=null,cr=null;
     for(const sp of f.samples){_w.copy(sp).applyQuaternion(f.q).add(f.pos);
@@ -1336,14 +1362,15 @@ function tryCatchFly(cx,cy){if(!fly.visible)return false;const v=fly.position.cl
   else{for(let k=0;k<30;k++)setTimeout(()=>{const a=Math.random()*6.28,rr=Math.random()*1.1;spawnBlob(Math.cos(a)*rr,RY0+GY*V+.6,Math.sin(a)*rr,20,0,-.02,0,0,40);},k*80);toast('Chuva dourada! 🌧️','Gotas poderosas caem sobre a rocha');}
   sfx.reveal();floatText(fly.position.clone(),'✨','#ffe08a',34);return true;}
 // ----- borrifo/espuma (só visual)
-const SPRAY_N=900;const sprayMesh=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,0),new THREE.MeshStandardMaterial({color:0xeaf6ff,roughness:.3,transparent:true,opacity:.85}),SPRAY_N);
+const SPRAY_N=900;const sprayMesh=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,0),new THREE.MeshStandardMaterial({color:0xffffff,roughness:.3,transparent:true,opacity:.85}),SPRAY_N);
 sprayMesh.frustumCulled=false;sprayMesh.count=0;scene.add(sprayMesh);const spray=[];
-function addSpray(x,y,z,vx,vy,vz,sz=.012){if(spray.length>=SPRAY_N)return;spray.push({x,y,z,vx,vy,vz,s:sz*(.6+Math.random()*.8),life:.35+Math.random()*.5,t:0});}
+const _sc=new THREE.Color();sprayMesh.setColorAt(0,_sc.set(0xffffff));
+function addSpray(x,y,z,vx,vy,vz,sz=.012,c=0xeaf6ff){if(spray.length>=SPRAY_N)return;spray.push({x,y,z,vx,vy,vz,c,s:sz*(.6+Math.random()*.8),life:.35+Math.random()*.5,t:0});}
 const _sm=new THREE.Matrix4();
 function stepSpray(dt){let n=0;for(let k=spray.length-1;k>=0;k--){const p=spray[k];p.t+=dt;if(p.t>p.life){spray[k]=spray[spray.length-1];spray.pop();continue;}
   p.vy-=9.8*dt;p.vx*=.98;p.vz*=.98;p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;const g=terrainH(p.x,p.z);if(p.y<g){p.y=g;p.vy=0;p.vx*=.5;p.vz*=.5;}}
-  for(const p of spray){const k=(1-p.t/p.life)*p.s;_sm.makeScale(k,k,k).setPosition(p.x,p.y,p.z);sprayMesh.setMatrixAt(n++,_sm);}
-  sprayMesh.count=n;sprayMesh.instanceMatrix.needsUpdate=true;}
+  for(const p of spray){const k=(1-p.t/p.life)*p.s;_sm.makeScale(k,k,k).setPosition(p.x,p.y,p.z);sprayMesh.setColorAt(n,_sc.set(p.c||0xeaf6ff));sprayMesh.setMatrixAt(n++,_sm);}
+  sprayMesh.count=n;sprayMesh.instanceMatrix.needsUpdate=true;if(sprayMesh.instanceColor)sprayMesh.instanceColor.needsUpdate=true;}
 // ----- peixes garimpeiros
 const fishes=[];const fishMats=[0xff8a3d,0xf2f2f2,0xffc94a,0xd9534f,0x9fb8c9].map(c=>new THREE.MeshStandardMaterial({color:c,roughness:.45,metalness:.15}));
 function makeFish(k){const g=new THREE.Group();const m=fishMats[k%fishMats.length];
@@ -1653,6 +1680,7 @@ function finishRock(auto){if(rockInfo.done)return;rockInfo.done=true;S.rocks++;s
   toast((auto?'✅ '+rockInfo.name+' destruído!':'Espécime descartado'),'Bônus de conclusão +$'+fmt(bonus));sfx.reveal();
   setTimeout(()=>addCol(rockInfo.kind,rockInfo.name),1100);if(S.rocks%3===0)setTimeout(()=>grantPerkChoice('3 espécimes concluídos'),2600);
   save();setTimeout(openSpecChoice,auto?2400:400);}
+const MAT_HINT={castelo:'desmorona ao perder a base',melancia:'muito mole, espirra suco',queijo:'mole e cheio de furos',bolo:'camadas moles',neve:'derrete com qualquer água',gelo:'derrete; inunde a sala',vaso:'oco: quebre a parede',caixote:'pedaços boiam na inundação',muro:'ataque a argamassa',cofre:'aço: só o jato perfura',aquario:'vidro estilhaça em cadeia',dado:'plástico firme',pato:'plástico oco',piramide:'câmara de ouro no centro',tv:'tela de vidro, miolo valioso'};
 const SIZES=[['Pequeno',.82,'▫️'],['Médio',1,'◽'],['Grande',1.2,'⬜']];
 function specOptions(){const lv=S.level+1;if(lv%5===0){const o=pickObj(lv,Math.random);return [{k:o.k,n:o.n,ic:'⚔️',sz:1,szN:'Desafio',mat:'chefe',boss:true}];}
   const pool=objPool(lv).slice();const out=[];while(out.length<3&&pool.length){let tot=0;for(const o of pool)tot+=o.w;let x=Math.random()*tot,ix=0;for(let j=0;j<pool.length;j++){x-=pool[j].w;if(x<=0){ix=j;break;}}const o=pool.splice(ix,1)[0];
@@ -1661,7 +1689,7 @@ let specTimer=0;
 function openSpecChoice(){const opts=specOptions();const m=$('perkModal');m.innerHTML='<div class="pm-in panel"><h3>'+(opts[0].boss?'⚔️ Desafio à frente':'Próximo espécime · nível '+(S.level+1))+'</h3><div class="pm-cards"></div><small id="specAuto"></small></div>';
   const cards=m.querySelector('.pm-cards');let left=25;const choose=o=>{clearInterval(specTimer);m.style.display='none';for(const f of [...frags])dissolveFragment(f,false);S.level++;S.rockSeed=(Math.random()*2**31)|0;S.spec={k:o.k,sz:o.sz,seed:S.rockSeed};
     showLoading('O guindaste traz o próximo espécime…');setTimeout(()=>{newRock(true,true);buildAqueduct();hideLoading();save();},60);};
-  for(const o of opts){const b=document.createElement('button');b.className='pcard';b.innerHTML=`<span class="pic">${o.ic}</span><b>${o.n}</b><span>${o.boss?'Vença o desafio para uma grande recompensa e um perk':o.szN+' · '+o.mat+(o.rar?' · ✦ '+o.rar:'')+(o.isNew?' · <b style="color:#9fe8a0">novo na coleção</b>':'')}</span>`;b.onclick=()=>{sfx.init();sfx.ping();choose(o);};cards.appendChild(b);}
+  for(const o of opts){const b=document.createElement('button');b.className='pcard';b.innerHTML=`<span class="pic">${o.ic}</span><b>${o.n}</b><span>${o.boss?'Vença o desafio para uma grande recompensa e um perk':o.szN+' · '+o.mat+(MAT_HINT[o.k]?'<br><i style="opacity:.75">'+MAT_HINT[o.k]+'</i>':'')+(o.rar?' · ✦ '+o.rar:'')+(o.isNew?' · <b style="color:#9fe8a0">novo na coleção</b>':'')}</span>`;b.onclick=()=>{sfx.init();sfx.ping();choose(o);};cards.appendChild(b);}
   m.style.display='flex';clearInterval(specTimer);const tick=()=>{const el=$('specAuto');if(el)el.textContent='Escolha automática em '+left+' s';if(left--<=0)choose(opts[0]);};tick();specTimer=setInterval(tick,1000);}
 function showLoading(t){let el=document.getElementById('loading');if(!el){el=document.createElement('div');el.id='loading';document.body.appendChild(el);}el.textContent=t;el.style.display='flex';el.style.opacity=.85;}
 function hideLoading(){const el=document.getElementById('loading');if(el){el.style.opacity=0;setTimeout(()=>{el.style.display='none';},800);}}
