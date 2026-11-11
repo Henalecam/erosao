@@ -471,8 +471,8 @@ sun.shadow.bias=-.0002;sun.shadow.normalBias=.012;scene.add(sun);
 const hemi=new THREE.HemisphereLight(0x8fa7d6,0x4a3c2c,.75);scene.add(hemi);
 const MOODS=[{n:'meio-dia',sun:0xffc89a,i:1,sky:0x8fa7d6,gr:0x4a3c2c,fog:0xa88f78,e:1},{n:'manhã',sun:0xffe6c8,i:.92,sky:0xa4c0ec,gr:0x4e4636,fog:0xb7ad9c,e:1.04},
  {n:'fim de tarde',sun:0xff7a38,i:.88,sky:0x8a80c8,gr:0x643a22,fog:0xc4845a,e:.97},{n:'nublado',sun:0xdfe3ea,i:.5,sky:0xb0b8c4,gr:0x4a4640,fog:0xa6a8aa,e:1.1}];
-let moodI=1,moodE=1;const moodTo={sun:new THREE.Color(0xffc89a),sky:new THREE.Color(0x8fa7d6),gr:new THREE.Color(0x4a3c2c),fog:new THREE.Color(0xa88f78),i:1,e:1};
-function setMood(seed){const m=MOODS[Math.abs(seed|0)%MOODS.length];moodTo.sun.setHex(m.sun);moodTo.sky.setHex(m.sky);moodTo.gr.setHex(m.gr);moodTo.fog.setHex(m.fog);moodTo.i=m.i;moodTo.e=m.e;}
+let moodI=1,moodE=1,curMood='meio-dia';const moodTo={sun:new THREE.Color(0xffc89a),sky:new THREE.Color(0x8fa7d6),gr:new THREE.Color(0x4a3c2c),fog:new THREE.Color(0xa88f78),i:1,e:1};
+function setMood(seed){const m=MOODS[Math.abs(seed|0)%MOODS.length];moodTo.sun.setHex(m.sun);moodTo.sky.setHex(m.sky);moodTo.gr.setHex(m.gr);moodTo.fog.setHex(m.fog);moodTo.i=m.i;moodTo.e=m.e;curMood=m.n;}
 function stepMood(dt){const k=Math.min(1,dt*.6);sun.color.lerp(moodTo.sun,k);hemi.color.lerp(moodTo.sky,k);hemi.groundColor.lerp(moodTo.gr,k);scene.fog.color.lerp(moodTo.fog,k);moodI+=(moodTo.i-moodI)*k;moodE+=(moodTo.e-moodE)*k;}
 
 // --- terreno
@@ -1466,7 +1466,7 @@ function newRock(fresh){
   if(fresh||!S.rockSeed){S.rockSeed=(Math.random()*2**31)|0;S.mile=0;S.extras=[];try{localStorage.removeItem(KEY+'_rock');}catch(e){}}
   genRock(S.level,S.rockSeed);setMood(S.rockSeed>>3);
   if(!fresh&&!loadRockMask()){S.mile=0;S.extras=[];genRock(S.level,S.rockSeed);}
-  if(fresh)setTimeout(()=>{toast('Novo objeto: '+rockInfo.name,rockInfo.rar?('✦ '+rockInfo.rar+' ✦'):'Rocha comum');if(rockInfo.rar)sfx.reveal();},300);
+  if(fresh)setTimeout(()=>{toast('Novo objeto: '+rockInfo.name,(rockInfo.rar?('✦ '+rockInfo.rar+' ✦'):'Rocha comum')+' · luz de '+curMood);if(rockInfo.rar)sfx.reveal();},300);
   rebuildAll();structDirty=false;}
 function saveRockMask(){try{let out=[],cur=0,run=0;for(let i=0;i<GN;i++){const a=vt[i]?1:0;if(a===cur)run++;else{out.push(run.toString(36));cur=a;run=1;}}out.push(run.toString(36));
   localStorage.setItem(KEY+'_rock','v3:'+GN+':'+S.rockSeed+'|'+out.join(','));}catch(e){}}
