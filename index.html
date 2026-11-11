@@ -1701,7 +1701,7 @@ function stepWeak(dt){if(!weak&&weakSpr.visible)weakSpr.visible=false;if(boss){b
   if(S.level<2&&S.total<150)return;weakCD-=dt*mut('wk');if(boss&&(boss.type==='colosso'||(boss.type==='nucleo'&&S.flood<2200))){if(weakCD<.5)weakCD=.5;return;}if(weakCD<=0){if(!spawnWeak())weakCD=2;}}
 // ===== Desafio do Monólito =====
 function startBoss(type='monolito'){if(S.found['boss'+S.rockSeed])return;boss={type,hits:0,need:6,t:90,base:Math.max(5,incEMA)};weakCD=4;weak=null;weakSpr.visible=false;let msg='Quebre 6 pontos fracos em 90 s · recompensa grande';
-  if(type==='nucleo'){Object.assign(boss,{need:5,t:120,lock:true});S.drainOpen=false;msg='O ralo travou e os sprinklers ligaram: a blindagem só racha DEBAIXO D\'ÁGUA. 5 fraturas em 120 s';}
+  if(type==='nucleo'){Object.assign(boss,{need:6,t:100,lock:true});S.drainOpen=false;msg='O ralo travou e os sprinklers ligaram: a blindagem só racha DEBAIXO D\'ÁGUA. 6 fraturas em 100 s';}
   if(type==='colosso'){const rt=(ctrRate.voxels||0);Object.assign(boss,{need:Math.round(Math.max(6000,rt*85*.8)/100)*100,t:85,v0:(S.st&&S.st.voxels)||0,regen:6});msg='Ele se REGENERA a cada 6 s: concentre o dano. Arranque '+fmt(boss.need)+' blocos em 85 s';}
   setTimeout(()=>toast('⚔️ Desafio: '+rockInfo.name,msg),1600);}
 function stepBossRules(dt){const b=boss;if(!b)return;
