@@ -30,6 +30,9 @@ html,body{margin:0;height:100%;overflow:hidden;background:#1b1a17;font-family:"I
 #toast small{font-size:12px;font-weight:500;opacity:.75;display:block;margin-top:2px}
 #sluice{min-width:170px;padding:8px 12px}#sluice>div:first-child{font-size:11.5px;opacity:.7;font-weight:400}#sluice>div:first-child b{font-weight:600}
 #drainBtn{width:100%;padding:6px 8px;border-radius:9px;border:1px solid #6fd3ff55;background:#6fd3ff18;color:#cfefff;font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+#starLine{margin-top:5px;font-size:11.5px;font-weight:600;color:#ffe08a;cursor:pointer;pointer-events:auto;white-space:nowrap}#starLine i{font-style:normal;font-weight:400;opacity:.7;color:#e8e2d4}#starLine .sb{height:3px;background:#ffffff1a;border-radius:2px;margin-top:3px;overflow:hidden}#starLine .sb div{height:100%;background:linear-gradient(90deg,#ffd36a,#fff0b0)}
+.res{text-align:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #ffffff1a}.res b{display:block;font-size:15px}.res span{font-size:12px;opacity:.75}.rs{font-size:44px!important;letter-spacing:6px;line-height:1.1;display:block}.rs span{font-size:44px!important;opacity:1!important}.rs span{color:#ffffff22;display:inline-block}.rs span.on{color:#ffd24a;text-shadow:0 0 18px #ffb80088;animation:starpop .5s both}@keyframes starpop{0%{transform:scale(0) rotate(-40deg)}70%{transform:scale(1.35)}100%{transform:scale(1)}}
+.trow{display:grid;grid-template-columns:28px 52px 1fr;gap:6px;align-items:center;padding:6px 8px;border-radius:8px;font-size:13px;opacity:.55}.trow.got{opacity:1;background:#ffd36a14}.trow.got b{color:#ffd36a}.trk{max-height:56vh;overflow:auto;margin:8px 0;text-align:left}
 #quest small{display:block;opacity:.65;font-size:11.5px;margin-top:2px}#quest .rr{cursor:pointer;color:#ffd36a;font-weight:600;pointer-events:auto}#quest .qbar{height:3px;background:#ffffff1a;border-radius:2px;margin-top:5px;overflow:hidden}#quest .qbar i{display:block;height:100%;background:linear-gradient(90deg,#ffd36a,#ff9a5a);transition:width .3s}
 #quest.done{animation:qd .8s}@keyframes qd{50%{background:rgba(120,200,120,.45)}}
 #dealBtn{position:fixed;left:190px;top:150px;padding:9px 14px;font:inherit;font-weight:800;color:#9fe8ff;cursor:pointer;display:none;animation:pulse 1.2s infinite;border:1px solid #6fd3ff66}
@@ -98,7 +101,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#1b1a17;font-family:"I
 <body>
 <canvas id="gl"></canvas>
 <div id="loading">Esculpindo a rocha…</div>
-<div id="top" class="panel"><div id="money">$0</div><div id="rate">$0/s</div><div id="rank"><span id="rankName">Aprendiz</span> <span id="rankMul" style="opacity:.6"></span><div class="bar"><div id="rankBar"></div></div><div id="rankNext" style="font-size:11px;opacity:.55;margin-top:3px"></div></div></div>
+<div id="top" class="panel"><div id="money">$0</div><div id="rate">$0/s</div><div id="starLine" title="Abrir a trilha de desbloqueios"></div><div id="rank"><span id="rankName">Aprendiz</span> <span id="rankMul" style="opacity:.6"></span><div class="bar"><div id="rankBar"></div></div><div id="rankNext" style="font-size:11px;opacity:.55;margin-top:3px"></div></div></div>
 <div id="rock" class="panel"><div id="rockName">—</div><div id="rockSub" style="opacity:.7">0% destruído</div><div class="bar"><div id="rockBar"></div></div><div id="mileTxt" style="font-size:11.5px;opacity:.75;margin-top:4px"></div><button id="nextRock">Descartar espécime →</button></div>
 <div id="combo"></div>
 <button id="perkBtn" class="panel">✦ Escolher perk</button><button id="dealBtn" class="panel">🧾 Proposta</button>
@@ -516,7 +519,7 @@ function decorate(seed){// pepitas no interior, musgo/líquen no topo
       break;}}}
 function genRock(level,rseed){
   vt.fill(0);const rr=mulberry(rseed);const seed=level*7919+((rr()*9999)|0);
-  let o=pickObj(level,rr);if(window.__forceObj)o=OBJ_TYPES.find(t=>t.k===window.__forceObj)||o;const sz=(S.spec&&S.spec.seed===rseed&&S.spec.sz)||1;const sc=o.r==='Desafio'?Math.max(.55,lvScale(level)*1.15):lvScale(level)*sz;const mu=pickMut(level,rseed,o);const hpMul=lvHp(level)*(mu&&mu.hp||1);
+  let o=pickObj(level,rr);if(window.__forceObj)o=OBJ_TYPES.find(t=>t.k===window.__forceObj)||o;const sz=(S.spec&&S.spec.seed===rseed&&S.spec.sz)||1;const sc=o.r==='Desafio'?Math.max(.55,lvScale(level)*1.15):Math.min(1.3,lvScale(level)*sz);const mu=pickMut(level,rseed,o);const hpMul=lvHp(level)*(mu&&mu.hp||1);
   buildObject(o.k,0,0,sc,seed,hpMul);if(NATURAL.has(o.k)&&sc>.6)decorate(seed);
   // extras de eventos (meteoritos, visitantes) desta rocha
   for(const e of (S.extras||[]))buildObject(e.k,e.x,e.z,e.s,e.seed,hpMul);
@@ -923,7 +926,7 @@ const achMult=()=>1+Object.keys(S.ach||{}).length*.02;
 const colCount=()=>Object.keys(S.col||{}).length;const colMult=()=>(1+colCount()*.06)*achMult();let blessT=0;
 let pact=null,dealT=0,dealCD=150;const pactM=k=>(pact&&pact.m&&pact.m[k])||1;const rockBonus=()=>(S.rb&&S.rb.seed===S.rockSeed)?S.rb.v:1;
 let frenzyT=0,infTankT=0,darkT=0,overT=0,alarmT=0,darkK=0,weakChain=0,G0=0;
-const valMult=()=>lvVal(S.level)*rankMult()*colMult()*(1+(S.amber||0)*.08)*(blessT>0?2:1)*(frenzyT>0?3:1)*(darkT>0?2:1)*mut('val')*pactM('val')*rockBonus();
+const valMult=()=>lvVal(S.level)*rankMult()*colMult()*(1+(S.amber||0)*.08)*(blessT>0?2:1)*(frenzyT>0?3:1)*(darkT>0?2:1)*mut('val')*pactM('val')*rockBonus()*starMult();
 const MILES=[25,50,75];
 const mileReward=k=>Math.round(Math.max(3,(rockInfo.valSum||100)*valMult()*.03*.08*(k+1)));
 function spawnGrain(x,y,z,t,vx=0,vy=0,vz=0){if(sedCount>=MAXSED)return;const k=F.add(x,y,z,vx+(R()-.5)*.002,vy+.001,vz+(R()-.5)*.002,1,t);if(k>=0)sedCount++;}
@@ -1603,7 +1606,7 @@ function toggleDrain(){if(boss&&boss.lock){toast('🔒 Ralo travado','Só destra
   toast(S.drainOpen?'🚰 Ralo aberto':'🌊 Ralo fechado',S.drainOpen?'A água escoa em redemoinho e arrasta os grãos para as calhas':'A câmara vai inundar: a água parada erode a base da rocha');save();ui();}
 $('drainBtn').onclick=toggleDrain;addEventListener('keydown',e=>{if(e.key==='g'||e.key==='G')toggleDrain();});
 $('nextRock').onclick=()=>{sfx.init();finishRock(false);};
-$('perkBtn').onclick=()=>{sfx.init();openPerks();};$('dealBtn').onclick=()=>{sfx.init();openDeal();};
+$('perkBtn').onclick=()=>{sfx.init();openPerks();};$('starLine').onclick=()=>{sfx.init();openTrack();};$('dealBtn').onclick=()=>{sfx.init();openDeal();};
 $('achBtn').onclick=()=>{const m=$('perkModal');const got=Object.keys(S.ach||{}).length;m.innerHTML=`<div class="pm-in panel" style="max-width:640px"><h3>🏆 Conquistas ${got}/${ACH.length} · renda +${got*2}%</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;text-align:left">${ACH.map(a=>{const ok=S.ach&&S.ach[a.k];const v=Math.min(a.v,(S.st||{})[a.s]||0);return `<div style="padding:7px 10px;border-radius:9px;background:rgba(255,245,225,${ok?.14:.04});opacity:${ok?1:.75}"><b>${ok?'🏆':'🔒'} ${a.n}</b><br><small style="margin:0;opacity:.75">${a.d} · ${fmt(v)}/${fmt(a.v)}</small></div>`;}).join('')}</div><div class="pm-cards" style="margin-top:12px"><button class="pcard" id="achClose" style="width:auto;padding:8px 18px"><b>Fechar</b></button></div></div>`;m.style.display='flex';$('achClose').onclick=()=>m.style.display='none';};
 $('sndBtn').onclick=()=>{sfx.init();$('sndBtn').textContent=sfx.toggle()?'🔇':'🔊';};
 $('gfxBtn').onclick=()=>{S.gfx=((S.gfx??2)+2)%3;applyGfx();toast('Qualidade gráfica: '+['Baixa','Média','Alta'][S.gfx]);save();};
@@ -1634,6 +1637,7 @@ function ui(){
    const cm=Math.max(0,(floodLevel()-terrainH(0,0))*100);const on=(S.flood||0)>40;ft.style.display=on?'block':'none';if(on)ft.textContent='Nível da água: '+(cm<1?'na canaleta':cm.toFixed(0)+' cm')+(S.drainOpen?' · escoando…':'');}
   {const B=[];const a=(t,ic,l)=>{if(t>0)B.push(`<span>${ic} ${l} ${Math.ceil(t)}s</span>`);};if(pact)B.push(`<span>${pact.n}${pact.need?' '+Math.min(pact.need,((S.st&&S.st.cracks)||0)-pact.base)+'/'+pact.need:''} ${Math.ceil(pact.t)}s</span>`);if(rockBonus()>1)B.push('<span>🛡️ rocha ×2</span>');a(frenzyT,'✨','renda ×3');a(blessT,'🗿','renda ×2');a(darkT,'🔦','luz negra ×2');a(overT,'⚡','erosão ×2,5');a(alarmT,'🚨','sprinklers');a(rainbowT,'🌈','grãos ×2');a(gfloodT,'🌊','enxurrada');a(floodT,'💥','enchente ×2');
    const h=B.join('');const el=$('buffs');if(el._h!==h){el.innerHTML=h;el._h=h;}}
+  {const cur=S.stars||0,nx=TRACK.find(x=>x.s>cur),pv=[...TRACK].reverse().find(x=>x.s<=cur);const p0=pv?pv.s:0;const h=`⭐ ${cur}`+(nx?` <i>· ${nx.ic} em ${nx.s}⭐</i><div class="sb"><div style="width:${((cur-p0)/(nx.s-p0)*100).toFixed(0)}%"></div></div>`:'');const el=$('starLine');if(el._h!==h){el.innerHTML=h;el._h=h;}}
   $('wash').disabled=S.sluice<.01;const full=S.sluice>=c*.98;$('wash').classList.toggle('full',full);
   if(full&&!wasFull){if(S.up.lavadora){const v=S.sluice*.85;S.sluice=0;S.money+=v;S.total+=v;earnBatch+=v;stats('washes');washFx(v);sfx.coins(5);floatText(new THREE.Vector3((SL_X0+SL_X1)/2,chanBed((SL_X0+SL_X1)/2)+.25,0),'🫧 +$'+fmt(v),'#bfe8ff',22);}else{sfx.full&&sfx.full();toast('Calha cheia!','Lave a calha para não perder os grãos');}}wasFull=full&&!S.up.lavadora;
   let goal=null,gc=1e300;for(const b of btns){const u=b._u;if(maxed(u)||!avail(u))continue;const c=costOf(u);if(c>S.money&&c<gc){gc=c;goal=u;}}
@@ -1660,7 +1664,7 @@ $('hint').ondblclick=null;
 // =================================================================
 let shake=0,frames=0,acc=0,last=performance.now(),washT=0,earnT=0;
 function newRock(fresh,keepSeed){
-  if(fresh||!S.rockSeed){if(!keepSeed||!S.rockSeed)S.rockSeed=(Math.random()*2**31)|0;S.mile=0;S.extras=[];try{localStorage.removeItem(KEY+'_rock');}catch(e){}}
+  if(fresh||!S.rockSeed){S.rt=0;if(!keepSeed||!S.rockSeed)S.rockSeed=(Math.random()*2**31)|0;S.mile=0;S.extras=[];try{localStorage.removeItem(KEY+'_rock');}catch(e){}}
   genRock(S.level,S.rockSeed);setMood(S.rockSeed>>3);
   if(!fresh&&!loadRockMask()){S.mile=0;S.extras=[];genRock(S.level,S.rockSeed);}
   if(fresh)setTimeout(()=>{toast('Novo objeto: '+rockInfo.name,(rockInfo.rar?('✦ '+rockInfo.rar+' ✦'):'Destrua '+DONE_PCT+'% para concluir')+(rockInfo.mut?' · '+rockInfo.mut.ic+' '+rockInfo.mut.n+': '+rockInfo.mut.d:''));if(rockInfo.rar)sfx.reveal();},300);
@@ -1672,21 +1676,34 @@ function loadRockMask(){try{const raw=localStorage.getItem(KEY+'_rock');if(!raw)
   rockInfo.left=left;return true;}catch(e){return false;}}
 function addCol(k,name){if(!S.col)S.col={};if(S.col[k])return;S.col[k]=1;toast('Nova peça na coleção: '+name,'Renda permanente +6% · coleção '+colCount()+'/'+OBJ_TYPES.length);sfx.reveal();}
 const DONE_PCT=88;
+// ===== Estrelas e trilha de desbloqueios =====
+const TRACK=[{s:4,t:'card',ic:'🃏',d:'4ª carta na escolha do próximo espécime'},{s:9,t:'mult',ic:'💰',d:'Renda permanente +15%'},{s:15,t:'giant',ic:'🦣',d:'Tamanho Gigante nas cartas (mais blocos, mais bônus)'},{s:22,t:'perk',ic:'✦',d:'Um perk grátis'},
+ {s:30,t:'mult',ic:'💰',d:'Renda permanente +15%'},{s:39,t:'card',ic:'🃏',d:'5ª carta na escolha'},{s:50,t:'perk',ic:'✦',d:'Um perk grátis'},{s:62,t:'mult',ic:'💰',d:'Renda permanente +15%'},{s:76,t:'perk',ic:'✦',d:'Um perk grátis'},{s:92,t:'mult',ic:'💰',d:'Renda permanente +20%'},{s:110,t:'perk',ic:'✦',d:'Um perk grátis'},{s:130,t:'mult',ic:'💰',d:'Renda permanente +25%'}];
+const trkN=t=>TRACK.filter(x=>x.t===t&&(S.stars||0)>=x.s).length;const starMult=()=>1+.15*trkN('mult');
+const parTime=()=>45+25*Math.sqrt((rockInfo.total||10000)/10000);
+const fmtT=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
+function awardStars(){const t=S.rt||0,par=parTime();const st=t<=par?3:t<=par*2?2:1;const before=S.stars||0;S.stars=before+st;if(!S.best)S.best={};const k=rockInfo.kind;const rec=!S.best[k]||t<S.best[k];if(rec)S.best[k]=Math.round(t);
+  for(const x of TRACK)if(before<x.s&&S.stars>=x.s){setTimeout(()=>{toast('⭐ Trilha: '+x.ic+' desbloqueado',x.d);sfx.reveal();if(x.t==='perk')grantPerkChoice('Recompensa da trilha');},3200);}
+  return {st,t,par,rec};}
+function openTrack(){const m=$('perkModal');const cur=S.stars||0;m.innerHTML='<div class="pm-in panel" style="max-width:460px"><h3>⭐ Trilha · '+cur+' estrelas</h3><div class="trk"></div><small>Ganhe até 3 estrelas por espécime destruindo-o depressa. Toque fora para fechar.</small></div>';
+  const box=m.querySelector('.trk');for(const x of TRACK){const d=document.createElement('div');d.className='trow'+(cur>=x.s?' got':'');d.innerHTML=`<span>${x.ic}</span><b>${x.s}⭐</b><span>${x.d}</span>`;box.appendChild(d);}
+  m.style.display='flex';m.onclick=e=>{if(e.target===m){m.style.display='none';m.onclick=null;}};}
 function fitCamera(){const h=Math.max(.3,rockInfo.h||1),sc=rockInfo.sc||1;controls.target.set(0,RY0+h*.45,0);const d=(1.6+h*2.1+sc*1.2)*(camera.aspect<1?1.6:1);camera.position.set(-.22*d,RY0+h*.5+d*.5,d*.84);controls.update();}
 function finishRock(auto){if(rockInfo.done)return;rockInfo.done=true;S.rocks++;stats('rocks2');if(boss)loseBoss();
-  const pct=rockPct();const bonus=Math.round((rockInfo.valSum||rockInfo.total)*valMult()*.03*.5*(auto?1:Math.min(1,pct/DONE_PCT)*.6));S.money+=bonus;S.total+=bonus;
+  const res=auto?awardStars():{st:0,t:S.rt||0,par:parTime(),rec:false};const pct=rockPct();const bonus=Math.round((rockInfo.valSum||rockInfo.total)*valMult()*.03*.5*(auto?1+.25*(res.st-1):Math.min(1,pct/DONE_PCT)*.6));lastRes={...res,bonus,name:rockInfo.name,auto};S.money+=bonus;S.total+=bonus;
   // o que sobrou desmorona
   if(auto){const list=[];for(let z=0;z<GZ;z++)for(let y=0;y<GY;y++)for(let x=0;x<GX;x++){const i=vid(x,y,z);if(vt[i])list.push({i,x,y,z});}ejectVoxels(list,0,RY0+.2,0,1.4,6);flash=Math.max(flash,.6);shake=.07;sfx.rumble(.9);sfx.coins(12);coinFountain(0,RY0+.5,0);}
-  toast((auto?'✅ '+rockInfo.name+' destruído!':'Espécime descartado'),'Bônus de conclusão +$'+fmt(bonus));sfx.reveal();
+  if(!auto)toast('Espécime descartado','Sem estrelas · +$'+fmt(bonus));sfx.reveal();
   setTimeout(()=>addCol(rockInfo.kind,rockInfo.name),1100);if(S.rocks%3===0)setTimeout(()=>grantPerkChoice('3 espécimes concluídos'),2600);
   save();setTimeout(openSpecChoice,auto?2400:400);}
 const MAT_HINT={castelo:'desmorona ao perder a base',melancia:'muito mole, espirra suco',queijo:'mole e cheio de furos',bolo:'camadas moles',neve:'derrete com qualquer água',gelo:'derrete; inunde a sala',vaso:'oco: quebre a parede',caixote:'pedaços boiam na inundação',muro:'ataque a argamassa',cofre:'aço: só o jato perfura',aquario:'vidro estilhaça em cadeia',dado:'plástico firme',pato:'plástico oco',piramide:'câmara de ouro no centro',tv:'tela de vidro, miolo valioso'};
-const SIZES=[['Pequeno',.82,'▫️'],['Médio',1,'◽'],['Grande',1.2,'⬜']];
+let lastRes=null;const SIZES=[['Pequeno',.82,'▫️'],['Médio',1,'◽'],['Grande',1.2,'⬜'],['Gigante',1.42,'🦣']];
 function specOptions(){const lv=S.level+1;if(lv%5===0){const o=pickObj(lv,Math.random);return [{k:o.k,n:o.n,ic:'⚔️',sz:1,szN:'Desafio',mat:'chefe',boss:true}];}
-  const pool=objPool(lv).slice();const out=[];while(out.length<3&&pool.length){let tot=0;for(const o of pool)tot+=o.w;let x=Math.random()*tot,ix=0;for(let j=0;j<pool.length;j++){x-=pool[j].w;if(x<=0){ix=j;break;}}const o=pool.splice(ix,1)[0];
-    const sz=SIZES[(Math.random()*3)|0];out.push({k:o.k,n:o.n,ic:OBJ_META[o.k][0],mat:OBJ_META[o.k][2],sz:sz[1],szN:sz[0],rar:o.r,isNew:!(S.col&&S.col[o.k])});}return out;}
+  const pool=objPool(lv).slice();const out=[];const nC=3+trkN('card'),nS=trkN('giant')?4:3;while(out.length<nC&&pool.length){let tot=0;for(const o of pool)tot+=o.w;let x=Math.random()*tot,ix=0;for(let j=0;j<pool.length;j++){x-=pool[j].w;if(x<=0){ix=j;break;}}const o=pool.splice(ix,1)[0];
+    const sz=SIZES[(Math.random()*nS)|0];out.push({k:o.k,n:o.n,ic:OBJ_META[o.k][0],mat:OBJ_META[o.k][2],sz:sz[1],szN:sz[0],rar:o.r,isNew:!(S.col&&S.col[o.k])});}return out;}
 let specTimer=0;
-function openSpecChoice(){const opts=specOptions();const m=$('perkModal');m.innerHTML='<div class="pm-in panel"><h3>'+(opts[0].boss?'⚔️ Desafio à frente':'Próximo espécime · nível '+(S.level+1))+'</h3><div class="pm-cards"></div><small id="specAuto"></small></div>';
+function openSpecChoice(){const opts=specOptions();const m=$('perkModal');const r=lastRes;const head=r&&r.auto?`<div class="res"><div class="rs">${[1,2,3].map(i=>`<span class="${i<=r.st?'on':''}" style="animation-delay:${i*.25}s">★</span>`).join('')}</div><b>${r.name} destruído em ${fmtT(r.t)}</b><span>meta de 3★: ${fmtT(r.par)} · bônus +$${fmt(r.bonus)}${r.rec?' · 🏅 recorde':''} · total ${S.stars}⭐</span></div>`:'';
+  m.onclick=null;m.innerHTML='<div class="pm-in panel">'+head+'<h3>'+(opts[0].boss?'⚔️ Desafio à frente':'Próximo espécime · nível '+(S.level+1))+'</h3><div class="pm-cards"></div><small id="specAuto"></small></div>';
   const cards=m.querySelector('.pm-cards');let left=25;const choose=o=>{clearInterval(specTimer);m.style.display='none';for(const f of [...frags])dissolveFragment(f,false);S.level++;S.rockSeed=(Math.random()*2**31)|0;S.spec={k:o.k,sz:o.sz,seed:S.rockSeed};
     showLoading('O guindaste traz o próximo espécime…');setTimeout(()=>{newRock(true,true);buildAqueduct();hideLoading();save();},60);};
   for(const o of opts){const b=document.createElement('button');b.className='pcard';b.innerHTML=`<span class="pic">${o.ic}</span><b>${o.n}</b><span>${o.boss?'Vença o desafio para uma grande recompensa e um perk':o.szN+' · '+o.mat+(MAT_HINT[o.k]?'<br><i style="opacity:.75">'+MAT_HINT[o.k]+'</i>':'')+(o.rar?' · ✦ '+o.rar:'')+(o.isNew?' · <b style="color:#9fe8a0">novo na coleção</b>':'')}</span>`;b.onclick=()=>{sfx.init();sfx.ping();choose(o);};cards.appendChild(b);}
@@ -1838,7 +1855,7 @@ function simFrame(){
   if(down&&aim&&S.tool==='gota'&&S.up.chuva){holdAcc+=rainRate(S.up.chuva)/60;while(holdAcc>=1){holdAcc--;const p=aim.clone();p.x+=(R()-.5)*.12;p.z+=(R()-.5)*.12;spawnDrop(p,dropN(S.up.gota),dropH(S.up.altura));}}
   jetTank=Math.min(tankCap(),jetTank+(down&&S.tool==='jato'&&!jetLock?0:tankRegen()/60));if(jetLock&&jetTank>=tankCap()*.3)jetLock=false;if(mareT>0)mareT-=1/60;
   if(down&&aim&&S.tool==='jato'&&!jetLock&&jetTank>0){jetTank-=1/60;if(jetTank<=0){jetTank=0;jetLock=true;sfx.empty&&sfx.empty();toast('Tanque vazio','Solte para recarregar a pressão');}holdAcc+=jetRate(S.up.forcaJato)/60;const src=jetSource(aim);updBeam(true,src,aim,frames/60);const thick=1+Math.floor(S.up.gota/3);const spd=Math.min(7,jetSpeed(S.up.forcaJato)+S.up.altura*.2);while(holdAcc>=1){holdAcc--;shootJet(src,aim,spd,thick);}sfx.jet(true);}else{sfx.jet(false);updBeam(false);}
-  stepTurrets(dt);stepSpring(dt);stepDam(dt);stepAqueduct(dt);stepStorm(dt);stepCharge(dt);stepProjs(dt);stepWaves(dt);stepEvents(dt);stepFlood(dt);stepWeak(dt);stepContract(dt);stepFish(dt);stepFly(dt);stepCrusher(dt);stepGeysers(dt);
+  stepTurrets(dt);stepSpring(dt);stepDam(dt);stepAqueduct(dt);stepStorm(dt);stepCharge(dt);stepProjs(dt);stepWaves(dt);if(!rockInfo.done)S.rt=(S.rt||0)+dt;stepEvents(dt);stepFlood(dt);stepWeak(dt);stepContract(dt);stepFish(dt);stepFly(dt);stepCrusher(dt);stepGeysers(dt);
   // nuvem
   if(S.up.nuvem){cloud.visible=true;cloudT+=1/60;const cx=Math.sin(cloudT*.21)*.55,cz=Math.cos(cloudT*.17)*.45;cloud.position.lerp(new THREE.Vector3(cx,RY0+GY*V+1.6,cz),.03);
     cloudAcc+=cloudRate(S.up.nuvem)*(1+pk('nuvem')*.5)/60;while(cloudAcc>=1){cloudAcc--;const p=new THREE.Vector3(cloud.position.x+(R()-.5)*.6,cloud.position.y-1.1,cloud.position.z+(R()-.5)*.4);
@@ -1935,7 +1952,7 @@ function offlineGains(){const away=(Date.now()-(S.t||Date.now()))/1000;const pas
   const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60);setTimeout(()=>toast('Enquanto você estava fora ('+(h?h+'h ':'')+m+'min)','Suas máquinas renderam +$'+fmt(g)),900);}
 setTimeout(()=>{offlineGains();applyGfx();newRock(false);buildShop();renderHotbar();rebuildTurrets();buildAqueduct();buildExtraSluices();syncFish();buildCrusher();ui();hideLoading();requestAnimationFrame(loop);},30);
 window.__rr=()=>{rerollContract();sfx.ping();};
-window.__dbg={get incEMA(){return Math.round(incEMA)},startBoss,DEALS,openDeal,get pact(){return pact},set dealT(v){dealT=v},blackout,overload,fireAlarm,quake,weakRush,dropCrate,tryCrate,crate,MUTS,get flood(){return S.flood},floodLevel,toggleDrain,get weak(){return weak},get boss(){return boss},spawnWeak,get ctr(){return S.ctr},newContract,ctrRate,set weakCD(v){weakCD=v},scene,set rainbowT(v){rainbowT=v},valMult:()=>valMult(),get erosionMul(){return erosionMul},get st(){return S.st},get ach(){return S.ach},openPerks,tryCatchFly,fly,get flyTimer(){return flyTimer},set flyTimer(v){flyTimer=v},beam,wetData,wetTex,SHOP,buy,wash,costOf,maxed,avail,get simCost(){return simCost},meteorShower,rareVisitor,goldFlood,newRock,get rock(){return rockInfo},hold(v){down=v;},jetAt(x,y,z){aim=new THREE.Vector3(x,y,z);S.tool='jato';down=true;},panGrains:(x,y,z)=>panGrains(new THREE.Vector3(x,y,z)),startStorm,get cap(){return F.cap},aimAt(x,y,z){aim=new THREE.Vector3(x,y,z);},carve(x0,x1,y0,y1){for(let z=0;z<GZ;z++)for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const i=vid(x,y,z);if(vt[i])removeVoxel(i,x,y,z,false);}},frags,setTool,useTool,get aim(){return aim},set aim(v){aim=v},startDam,burstDam,get dam(){return dam},DBG,setRender(v){SIMONLY=!v;},cam:camera,ctl:controls,get frames(){return frames},F,S,rockInfo:()=>rockInfo,spawnDrop:(x,y,z,n,h)=>spawnDrop(new THREE.Vector3(x,y,z),n,h)};
+window.__dbg={openTrack,finishRock,get incEMA(){return Math.round(incEMA)},startBoss,DEALS,openDeal,get pact(){return pact},set dealT(v){dealT=v},blackout,overload,fireAlarm,quake,weakRush,dropCrate,tryCrate,crate,MUTS,get flood(){return S.flood},floodLevel,toggleDrain,get weak(){return weak},get boss(){return boss},spawnWeak,get ctr(){return S.ctr},newContract,ctrRate,set weakCD(v){weakCD=v},scene,set rainbowT(v){rainbowT=v},valMult:()=>valMult(),get erosionMul(){return erosionMul},get st(){return S.st},get ach(){return S.ach},openPerks,tryCatchFly,fly,get flyTimer(){return flyTimer},set flyTimer(v){flyTimer=v},beam,wetData,wetTex,SHOP,buy,wash,costOf,maxed,avail,get simCost(){return simCost},meteorShower,rareVisitor,goldFlood,newRock,get rock(){return rockInfo},hold(v){down=v;},jetAt(x,y,z){aim=new THREE.Vector3(x,y,z);S.tool='jato';down=true;},panGrains:(x,y,z)=>panGrains(new THREE.Vector3(x,y,z)),startStorm,get cap(){return F.cap},aimAt(x,y,z){aim=new THREE.Vector3(x,y,z);},carve(x0,x1,y0,y1){for(let z=0;z<GZ;z++)for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const i=vid(x,y,z);if(vt[i])removeVoxel(i,x,y,z,false);}},frags,setTool,useTool,get aim(){return aim},set aim(v){aim=v},startDam,burstDam,get dam(){return dam},DBG,setRender(v){SIMONLY=!v;},cam:camera,ctl:controls,get frames(){return frames},F,S,rockInfo:()=>rockInfo,spawnDrop:(x,y,z,n,h)=>spawnDrop(new THREE.Vector3(x,y,z),n,h)};
 addEventListener('visibilitychange',()=>{if(document.hidden){save();saveRockMask();}});addEventListener('beforeunload',()=>{save();saveRockMask();});
 </script>
 </body>
