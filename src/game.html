@@ -20,7 +20,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#1b1a17;font-family:"I
 #nextRock{display:none;margin-top:8px;width:100%;padding:7px;border-radius:9px;border:1px solid #f1d9a866;background:#f1d9a822;color:#fbe9c4;font:inherit;font-weight:700;cursor:pointer}
 #combo{position:fixed;left:50%;bottom:140px;transform:translateX(-50%);font-size:22px;font-weight:900;color:#ffe08a;transition:opacity .3s,color .3s,transform .15s;padding:4px 14px;border-radius:12px;text-shadow:0 3px 14px #000c;pointer-events:none;opacity:0;transition:opacity .3s}
 #quest{position:fixed;left:50%;top:14px;transform:translateX(-50%);padding:8px 16px;font-size:13.5px;text-align:center;min-width:280px}
-#quest small{display:block;opacity:.65;font-size:11.5px;margin-top:2px}
+#quest small{display:block;opacity:.65;font-size:11.5px;margin-top:2px}#quest .rr{cursor:pointer;color:#ffd36a;font-weight:600;pointer-events:auto}#quest .qbar{height:3px;background:#ffffff1a;border-radius:2px;margin-top:5px;overflow:hidden}#quest .qbar i{display:block;height:100%;background:linear-gradient(90deg,#ffd36a,#ff9a5a);transition:width .3s}
 #quest.done{animation:qd .8s}@keyframes qd{50%{background:rgba(120,200,120,.45)}}
 #perkBtn{position:fixed;left:14px;top:150px;padding:9px 14px;font:inherit;font-weight:800;color:#ffe9a0;cursor:pointer;display:none;animation:pulse 1.2s infinite;border:1px solid #ffe08a66}
 #perkModal{position:fixed;inset:0;background:#0009;display:none;align-items:center;justify-content:center;z-index:20}
@@ -68,7 +68,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#1b1a17;font-family:"I
 .ft{position:fixed;pointer-events:none;font-weight:800;text-shadow:0 2px 8px #000c;transform:translate(-50%,-50%);white-space:nowrap}
 #loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#1b1a17;font-size:15px;opacity:.9;transition:opacity .8s;z-index:9}
 @media (max-width:900px){#ups{grid-template-columns:repeat(3,1fr)}#sluice{top:auto;bottom:210px}#hotbar{top:auto;bottom:220px;transform:none}}
-@media (max-width:700px),(pointer:coarse){#combo{top:84px;bottom:auto;font-size:16px}
+@media (max-width:700px),(pointer:coarse){#combo{top:150px;bottom:auto;font-size:16px}
  #hotbar{flex-direction:row;left:50%;top:auto;bottom:178px;transform:translateX(-50%);padding:5px}
  .tool{width:54px;height:54px}
  #top{padding:7px 11px;min-width:0}#money{font-size:22px}#rank,#rankNext{display:none}
@@ -96,7 +96,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#1b1a17;font-family:"I
 <div id="perkList" class="panel"></div>
 <div id="camHelp" class="panel">WASD mover · Q/E girar · R/F zoom · botão do meio arrasta · <b>C</b> centraliza · <b>B</b> loja · <b>L</b> lava</div>
 <div id="sluice" class="panel"><div><b>Calha de garimpo</b></div><div id="sluiceTxt" style="opacity:.75">$0 / $0</div><div class="bar"><div id="sluiceBar"></div></div><button id="wash">Lavar a calha</button></div>
-<div id="quest" class="panel"></div>
+<div id="quest" class="panel" onclick="if(event.target.dataset.rr)window.__rr()"></div>
 <div id="touchHint" class="panel" style="display:none;position:fixed;left:50%;top:60px;transform:translateX(-50%);padding:7px 12px;font-size:12.5px;z-index:5">Toque na rocha para usar a ferramenta · dois dedos giram e dão zoom</div>
 <div id="hint" class="panel" style="display:none">Clique na rocha para pingar uma gota · botão direito gira · 1–5 trocam a ferramenta</div>
 <div id="toast"></div>
@@ -175,7 +175,10 @@ const QUESTS=[
 ];
 function qProg(q){if(q.c.startsWith('up:'))return S.up[q.c.slice(3)]||0;if(q.c==='mile')return S.mile;if(q.c==='rocks')return S.rocks;if(q.c==='col')return Object.keys(S.col||{}).length;if(q.c==='turret')return turretCount();return S.qc[q.c]||0;}
 function qBump(c,n=1){S.qc[c]=(S.qc[c]||0)+n;}
-function stepQuest(){const el=document.getElementById('quest');if(!el)return;const q=QUESTS[S.q];if(!q){el.style.display='none';return;}
+function stepQuest(){const el=document.getElementById('quest');if(!el)return;const q=QUESTS[S.q];if(!q){
+  const c=S.ctr;if(!c){el.style.display='none';return;}el.style.display='';const t=CTR.find(x=>x.k===c.k);const p=Math.min(c.n,(S.st&&S.st[c.k]||0)-c.b);
+  const fi=x=>x<1000?String(Math.max(0,Math.floor(x))):fmt(x);const h=`📜 Encomenda: ${t.t.replace('{n}',fi(c.n))}<small>${fi(p)}/${fi(c.n)} · ⏳ ${Math.ceil(c.t)} s · recompensa $${fmt(c.rw)} · <b class="rr" data-rr="1">⟳ trocar</b></small><div class="qbar"><i style="width:${(p/c.n*100).toFixed(1)}%"></i></div>`;
+  if(el._h!==h){el.innerHTML=h;el._h=h;}return;}
   const p=Math.min(q.n,qProg(q));if(p>=q.n){S.money+=q.rw;S.total+=q.rw;S.q++;toast('Objetivo concluído ✔','+$'+fmt(q.rw));sfx.coin(q.rw);el.classList.remove('done');void el.offsetWidth;el.classList.add('done');save();return;}
   const h=`🎯 ${q.t}<small>${q.n>1?p+'/'+q.n+' · ':''}recompensa $${fmt(q.rw)} · objetivo ${S.q+1}/${QUESTS.length}</small>`;if(el._h!==h){el.innerHTML=h;el._h=h;}}
 const TABS=['Ferramentas','Água','Torretas','Terreno','Garimpo'];let curTab='Água';
@@ -250,7 +253,7 @@ const MATS={
  [T_WOOD]:{n:'madeira antiga',hp:.25,val:2},[T_OLIV]:{n:'olivina',hp:.9,val:40},[T_BAS]:{n:'basalto',hp:1.1,val:1.5},[T_HEART]:{n:'coração de cristal',hp:2,val:400},[T_OPAL]:{n:'opala de fogo',hp:.7,val:120},
 };
 const GRAIN_COL={[T_OPAL]:[.4,.9,.8],[T_HEART]:[1,.15,.3],[T_GOLD]:[1,.62,.12],[T_AME]:[.35,.1,.55],[T_QTZ]:[.8,.78,.74],[T_MOSS]:[.08,.13,.04],[T_IRON]:[.3,.08,.03],[T_GRAN]:[.3,.25,.24],[T_MET]:[.12,.12,.13],[T_BONE]:[.75,.68,.55],[T_JADE]:[.12,.4,.25],[T_WOOD]:[.25,.14,.07],[T_OLIV]:[.3,.55,.12],[T_BAS]:[.1,.1,.11]};
-let rockInfo={name:'',total:1,left:1};
+let rockInfo={name:'',total:1,left:1};let weak=null,weakCD=12,boss=null,lastRate=0,incEMA=0;
 // ---------- biblioteca de objetos ----------
 // cada objeto: forma(px,py,pz)->d (<1 dentro) e material(px,py,pz,d,x,y,z)->[t,r,g,b]; coordenadas em metros a partir do centro da base
 function setV(x,y,z,t,r,g,b,hpMul){if(x<0||y<0||z<0||x>=GX||y>=GY||z>=GZ)return 0;const i=vid(x,y,z);const was=vt[i]?0:1;vt[i]=t;vhp[i]=MATS[t].hp*hpMul;
@@ -281,9 +284,9 @@ function mulberry(a){let s=a>>>0;return ()=>{s=(s+0x6D2B79F5)|0;let t=Math.imul(
 const OBJ_TYPES=[
  {k:'arenito',n:'Bloco de arenito',w:20,r:''},{k:'granito',n:'Matacão de granito',w:16,r:''},{k:'geodo',n:'Geodo de ametista',w:9,r:'Raro'},
  {k:'pilar',n:'Pilar de basalto',w:10,r:''},{k:'arco',n:'Arco natural',w:9,r:''},{k:'gemeas',n:'Pedras gêmeas',w:12,r:''},
- {k:'fossil',n:'Rocha com fóssil',w:8,r:'Raro'},{k:'meteoro',n:'Meteorito',w:6,r:'Raro'},{k:'opala',n:'Nódulo de opala',w:5,r:'Raro'},{k:'idolo',n:'Ídolo antigo',w:4,r:'Lendário'},{k:'bau',n:'Baú enterrado',w:4,r:'Lendário'},{k:'coracao',n:'Coração da Montanha',w:3,r:'Chefe'},
+ {k:'fossil',n:'Rocha com fóssil',w:8,r:'Raro'},{k:'meteoro',n:'Meteorito',w:6,r:'Raro'},{k:'opala',n:'Nódulo de opala',w:5,r:'Raro'},{k:'idolo',n:'Ídolo antigo',w:4,r:'Lendário'},{k:'bau',n:'Baú enterrado',w:4,r:'Lendário'},{k:'coracao',n:'Coração da Montanha',w:3,r:'Chefe'},{k:'monolito',n:'Monólito ancestral',w:0,r:'Desafio'},
 ];
-function pickObj(level,rr){if(window.__forceObj)return OBJ_TYPES.find(o=>o.k===window.__forceObj);if(level===1)return OBJ_TYPES[0];if(level===2)return OBJ_TYPES[1];if(level===3)return OBJ_TYPES[2];
+function pickObj(level,rr){if(window.__forceObj)return OBJ_TYPES.find(o=>o.k===window.__forceObj);if(level%5===0)return OBJ_TYPES.find(o=>o.k==='monolito');if(level===1)return OBJ_TYPES[0];if(level===2)return OBJ_TYPES[1];if(level===3)return OBJ_TYPES[2];
   let tot=0;for(const o of OBJ_TYPES)tot+=o.w;let x=rr()*tot;for(const o of OBJ_TYPES){x-=o.w;if(x<=0)return o;}return OBJ_TYPES[0];}
 function buildObject(k,cx,cz,scale,seed,hpMul){let n=0;const rr=mulberry(seed);
   if(k==='arenito'||k==='granito'||k==='geodo'){const ax=1.18*scale,ay=.98*scale,az=1.04*scale;let mat=withVeins(k==='granito'?granMat(seed):sandMat(seed),seed);
@@ -292,6 +295,9 @@ function buildObject(k,cx,cz,scale,seed,hpMul){let n=0;const rr=mulberry(seed);
   else if(k==='pilar'){const R0=.5*scale,H=Math.min(GY*V-.05,1.9*scale);
     n+=stamp(cx,cz,0,R0*1.3,H,R0*1.3,(px,py,pz)=>{const a=Math.atan2(pz,px);const hex=Math.cos(Math.PI/6)/Math.cos(((a%(Math.PI/3))+Math.PI/3)%(Math.PI/3)-Math.PI/6);const rad=R0*hex*(1-py/H*.18)+(fbm(px*3,py*3,pz*3,seed,2)-.5)*.06;
       const r=Math.hypot(px,pz);if(py>H-(fbm(px*2,0,pz*2,seed+1,2))*.25)return 9;return r/rad;},withVeins(basMat(seed),seed,.97,.12),hpMul);}
+  else if(k==='monolito'){const R0=.66*scale,H=Math.min(GY*V-.08,2.05*scale);const bm=basMat(seed);
+    n+=stamp(cx,cz,0,R0*1.35,H,R0*1.35,(px,py,pz)=>{const a=Math.atan2(pz,px)+py*.6;const sq=1/Math.max(Math.abs(Math.cos(a)),Math.abs(Math.sin(a)));const rad=R0*Math.min(sq,1.25)*(1-py/H*.22)+(fbm(px*3,py*3,pz*3,seed,2)-.5)*.07;
+      if(py>H-(fbm(px*2,0,pz*2,seed+1,2))*.3)return 9;return Math.hypot(px,pz)/rad;},(px,py,pz,d,x,y,z)=>{const band=Math.abs(((py/H*5.5)%1+1)%1-.5)<.045;if(band&&d>.8)return [T_GOLD,235,185,70];return bm(px,py,pz,d,x,y,z);},hpMul*1.15);}
   else if(k==='arco'){const Ra=.85*scale,th=.32*scale;
     n+=stamp(cx,cz,0,Ra+th*1.5,Ra+th*1.6,th*1.6,(px,py,pz)=>{const w=(fbm(px*2,py*2,pz*2,seed,3)-.5)*.18;const rr2=Math.hypot(px,py)-Ra;const d=Math.hypot(rr2,pz*.9)/(th+w);return py<0?9:d;},withVeins(sandMat(seed),seed),hpMul);}
   else if(k==='gemeas'){const m=2+(rr()<.5?1:0);for(let q=0;q<m;q++){const a=q/m*Math.PI*2+rr();const s=(.5+rr()*.2)*scale;const ox=Math.cos(a)*.62*scale,oz=Math.sin(a)*.62*scale;
@@ -342,7 +348,7 @@ function genRock(level,rseed){
   // extras de eventos (meteoritos, visitantes) desta rocha
   for(const e of (S.extras||[]))buildObject(e.k,e.x,e.z,e.s,e.seed,hpMul);
   let cnt=0;for(let i=0;i<GN;i++)if(vt[i])cnt++;
-  rockInfo={name:o.n,rar:o.r,kind:o.k,total:cnt,left:cnt};
+  rockInfo={name:o.n,rar:o.r,kind:o.k,total:cnt,left:cnt};boss=null;weak=null;if(o.k==='monolito')setTimeout(startBoss,0);
 }
 
 // =================================================================
@@ -536,7 +542,7 @@ let erosionMul=1;
 const dmgQ=[];
 let comboN=0,comboT=0,comboShown=0,erodeAcc=0,erodeT=0;
 function removeVoxel(i,x,y,z,spawn,noPay){
-  const t=vt[i];erodeAcc++;stats('voxels');if(t===T_GOLD)stats('gold');if(t===T_AME||t===T_OLIV)stats('gem');vt[i]=0;rockInfo.left--;markDirty(x,y,z);structDirty=true;
+  const t=vt[i];erodeAcc++;stats('voxels');if(weak)weakHit(x,y,z);if(t===T_GOLD)stats('gold');if(t===T_AME||t===T_OLIV)stats('gem');vt[i]=0;rockInfo.left--;markDirty(x,y,z);structDirty=true;
   if(!noPay){comboN++;comboT=1.6+pk('combo')*1;const cm=comboMul();const g=MATS[t].val*valMult()*matBonus(t)*.07*cm;S.money+=g;S.total+=g;earnBatch+=g;comboGain+=g;}
   // revelações
   for(const [dx,dy,dz] of [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]]){const nx=x+dx,ny=y+dy,nz=z+dz;if(nx<0||ny<0||nz<0||nx>=GX||ny>=GY||nz>=GZ)continue;const nt=vt[vid(nx,ny,nz)];
@@ -652,6 +658,7 @@ const ACH=[
  {k:'fly',n:'Caçador de libélulas',d:'Pegar 5 libélulas douradas',s:'flies',v:5},{k:'storm',n:'Olho da tempestade',d:'Passar por 3 tempestades',s:'storms',v:3},
  {k:'balloon',n:'Arremessador',d:'Arremessar 50 balões cheios',s:'balloons',v:50},{k:'crush',n:'Moedor',d:'O britador mói 200 vezes',s:'crush',v:200},
  {k:'wash',n:'Lavadeiro',d:'Lavar a calha 100 vezes',s:'washes',v:100},{k:'rocks',n:'Colecionador de pedras',d:'Trocar 10 rochas',s:'rocks2',v:10},
+ {k:'crack',n:'Ponto fraco',d:'Quebrar 25 pontos fracos',s:'cracks',v:25},{k:'contract',n:'Fornecedor',d:'Cumprir 10 encomendas',s:'contracts',v:10},{k:'boss',n:'Derrubador de monólitos',d:'Vencer um desafio do Monólito',s:'bosses',v:1},
  {k:'opal',n:'Fogo na pedra',d:'Encontrar 3 opalas de fogo',s:'opals',v:3},{k:'geode',n:'Quebra-geodo',d:'Abrir 3 geodos',s:'geodes',v:3},
  {k:'nugget',n:'Pepiteiro',d:'Achar 25 pepitas na calha',s:'nuggets',v:25},{k:'rainbow',n:'Pote no fim do arco-íris',d:'Ver 3 arco-íris',s:'rainbows',v:3},{k:'gflood',n:'Rio de ouro',d:'Sobreviver a 2 enxurradas douradas',s:'gfloods',v:2},
  {k:'combo',n:'No embalo',d:'Chegar a combo ×3',s:'combo3',v:1},{k:'exp',n:'Expedicionário',d:'Fazer uma expedição',s:'exps',v:1},
@@ -1272,6 +1279,7 @@ const sfx=(()=>{let ac=null,master,nb,muted=false,budget=5,flowG,flowF,windG,jet
     crumble(t){if(R()>.35||!ok(1))return;if(t===T_QTZ||t===T_AME)tone(3200+R()*2600,.12,.025,'triangle');else if(t===T_GOLD)tone(2100+R()*400,.15,.04,'triangle');else nz(1200+R()*1800,'bandpass',.05,.07,1.5);},
     rumble(k){if(!ac||muted)return;nz(160,'lowpass',.8+k*.6,.5*k+.15);nz(70,'lowpass',1.2+k,.6*k+.1);tone(55,.6+k*.5,.25*k+.08,'sine',.6);tone(38,.9+k*.6,.22*k+.05,'sine',.7);nz(2400,'bandpass',.25,.08*k,1.2);},
     coin(v){if(!ok(1))return;const p=Math.min(16,Math.log2(1+v)*1.5);const f=620*Math.pow(2,p/12);tone(f,.14,.06);tone(f*1.5,.18,.045,'sine',0,.06);},
+    ping(){if(!ac||muted)return;tone(1320,.15,.05,'sine',0,0);tone(1980,.25,.03,'sine',0,.06);},
     full(){if(!ac||muted)return;tone(660,.12,.07,'triangle',0,0);tone(880,.16,.07,'triangle',0,.12);},
     coins(n){if(!ac||muted)return;for(let j=0;j<n;j++){const f=2200+Math.random()*1800;tone(f,.06,.035,'sine',0,.12+j*.055+Math.random()*.03);tone(f*1.5,.05,.02,'sine',0,.13+j*.055);}},
     wash(){if(!ac||muted)return;nz(1400,'bandpass',.6,.25,.6);[784,988,1175,1568].forEach((f,j)=>tone(f,.25,.06,'triangle',0,.1+j*.07));},
@@ -1344,8 +1352,8 @@ $('expBtn').onclick=()=>{sfx.init();const g=amberGain();const m=$('perkModal');c
     try{localStorage.removeItem(KEY+'_rock');}catch(e){}save();location.reload();};};
 addEventListener('keydown',e=>{if(e.key==='l'||e.key==='L'){sfx.init();wash();}});
 function ui(){
-  $('money').textContent='$'+fmt(S.money);const r=earnHist.length?earnHist.reduce((a,b)=>a+b,0)/(earnHist.length):0;$('rate').textContent='$'+fmt(r)+'/s em média';
-  $('rockName').textContent=rockInfo.name;const pct=rockPct();$('rockSub').textContent=pct.toFixed(pct<1?3:pct<10?2:1).replace('.',',')+'% erodido · rocha '+S.level;
+  $('money').textContent='$'+fmt(S.money);const r=earnHist.length?earnHist.reduce((a,b)=>a+b,0)/(earnHist.length):0;lastRate=r;incEMA=incEMA?incEMA*.97+Math.min(r,incEMA*2.5+3)*.03:r;$('rate').textContent='$'+fmt(r)+'/s em média';
+  $('rockName').textContent=rockInfo.name;const pct=rockPct();$('rockSub').textContent=boss?('⚔️ Desafio: '+boss.hits+'/'+boss.need+' fraturas · '+Math.ceil(boss.t)+' s'):(pct.toFixed(pct<1?3:pct<10?2:1).replace('.',',')+'% erodido · rocha '+S.level);
   const prev=S.mile?MILES[S.mile-1]:0,nxt=MILES[S.mile];$('rockBar').style.width=(nxt?Math.min(100,(pct-prev)/(nxt-prev)*100):100)+'%';
   $('mileTxt').textContent=nxt?`Próximo marco: ${String(nxt).replace('.',',')}% → +$${fmt(mileReward(S.mile))}`:'Todos os marcos atingidos!';
   $('nextRock').style.display=pct>=nextPct()&&!rockInfo.done?'block':'none';
@@ -1426,6 +1434,62 @@ const matBonus=t=>(t===T_GOLD||t===T_AME||t===T_OLIV||t===T_HEART||t===T_OPAL)?1
 const valMultAt=l=>(1+(l-1)*.35)*rankMult()*colMult();
 const nextPct=()=>Math.min(10,4+S.level*1.5);
 const rockPct=()=>(1-rockInfo.left/rockInfo.total)*100;
+// ===== Pontos fracos (rachaduras brilhantes) =====
+const weakTex=(()=>{const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d');const gr=g.createRadialGradient(64,64,0,64,64,64);
+  gr.addColorStop(0,'rgba(255,250,210,1)');gr.addColorStop(.25,'rgba(255,200,90,.9)');gr.addColorStop(.6,'rgba(255,120,40,.35)');gr.addColorStop(1,'rgba(255,90,20,0)');g.fillStyle=gr;g.fillRect(0,0,128,128);
+  g.strokeStyle='rgba(255,255,230,.95)';g.lineWidth=3;g.lineCap='round';for(let k=0;k<6;k++){let a=k/6*6.28+Math.random()*.5,x=64,y=64;g.beginPath();g.moveTo(x,y);for(let j=0;j<4;j++){a+=(Math.random()-.5)*.9;x+=Math.cos(a)*11;y+=Math.sin(a)*11;g.lineTo(x,y);}g.stroke();}
+  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;})();
+const weakSpr=new THREE.Sprite(new THREE.SpriteMaterial({map:weakTex,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));weakSpr.visible=false;weakSpr.renderOrder=5;scene.add(weakSpr);
+const WEAK_NEED=()=>Math.round(10+Math.min(14,S.level*1.2));
+function spawnWeak(){const tg=controls.target,cp=camera.position;
+  for(let tr=0;tr<40;tr++){const tx=tg.x+(R()-.5)*1.4,ty=Math.max(.15,tg.y+(R()-.5)*1.1),tz=tg.z+(R()-.5)*1.4;const dx=tx-cp.x,dy=ty-cp.y,dz=tz-cp.z,L=Math.hypot(dx,dy,dz);const st=V*.6;
+    for(let d=0;d<L+2;d+=st){const wx=cp.x+dx/L*d,wy=cp.y+dy/L*d,wz=cp.z+dz/L*d;const x=Math.floor((wx-RX0)/V),y=Math.floor((wy-RY0)/V),z=Math.floor((wz-RZ0)/V);
+      if(x<1||y<3||z<1||x>=GX-1||y>=GY-1||z>=GZ-1)continue;if(vt[vid(x,y,z)]){const w=new THREE.Vector3(wx-dx/L*.04,wy-dy/L*.04,wz-dz/L*.04);
+        weak={x,y,z,hp:WEAK_NEED(),max:WEAK_NEED(),life:boss?14:11,p:w,pop:false,age:0};weakSpr.position.copy(w);weakSpr.visible=true;sfx.ping();return true;}}}
+  return false;}
+function weakHit(x,y,z){if(!weak||weak.pop)return;const dx=x-weak.x,dy=y-weak.y,dz=z-weak.z;if(dx*dx+dy*dy+dz*dz<56){weak.hp--;if(weak.hp<=0)weak.pop=true;}}
+function breakWeak(){const w=weak;weak=null;weakSpr.visible=false;stats('cracks');
+  const r=Math.round(7+Math.min(6,S.level*.5)+(boss?3:0)),list=[];let val=0;
+  for(let z=w.z-r;z<=w.z+r;z++)for(let y=w.y-r;y<=w.y+r;y++)for(let x=w.x-r;x<=w.x+r;x++){if(x<0||y<1||z<0||x>=GX||y>=GY||z>=GZ)continue;const dd=(x-w.x)**2+(y-w.y)**2+(z-w.z)**2;if(dd>r*r*(.75+R()*.35))continue;const i=vid(x,y,z);if(!vt[i])continue;val+=MATS[vt[i]].val*matBonus(vt[i]);list.push({i,x,y,z});}
+  const pay=Math.min(val*valMult()*.1*comboMul(),Math.max(20,incEMA*(boss?12:20)));S.money+=pay;S.total+=pay;earnBatch+=pay;comboN+=25;comboT=2.5;
+  ejectVoxels(list,w.p.x,w.p.y,w.p.z,1.1,5);flash=Math.max(flash,.4);shake=Math.min(.08,shake+.05);sfx.rumble(.6);sfx.coins(6);
+  for(let q=0;q<26;q++)addSpray(w.p.x,w.p.y,w.p.z,(Math.random()-.5)*4,Math.random()*3.5,(Math.random()-.5)*4,.02);
+  floatText(w.p.clone().add(new THREE.Vector3(0,.25,0)),'💥 FRATURA! +$'+fmt(pay),'#ffc86a',28);
+  if(boss){boss.hits++;if(boss.hits>=boss.need)winBoss();else{weakCD=1.2;floatText(w.p.clone().add(new THREE.Vector3(0,.55,0)),'⚔️ '+boss.hits+'/'+boss.need,'#ff9a7a',24);}}else weakCD=10+R()*9;}
+function stepWeak(dt){if(!weak&&weakSpr.visible)weakSpr.visible=false;if(boss){boss.t-=dt;if(boss.t<=0)loseBoss();}
+  if(weak){weak.life-=dt;weak.age+=dt;if(weak.pop){breakWeak();return;}
+    {let wet=0;const px=weak.p.x,py=weak.p.y,pz=weak.p.z;for(let i=0;i<F.np;i++){if(F.kind[i]!==0||F.dead[i])continue;const dx=F.px[i]-px,dy=F.py[i]-py,dz=F.pz[i]-pz;if(dx*dx+dy*dy+dz*dz<.022)wet++;}
+      if(wet){weak.hp-=Math.min(40,wet)*dt*.9*Math.max(1,erosionMul*.5);if(weak.hp<=0){weak.pop=true;return;}}}
+    const k=Math.max(0,1-weak.hp/weak.max),pul=1+.18*Math.sin(weak.age*(6+k*14));const sz=(.34+k*.22)*pul*Math.min(1,weak.age*4)*Math.min(1,weak.life*1.5);weakSpr.scale.set(sz,sz,1);weakSpr.material.opacity=.75+.25*k;
+    if(R()<.08+k*.3)addSpray(weak.p.x,weak.p.y,weak.p.z,(Math.random()-.5)*.8,Math.random()*.8,(Math.random()-.5)*.8,.008);
+    if(weak.life<=0){weak=null;weakSpr.visible=false;weakCD=boss?.8:8+R()*8;}return;}
+  if(S.level<2&&S.total<150)return;weakCD-=dt;if(weakCD<=0){if(!spawnWeak())weakCD=2;}}
+// ===== Desafio do Monólito =====
+function startBoss(){if(S.found['boss'+S.rockSeed])return;boss={hits:0,need:6,t:90,base:Math.max(5,incEMA)};weakCD=4;weak=null;weakSpr.visible=false;
+  setTimeout(()=>toast('⚔️ Desafio: Monólito ancestral','Quebre 6 pontos fracos em 90 s · recompensa grande'),1600);}
+function winBoss(){const b=boss;boss=null;S.found['boss'+S.rockSeed]=1;stats('bosses');const pay=Math.max(500,b.base*180)*(1+S.level*.04);S.money+=pay;S.total+=pay;earnBatch+=pay;
+  // o monólito racha inteiro
+  const cx=Math.floor(GX/2),cz=Math.floor(GZ/2),list=[];for(let y=Math.floor(GY*.5);y<GY;y++)for(let z=cz-30;z<=cz+30;z++)for(let x=cx-30;x<=cx+30;x++){if(x<0||z<0||x>=GX||z>=GZ)continue;const i=vid(x,y,z);if(vt[i]&&R()<.5)list.push({i,x,y,z});}
+  ejectVoxels(list,RX0+cx*V,RY0+GY*.5*V,RZ0+cz*V,1.6,7);flash=.8;shake=.09;sfx.rumble(1);sfx.coins(14);coinFountain(controls.target.x,controls.target.y+.6,controls.target.z);
+  grantPerkChoice('Recompensa do Monólito');discover('Monólito derrubado! ⚔️','+$'+fmt(pay)+' e um perk novo',controls.target.x,controls.target.y+.8,controls.target.z);save();}
+function loseBoss(){boss=null;if(weak){weak=null;weakSpr.visible=false;}weakCD=10;toast('O Monólito resistiu…','Continue erodindo normalmente; o próximo desafio vem na rocha '+(Math.ceil((S.level+1)/5)*5));}
+// ===== Encomendas (contratos infinitos) =====
+const CTR=[{k:'voxels',t:'Erodir {n} blocos',m:90},{k:'gold',t:'Liberar {n} blocos de ouro',m:90},{k:'gem',t:'Liberar {n} gemas',m:90},
+ {k:'cracks',t:'Quebrar {n} pontos fracos',f:[2,3]},{k:'washes',t:'Lavar a calha {n} vezes',f:[2,4]},{k:'nuggets',t:'Achar {n} pepitas',m:110,req:()=>pk('pepita')},
+ {k:'dams',t:'Estourar {n} represa',f:[1,1],req:()=>S.up.represa},{k:'balloons',t:'Arremessar {n} balões cheios',f:[2,4],req:()=>S.up.balao}];
+const ctrRate={},ctrLast={};let ctrTick=0,ctrCD=3;
+function niceN(x){const m=Math.pow(10,Math.max(0,Math.floor(Math.log10(x))-1));return Math.max(1,Math.round(x/m)*m);}
+function newContract(){const st=S.st||{};const pool=CTR.filter(c=>(!c.req||c.req())&&(c.f||(ctrRate[c.k]||0)>.05)&&(!S.ctr||S.ctr.k!==c.k));if(!pool.length)return;
+  const c=pool[Math.floor(R()*pool.length)];const n=c.f?c.f[0]+Math.floor(R()*(c.f[1]-c.f[0]+1)):niceN(Math.max(5,ctrRate[c.k]*c.m*(.8+R()*.5)));
+  S.ctr={k:c.k,n,b:st[c.k]||0,t:150,rw:Math.max(40,incEMA*75)*(1+(S.ctrDone||0)%4*.15)};}
+function stepContract(dt){if(S.q<QUESTS.length)return;ctrTick+=dt;if(ctrTick>=10){const st=S.st||{};for(const c of CTR){const v=st[c.k]||0;if(ctrLast[c.k]!==undefined){const r=(v-ctrLast[c.k])/ctrTick;ctrRate[c.k]=ctrRate[c.k]===undefined?r:ctrRate[c.k]*.75+r*.25;}ctrLast[c.k]=v;}ctrTick=0;}
+  if(!S.ctr){ctrCD-=dt;if(ctrCD<=0){newContract();ctrCD=4;}return;}
+  const c=S.ctr;c.t-=dt;const prog=(S.st&&S.st[c.k]||0)-c.b;
+  if(prog>=c.n){S.money+=c.rw;S.total+=c.rw;earnBatch+=c.rw;S.ctrDone=(S.ctrDone||0)+1;stats('contracts');S.ctr=null;ctrCD=6;sfx.coins(8);
+    const el=$('quest');el.classList.remove('done');void el.offsetWidth;el.classList.add('done');
+    if(S.ctrDone%4===0)grantPerkChoice('Encomenda nº '+S.ctrDone+' entregue');else toast('Encomenda entregue 📦','+$'+fmt(c.rw)+' · '+(4-S.ctrDone%4)+' até a caixa com perk');save();}
+  else if(c.t<=0){S.ctr=null;ctrCD=12;toast('Encomenda expirou','Outra chega em instantes');}}
+function rerollContract(){if(S.ctr&&S.ctr.t>0){S.ctr=null;ctrCD=.1;newContract();}}
 function simFrame(){
   const dt=1/60;erosionMul=acid(S.up.acido)*(floodT>0?2:1)*(1+(S.amber||0)*.03);if(frenzyT>0)frenzyT-=dt;if(infTankT>0){infTankT-=dt;jetTank=tankCap();jetLock=false;}splashBudget=3;
   for(const k in cdLeft)if(cdLeft[k]>0)cdLeft[k]-=dt;
@@ -1433,7 +1497,7 @@ function simFrame(){
   if(down&&aim&&S.tool==='gota'&&S.up.chuva){holdAcc+=rainRate(S.up.chuva)/60;while(holdAcc>=1){holdAcc--;const p=aim.clone();p.x+=(R()-.5)*.12;p.z+=(R()-.5)*.12;spawnDrop(p,dropN(S.up.gota),dropH(S.up.altura));}}
   jetTank=Math.min(tankCap(),jetTank+(down&&S.tool==='jato'&&!jetLock?0:tankRegen()/60));if(jetLock&&jetTank>=tankCap()*.3)jetLock=false;if(mareT>0)mareT-=1/60;
   if(down&&aim&&S.tool==='jato'&&!jetLock&&jetTank>0){jetTank-=1/60;if(jetTank<=0){jetTank=0;jetLock=true;sfx.empty&&sfx.empty();toast('Tanque vazio','Solte para recarregar a pressão');}holdAcc+=jetRate(S.up.forcaJato)/60;const src=jetSource(aim);updBeam(true,src,aim,frames/60);const thick=1+Math.floor(S.up.gota/3);const spd=Math.min(7,jetSpeed(S.up.forcaJato)+S.up.altura*.2);while(holdAcc>=1){holdAcc--;shootJet(src,aim,spd,thick);}sfx.jet(true);}else{sfx.jet(false);updBeam(false);}
-  stepTurrets(dt);stepSpring(dt);stepDam(dt);stepAqueduct(dt);stepStorm(dt);stepCharge(dt);stepProjs(dt);stepWaves(dt);stepEvents(dt);stepFish(dt);stepFly(dt);stepCrusher(dt);stepGeysers(dt);
+  stepTurrets(dt);stepSpring(dt);stepDam(dt);stepAqueduct(dt);stepStorm(dt);stepCharge(dt);stepProjs(dt);stepWaves(dt);stepEvents(dt);stepWeak(dt);stepContract(dt);stepFish(dt);stepFly(dt);stepCrusher(dt);stepGeysers(dt);
   // nuvem
   if(S.up.nuvem){cloud.visible=true;cloudT+=1/60;const cx=Math.sin(cloudT*.21)*.55,cz=Math.cos(cloudT*.17)*.45;cloud.position.lerp(new THREE.Vector3(cx,RY0+GY*V+1.6,cz),.03);
     cloudAcc+=cloudRate(S.up.nuvem)*(1+pk('nuvem')*.5)/60;while(cloudAcc>=1){cloudAcc--;const p=new THREE.Vector3(cloud.position.x+(R()-.5)*.6,cloud.position.y-1.1,cloud.position.z+(R()-.5)*.4);
@@ -1529,7 +1593,8 @@ function offlineGains(){const away=(Date.now()-(S.t||Date.now()))/1000;const pas
   if(away<60||!passive||!(S.rate>0))return;const sec=Math.min(away,8*3600);const g=Math.round(sec*S.rate*Math.min(.5,.12+passive*.03)*(1+pk('offline')*.5)*(1+S.amber*.08));if(g<1)return;S.money+=g;S.total+=g;
   const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60);setTimeout(()=>toast('Enquanto você estava fora ('+(h?h+'h ':'')+m+'min)','Suas máquinas renderam +$'+fmt(g)),900);}
 setTimeout(()=>{offlineGains();applyGfx();newRock(false);buildShop();renderHotbar();rebuildTurrets();buildAqueduct();buildExtraSluices();syncFish();buildCrusher();ui();hideLoading();requestAnimationFrame(loop);},30);
-window.__dbg={scene,set rainbowT(v){rainbowT=v},valMult:()=>valMult(),get erosionMul(){return erosionMul},get st(){return S.st},get ach(){return S.ach},openPerks,tryCatchFly,fly,get flyTimer(){return flyTimer},set flyTimer(v){flyTimer=v},beam,wetData,wetTex,SHOP,buy,wash,costOf,maxed,avail,get simCost(){return simCost},meteorShower,rareVisitor,goldFlood,newRock,get rock(){return rockInfo},hold(v){down=v;},jetAt(x,y,z){aim=new THREE.Vector3(x,y,z);S.tool='jato';down=true;},panGrains:(x,y,z)=>panGrains(new THREE.Vector3(x,y,z)),startStorm,get cap(){return F.cap},aimAt(x,y,z){aim=new THREE.Vector3(x,y,z);},carve(x0,x1,y0,y1){for(let z=0;z<GZ;z++)for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const i=vid(x,y,z);if(vt[i])removeVoxel(i,x,y,z,false);}},frags,setTool,useTool,get aim(){return aim},set aim(v){aim=v},startDam,burstDam,get dam(){return dam},DBG,setRender(v){SIMONLY=!v;},cam:camera,ctl:controls,get frames(){return frames},F,S,rockInfo:()=>rockInfo,spawnDrop:(x,y,z,n,h)=>spawnDrop(new THREE.Vector3(x,y,z),n,h)};
+window.__rr=()=>{rerollContract();sfx.ping();};
+window.__dbg={get weak(){return weak},get boss(){return boss},spawnWeak,get ctr(){return S.ctr},newContract,ctrRate,set weakCD(v){weakCD=v},scene,set rainbowT(v){rainbowT=v},valMult:()=>valMult(),get erosionMul(){return erosionMul},get st(){return S.st},get ach(){return S.ach},openPerks,tryCatchFly,fly,get flyTimer(){return flyTimer},set flyTimer(v){flyTimer=v},beam,wetData,wetTex,SHOP,buy,wash,costOf,maxed,avail,get simCost(){return simCost},meteorShower,rareVisitor,goldFlood,newRock,get rock(){return rockInfo},hold(v){down=v;},jetAt(x,y,z){aim=new THREE.Vector3(x,y,z);S.tool='jato';down=true;},panGrains:(x,y,z)=>panGrains(new THREE.Vector3(x,y,z)),startStorm,get cap(){return F.cap},aimAt(x,y,z){aim=new THREE.Vector3(x,y,z);},carve(x0,x1,y0,y1){for(let z=0;z<GZ;z++)for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const i=vid(x,y,z);if(vt[i])removeVoxel(i,x,y,z,false);}},frags,setTool,useTool,get aim(){return aim},set aim(v){aim=v},startDam,burstDam,get dam(){return dam},DBG,setRender(v){SIMONLY=!v;},cam:camera,ctl:controls,get frames(){return frames},F,S,rockInfo:()=>rockInfo,spawnDrop:(x,y,z,n,h)=>spawnDrop(new THREE.Vector3(x,y,z),n,h)};
 addEventListener('visibilitychange',()=>{if(document.hidden){save();saveRockMask();}});addEventListener('beforeunload',()=>{save();saveRockMask();});
 </script>
 </body>

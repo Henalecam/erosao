@@ -96,6 +96,9 @@ As melhorias de água valem para todas as ferramentas:
 - **Coleção:** +6% de renda por tipo de objeto.
 - **Combo:** cresce com o tempo de erosão contínua, até ×3, com faixas Embalo → Fervendo → EM CHAMAS.
 - **Lavadora automática** (Garimpo, $6.000): lava a calha sozinha quando enche, por 85% do valor. Sem ela, um aviso sonoro avisa que a calha encheu.
+- **Pontos fracos:** rachaduras brilhantes surgem na rocha; acerte-as com qualquer arma para causar uma fratura grande, com bônus e combo.
+- **Encomendas:** depois do tutorial, pedidos infinitos (erodir blocos, liberar ouro, quebrar pontos fracos, lavar a calha…) com tempo limite; a cada 4 entregues, um perk novo. Dá para trocar a encomenda (⟳).
+- **Desafio do Monólito:** a cada 5 rochas, um monólito com faixas de ouro: quebre 6 pontos fracos em 90 s para derrubá-lo e ganhar uma grande recompensa e um perk.
 - **Loja:** destaca a próxima meta e mostra o tempo estimado (⏳) para cada compra.
 - **Sensação:** desabamentos grandes tremem a tela, um contador "+N" mostra os blocos erodidos, e a lavagem da calha conta o valor subindo, com uma cascata de moedas.
 - **Ganhos offline:** até 8 h, proporcionais às máquinas passivas.
